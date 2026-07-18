@@ -225,15 +225,15 @@ export default function RangePickerBooking() {
   const hasErrors = files.some((f) => f.status === "error");
 
   return (
-    <div className="w-[95%] max-w-[1800px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 xl:gap-8 items-stretch py-4">
+    <div className="w-[95%] max-w-[1800px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 xl:gap-8 items-stretch py-4 lg:h-full lg:min-h-0">
       
       {/* Left Box: Calendar & Queue List */}
-      <div className="lg:col-span-8 xl:col-span-8 bg-white p-6 md:p-8 rounded-[2rem] shadow-xl border border-slate-200 flex flex-col lg:flex-row gap-6 xl:gap-8 h-full">
+      <div className="lg:col-span-8 xl:col-span-8 bg-white p-6 md:p-8 rounded-[2rem] shadow-xl border border-slate-200 flex flex-col lg:flex-row gap-6 xl:gap-8 h-full lg:min-h-0">
         
         {/* Calendar Column */}
-        <div className="flex-1 flex flex-col h-full">
-        <h2 className="text-3xl font-extrabold text-slate-800 mb-2">จัดคิวงานที่ต้องการ</h2>
-        <p className="text-slate-500 text-base mb-6">เลือกวันที่ เวลา และประเภทงาน จากนั้นกด "เพิ่มลงคิว"</p>
+        <div className="flex-1 flex flex-col h-full lg:min-h-0 overflow-y-auto custom-scrollbar pr-2">
+        <h2 className="text-3xl font-extrabold text-slate-800 mb-2 flex-none">จัดคิวงานที่ต้องการ</h2>
+        <p className="text-slate-500 text-base mb-6 flex-none">เลือกวันที่ เวลา และประเภทงาน จากนั้นกด "เพิ่มลงคิว"</p>
         
         <div className="bg-slate-50 rounded-3xl p-5 border border-slate-200 flex flex-col items-center flex-1">
           <div className="overflow-x-auto w-full flex justify-center bg-white rounded-2xl p-4 shadow-sm border border-slate-100 mb-6">
@@ -306,8 +306,8 @@ export default function RangePickerBooking() {
       </div>
 
       {/* Queue Column */}
-      <div className="w-full lg:w-[300px] xl:w-[350px] 2xl:w-[400px] bg-slate-50 p-6 rounded-[1.5rem] border border-blue-100 flex flex-col h-full">
-          <h3 className="text-xl font-bold text-slate-800 mb-4 flex items-center justify-between">
+      <div className="w-full lg:w-[300px] xl:w-[350px] 2xl:w-[400px] bg-slate-50 p-6 rounded-[1.5rem] border border-blue-100 flex flex-col h-full lg:min-h-0">
+          <h3 className="text-xl font-bold text-slate-800 mb-4 flex items-center justify-between flex-none">
             <span className="flex items-center gap-2">
               รายการคิวงาน
             </span>
@@ -316,7 +316,7 @@ export default function RangePickerBooking() {
             </span>
           </h3>
           
-          <div className="flex-1">
+          <div className="flex-1 flex flex-col min-h-0">
             {bookingSlots.length === 0 ? (
               <div className="h-full min-h-[300px] bg-slate-50 border border-dashed border-slate-300 rounded-2xl p-6 flex flex-col items-center justify-center text-slate-400">
                 <CalendarDays className="w-10 h-10 mb-3 opacity-30" />
@@ -370,9 +370,9 @@ export default function RangePickerBooking() {
       </div>
 
       {/* Right Side: User Info Form */}
-      <div className="lg:col-span-4 xl:col-span-4 bg-white p-6 md:p-8 rounded-[2rem] shadow-xl border border-slate-200 h-full flex flex-col">
-        <h3 className="text-lg font-bold text-slate-900 mb-5">ข้อมูลติดต่อเพื่อยืนยัน</h3>
-          <form onSubmit={handleSubmit} className="space-y-4 flex flex-col flex-1">
+      <div className="lg:col-span-4 xl:col-span-4 bg-white p-6 md:p-8 rounded-[2rem] shadow-xl border border-slate-200 h-full flex flex-col min-h-0">
+        <h3 className="text-lg font-bold text-slate-900 mb-5 flex-none">ข้อมูลติดต่อเพื่อยืนยัน</h3>
+          <form onSubmit={handleSubmit} className="space-y-4 flex flex-col flex-1 overflow-y-auto pr-2 custom-scrollbar min-h-0">
             <div>
               <label className="block text-xs font-medium text-slate-700 mb-1">ชื่อผู้จอง <span className="text-red-500">*</span></label>
               <Input
