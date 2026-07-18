@@ -1,0 +1,320 @@
+"use client";
+
+import React, { useState, useEffect, useMemo, useRef } from "react";
+import { motion, useTransform, useSpring, useMotionValue, animate, AnimatePresence } from "framer-motion";
+
+export type AnimationPhase = "scatter" | "line" | "circle" | "arc";
+
+interface FlipCardProps {
+    src: string;
+    index: number;
+    total: number;
+    phase: AnimationPhase;
+    scatterPos: any;
+    containerSize: { width: number; height: number };
+    morphProgress: any;
+    scrollRotate: any;
+}
+
+const IMG_WIDTH = 75;  
+const IMG_HEIGHT = 106; 
+
+function FlipCard({ src, index, total, phase, scatterPos, containerSize, morphProgress, scrollRotate }: FlipCardProps) {
+    const isMobile = containerSize.width < 768;
+    const [spin, setSpin] = useState(0);
+
+    const transformValues = useTransform([morphProgress, scrollRotate], ([m, r]: any) => {
+        let target = { x: 0, y: 0, rotation: 0, scale: 1, opacity: 1 };
+        
+        if (phase === "scatter") {
+            target = scatterPos;
+        } else if (phase === "line") {
+            const lineSpacing = 70;
+            const lineTotalWidth = total * lineSpacing;
+            const lineX = index * lineSpacing - lineTotalWidth / 2;
+            target = { x: lineX, y: 0, rotation: 0, scale: 1, opacity: 1 };
+        } else {
+            const minDimension = Math.min(containerSize.width, containerSize.height);
+            const circleRadius = Math.min(minDimension * 0.35, 350);
+            const circleAngle = (index / total) * 360;
+            const circleRad = (circleAngle * Math.PI) / 180;
+            const circlePos = {
+                x: Math.cos(circleRad) * circleRadius,
+                y: Math.sin(circleRad) * circleRadius,
+                rotation: circleAngle + 90,
+            };
+
+            const radiusX = isMobile ? containerSize.width * 0.4 : containerSize.width * 0.25;
+            const radiusY = isMobile ? 60 : 100;
+            const step = 360 / total;
+            const currentAngle = (index * step) + r;
+            const rad = (currentAngle * Math.PI) / 180;
+            
+            const xPos = Math.sin(rad) * radiusX;
+            const zPos = Math.cos(rad);
+            const yPos = zPos * radiusY;
+            
+            const arcPos = {
+                x: xPos,
+                y: yPos + 100, // Move carousel higher up
+                rotation: xPos * 0.05,
+                scale: 1.3 + (zPos * 0.4),
+            };
+
+            target = {
+                x: circlePos.x * (1 - m) + arcPos.x * m,
+                y: circlePos.y * (1 - m) + arcPos.y * m,
+                rotation: circlePos.rotation * (1 - m) + arcPos.rotation * m,
+                scale: 1 * (1 - m) + arcPos.scale * m,
+                opacity: 1,
+            };
+        }
+        return target;
+    });
+
+    const x = useTransform(transformValues, (t: any) => t.x);
+    const y = useTransform(transformValues, (t: any) => t.y);
+    const rotate = useTransform(transformValues, (t: any) => t.rotation);
+    const scale = useTransform(transformValues, (t: any) => t.scale);
+    const opacity = useTransform(transformValues, (t: any) => t.opacity);
+    const zIndex = useTransform(scale, (s: any) => Math.round(s * 100));
+
+    return (
+        <motion.div
+            style={{
+                position: "absolute",
+                width: IMG_WIDTH,
+                height: IMG_HEIGHT,
+                x, y, rotate, scale, opacity, zIndex,
+            }}
+            className="cursor-pointer group"
+            onClick={() => setSpin(spin + 360)}
+        >
+            <motion.div
+                className="relative h-full w-full rounded-xl overflow-hidden shadow-lg border-2 border-transparent group-hover:border-white transition-colors"
+                animate={{ rotateY: spin }}
+                transition={{ duration: 0.6, type: "spring", stiffness: 260, damping: 20 }}
+            >
+                <img
+                    src={src}
+                    alt={`hero-${index}`}
+                    className="h-full w-full object-cover"
+                />
+                <div className="absolute inset-0 bg-black/10 transition-colors group-hover:bg-transparent" />
+            </motion.div>
+        </motion.div>
+    );
+}
+
+const TOTAL_IMAGES = 20;
+const MAX_SCROLL = 3000; 
+
+const IMAGES = [
+    "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=300&q=80",
+    "https://images.unsplash.com/photo-1519710164239-da123dc03ef4?w=300&q=80",
+    "https://images.unsplash.com/photo-1497366216548-37526070297c?w=300&q=80",
+    "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=300&q=80",
+    "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=300&q=80",
+    "https://images.unsplash.com/photo-1506765515384-028b60a970df?w=300&q=80",
+    "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=300&q=80",
+    "https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=300&q=80",
+    "https://images.unsplash.com/photo-1500485035595-cbe6f645feb1?w=300&q=80",
+    "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=300&q=80",
+    "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=300&q=80",
+    "https://images.unsplash.com/photo-1518020382113-a7e8fc38eac9?w=300&q=80",
+    "https://images.unsplash.com/photo-1465146344425-f00d5f5c8f07?w=300&q=80",
+    "https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?w=300&q=80",
+    "https://images.unsplash.com/photo-1493246507139-91e8fad9978e?w=300&q=80",
+    "https://images.unsplash.com/photo-1494438639946-1ebd1d20bf85?w=300&q=80",
+    "https://images.unsplash.com/photo-1483729558449-99ef09a8c325?w=300&q=80",
+    "https://images.unsplash.com/photo-1518173946687-a4c8892bbd9f?w=300&q=80",
+    "https://images.unsplash.com/photo-1523961131990-5ea7c61b2107?w=300&q=80",
+    "https://images.unsplash.com/photo-1496568816309-51d7c20e3b21?w=300&q=80",
+];
+
+const CAPTIONS = [
+    { title: "PCC Photo Club", subtitle: "ชมรมคนชอบลั่นชัตเตอร์แห่ง PCC" },
+    { title: "เรียนไม่ยุ่ง มุ่งแต่ถ่ายรูป!", subtitle: "เก็บทุกโมเมนต์ฮาๆ และความทรงจำสุดป่วน ฉบับเด็กมหา'ลัย" },
+    { title: "ตากล้องวัยรุ่น พลังล้นเหลือ", subtitle: "ภาพสวยถูกใจ ฟีลลิ่งได้ ในราคานักศึกษาสบายกระเป๋า" },
+    { title: "รับจบทุกงานกิจกรรม", subtitle: "ให้พวกเราช่วยบันทึกความทรงจำดีๆ ในงานของคุณนะ!" },
+    { title: "แสงสวย มุมเป๊ะ", subtitle: "เรื่องหามุมถ่ายรูป ขอให้ไว้ใจพวกเรา" },
+    { title: "ไม่ใช่แค่กดชัตเตอร์", subtitle: "แต่เราใส่ใจในทุกรายละเอียดของภาพที่คุณได้รับ" },
+    { title: "รูปคู่ รูปเดี่ยว รูปหมู่", subtitle: "จัดให้ได้หมดตามที่คุณสั่ง แค่บอกคอนเซปต์มา" },
+    { title: "สีสดใส มู้ดดีๆ", subtitle: "พร้อมแต่งภาพให้เสร็จสรรพ นำไปอัพลงโซเชียลต่อได้เลย" },
+    { title: "เพื่อนถ่ายให้ไม่ถูกใจ?", subtitle: "ลองให้ตากล้องประจำชมรมเราจัดให้สิ รับรองว่าปัง!" },
+    { title: "เก็บความประทับใจ", subtitle: "ในวันสำคัญของคุณ ด้วยรูปถ่ายคุณภาพจากฝีมือพวกเรา" }
+];
+
+const lerp = (start: number, end: number, t: number) => start * (1 - t) + end * t;
+
+export default function IntroAnimation({ images = [] }: { images?: any[] }) {
+    const [introPhase, setIntroPhase] = useState<AnimationPhase>("circle");
+    const [mounted, setMounted] = useState(false);
+    const [captionIndex, setCaptionIndex] = useState(0);
+    const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
+    const containerRef = useRef<HTMLDivElement>(null);
+    let displayImages = images.length > 0 ? images.map(img => img.thumbnailLink?.replace('=s220', '=s600') || "") : IMAGES;
+    
+    // The arc math is designed for exactly 20 images. If we have fewer, repeat them to fill the arc!
+    if (displayImages.length > 0 && displayImages.length < 20) {
+        const original = [...displayImages];
+        while (displayImages.length < 20) {
+            displayImages = [...displayImages, ...original];
+        }
+    }
+    displayImages = displayImages.slice(0, 20);
+    
+    const isMobileView = containerSize.width > 0 && containerSize.width < 768;
+    const currentTotal = isMobileView ? 10 : 20;
+    const activeImages = displayImages.slice(0, currentTotal);
+
+    useEffect(() => {
+        if (!containerRef.current) return;
+        const handleResize = (entries: ResizeObserverEntry[]) => {
+            for (const entry of entries) {
+                setContainerSize({
+                    width: entry.contentRect.width,
+                    height: entry.contentRect.height,
+                });
+            }
+        };
+        const observer = new ResizeObserver(handleResize);
+        observer.observe(containerRef.current);
+        setContainerSize({
+            width: containerRef.current.offsetWidth,
+            height: containerRef.current.offsetHeight,
+        });
+        return () => observer.disconnect();
+    }, []);
+
+    const morphProgress = useMotionValue(0);
+    const scrollRotate = useMotionValue(0);
+    const smoothMorph = useSpring(morphProgress, { stiffness: 40, damping: 20 });
+    const smoothScrollRotate = useSpring(scrollRotate, { stiffness: 40, damping: 20 });
+    const mouseX = useMotionValue(0);
+    const smoothMouseX = useSpring(mouseX, { stiffness: 30, damping: 20 });
+
+    useEffect(() => {
+        const container = containerRef.current;
+        if (!container) return;
+        const handleMouseMove = (e: MouseEvent) => {
+            const rect = container.getBoundingClientRect();
+            const relativeX = e.clientX - rect.left;
+            const normalizedX = (relativeX / rect.width) * 2 - 1;
+            mouseX.set(normalizedX * 100);
+        };
+        container.addEventListener("mousemove", handleMouseMove);
+        return () => container.removeEventListener("mousemove", handleMouseMove);
+    }, [mouseX]);
+
+    useEffect(() => {
+        setMounted(true);
+        const timer3 = setTimeout(() => {
+            setIntroPhase("arc");
+            animate(morphProgress, 1, { duration: 1.5, ease: "easeInOut" });
+            animate(scrollRotate, 360, { duration: 40, repeat: Infinity, ease: "linear" });
+        }, 1000);
+        return () => { clearTimeout(timer3); };
+    }, [morphProgress, scrollRotate]);
+
+    // Caption Rotation
+    useEffect(() => {
+        if (!mounted) return;
+        const delay = captionIndex === 0 ? 10000 : 4000;
+        const timer = setTimeout(() => {
+            setCaptionIndex((prev) => (prev + 1) % CAPTIONS.length);
+        }, delay);
+        return () => clearTimeout(timer);
+    }, [mounted, captionIndex]);
+
+    // Use deterministic pseudo-random to prevent React hydration mismatch between Server and Client
+    const [scatterPositions] = useState(() =>
+        Array.from({ length: 20 }).map((_, i) => {
+            const pseudoRandom = (seed: number) => {
+                const x = Math.sin(seed) * 10000;
+                return x - Math.floor(x);
+            };
+            return {
+                x: Math.round((pseudoRandom(i * 3 + 1) - 0.5) * 1500 * 100) / 100,
+                y: Math.round((pseudoRandom(i * 3 + 2) - 0.5) * 1000 * 100) / 100,
+                rotation: Math.round((pseudoRandom(i * 3 + 3) - 0.5) * 180 * 100) / 100,
+                scale: 0.6,
+                opacity: 0,
+            };
+        })
+    );
+
+    // Removed local state morphValue and rotateValue for performance
+
+    const contentOpacity = useTransform(smoothMorph, [0.8, 1], [0, 1]);
+    const contentY = useTransform(smoothMorph, [0.8, 1], [20, 0]);
+
+    return (
+        <motion.div 
+            ref={containerRef} 
+            className="relative w-full h-full bg-transparent overflow-hidden"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: mounted ? 1 : 0 }}
+            transition={{ duration: 0.8 }}
+        >
+            <div className="flex h-full w-full flex-col items-center justify-center perspective-1000">
+
+                <motion.div
+                    style={{ opacity: contentOpacity, y: contentY }}
+                    className="absolute top-[10%] z-10 flex flex-col items-center justify-center text-center pointer-events-none px-4 min-h-[120px]"
+                >
+                    <AnimatePresence mode="wait">
+                        <motion.div
+                            key={captionIndex}
+                            initial={{ opacity: 0, y: 15, filter: "blur(4px)" }}
+                            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                            exit={{ opacity: 0, y: -15, filter: "blur(4px)" }}
+                            transition={{ duration: 0.8, ease: "easeInOut" }}
+                            className="flex flex-col items-center"
+                        >
+                            <h2 className="text-3xl md:text-5xl font-semibold text-gray-900 tracking-tight mb-4">
+                                {CAPTIONS[captionIndex].title}
+                            </h2>
+                            <p className="text-sm md:text-base text-gray-600 max-w-lg leading-relaxed">
+                                {CAPTIONS[captionIndex].subtitle}
+                            </p>
+                        </motion.div>
+                    </AnimatePresence>
+                </motion.div>
+                <div className="relative flex items-center justify-center w-full h-full">
+                    {/* Center Logo with 3D depth effect (cards will pass in front and behind it) */}
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 1.5, delay: 1, ease: "easeOut" }}
+                        className="absolute pointer-events-none drop-shadow-2xl"
+                        style={{ 
+                            zIndex: 130, // Midway between back cards (90) and front cards (170)
+                            y: 0,       // Matches the carousel center yPos (moved up)
+                        }}
+                    >
+                        <img 
+                            src="/PCC%20Photo%20Club.webp" 
+                            alt="PCC Photo Club Logo" 
+                            className="w-48 md:w-64 h-auto"
+                        />
+                    </motion.div>
+
+                    {activeImages.map((src, i) => (
+                        <FlipCard
+                            key={i}
+                            src={src}
+                            index={i}
+                            total={currentTotal}
+                            phase={introPhase} 
+                            scatterPos={scatterPositions[i]}
+                            containerSize={containerSize}
+                            morphProgress={smoothMorph}
+                            scrollRotate={smoothScrollRotate}
+                        />
+                    ))}
+                </div>
+            </div>
+        </motion.div>
+    );
+}

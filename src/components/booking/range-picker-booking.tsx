@@ -1,0 +1,494 @@
+"use client";
+
+import React, { useState } from "react";
+import { format, addDays, eachDayOfInterval, startOfDay } from "date-fns";
+import { th } from "date-fns/locale";
+import { DateRange } from "react-day-picker";
+import { Calendar } from "@/components/ui/calendar";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { TimePicker } from "@/components/ui/time-picker";
+import { Check, Plus, Trash2, CalendarDays, UploadCloud, CheckCircle2, Loader2, X } from "lucide-react";
+import imageCompression from "browser-image-compression";
+
+interface BookingSlot {
+  id: string;
+  from: Date;
+  to: Date | undefined;
+  start: string;
+  end: string;
+  services: string[];
+}
+
+type UploadFile = {
+  id: string;
+  name: string;
+  originalFile: File;
+  status: "compressing" | "uploading" | "success" | "error";
+  url?: string;
+  errorMsg?: string;
+};
+
+const SERVICE_OPTIONS = ["ถ่ายรูป", "วิดีโอ", "ไลฟ์สตรีม"];
+
+export default function RangePickerBooking() {
+  const [date, setDate] = useState<DateRange | undefined>();
+  const [tempTime, setTempTime] = useState({ start: "09:00", end: "17:00" });
+  const [tempServices, setTempServices] = useState<string[]>(["ถ่ายรูป"]);
+  const [bookingSlots, setBookingSlots] = useState<BookingSlot[]>([]);
+
+  // Calculate disabled dates
+  const disabledDates = [
+    { before: startOfDay(addDays(new Date(), 3)) },
+    ...bookingSlots.flatMap((slot) => {
+      try {
+        return eachDayOfInterval({
+          start: slot.from,
+          end: slot.to || slot.from,
+        });
+      } catch (e) {
+        return [slot.from];
+      }
+    }),
+  ];
+
+  const [formData, setFormData] = useState({
+    bookerName: "",
+    eventName: "",
+    phone: "",
+    contact: "",
+    notes: "",
+  });
+
+  const [files, setFiles] = useState<UploadFile[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const toggleTempService = (service: string) => {
+    setTempServices((prev) =>
+      prev.includes(service)
+        ? prev.filter((s) => s !== service)
+        : [...prev, service]
+    );
+  };
+
+  const handleAddSlot = () => {
+    if (!date?.from) {
+      alert("กรุณาเลือกวันที่บนปฏิทิน");
+      return;
+    }
+    if (tempServices.length === 0) {
+      alert("กรุณาเลือกประเภทงานอย่างน้อย 1 อย่าง");
+      return;
+    }
+    const newSlot: BookingSlot = {
+      id: Math.random().toString(36).substring(2, 9),
+      from: date.from,
+      to: date.to,
+      start: tempTime.start,
+      end: tempTime.end,
+      services: [...tempServices],
+    };
+    setBookingSlots([...bookingSlots, newSlot]);
+    setDate(undefined);
+  };
+
+  const handleRemoveSlot = (id: string) => {
+    setBookingSlots(bookingSlots.filter(s => s.id !== id));
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files) return;
+    const selectedFiles = Array.from(e.target.files);
+    
+    if (files.length + selectedFiles.length > 5) {
+      alert("คุณสามารถอัปโหลดไฟล์ได้สูงสุด 5 ไฟล์เท่านั้น");
+      return;
+    }
+
+    const newUploads = selectedFiles.map((file) => ({
+      id: Math.random().toString(36).substring(7),
+      name: file.name,
+      originalFile: file,
+      status: "compressing" as const,
+    }));
+
+    setFiles((prev) => [...prev, ...newUploads]);
+
+    for (const uploadItem of newUploads) {
+      try {
+        let fileToUpload = uploadItem.originalFile;
+
+        if (fileToUpload.type.startsWith("image/")) {
+          const options = { maxSizeMB: 1, maxWidthOrHeight: 1920, useWebWorker: true };
+          fileToUpload = await imageCompression(fileToUpload, options);
+        }
+
+        setFiles((prev) =>
+          prev.map((f) => (f.id === uploadItem.id ? { ...f, status: "uploading" } : f))
+        );
+
+        const uploadFormData = new FormData();
+        uploadFormData.append("file", fileToUpload);
+
+        const response = await fetch("/api/upload", {
+          method: "POST",
+          body: uploadFormData,
+        });
+
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+          setFiles((prev) =>
+            prev.map((f) => (f.id === uploadItem.id ? { ...f, status: "success", url: data.url } : f))
+          );
+        } else {
+          throw new Error(data.error || "Upload failed");
+        }
+      } catch (error: any) {
+        setFiles((prev) =>
+          prev.map((f) => (f.id === uploadItem.id ? { ...f, status: "error", errorMsg: error.message } : f))
+        );
+      }
+    }
+    
+    e.target.value = '';
+  };
+
+  const removeFile = (id: string) => {
+    setFiles((prev) => prev.filter((f) => f.id !== id));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (bookingSlots.length === 0) {
+      alert("กรุณาเพิ่มคิวงานอย่างน้อย 1 รายการลงในรายการคิวงาน");
+      return;
+    }
+
+    const isUploading = files.some((f) => f.status === "compressing" || f.status === "uploading");
+    if (isUploading) {
+      alert("กรุณารอให้อัปโหลดไฟล์เสร็จสิ้นก่อนกดยืนยัน");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const driveLinks = files
+        .filter(f => f.status === "success" && f.url)
+        .map(f => f.url)
+        .join(", ");
+
+      const slotsStr = bookingSlots
+        .map((s) => {
+          const dateStr = s.to
+            ? `${format(s.from, "dd MMM", { locale: th })} - ${format(s.to, "dd MMM", { locale: th })}`
+            : format(s.from, "dd MMM", { locale: th });
+          return `- ${dateStr} (${s.start}-${s.end} น.) [${s.services.join(", ")}]`;
+        })
+        .join("\n");
+
+      // API expects name, phone, contact, date, serviceType, notes, driveLink
+      const payload = {
+        name: `${formData.bookerName} - ${formData.eventName}`,
+        phone: formData.phone || "-", // Provide default if empty
+        contact: formData.contact,
+        date: bookingSlots.map(s => format(s.from, "yyyy-MM-dd")).join(", "),
+        serviceType: bookingSlots.map(s => s.services.join(", ")).join(" | "),
+        notes: `คิวงานทั้งหมด:\n${slotsStr}\n\nรายละเอียดเพิ่มเติม:\n${formData.notes}`,
+        driveLink: driveLinks,
+      };
+
+      const response = await fetch("/api/bookings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (response.ok) {
+        alert(`การจองคิวสำเร็จ!\nชื่อ: ${formData.bookerName}\nคิวงานทั้งหมด:\n${slotsStr}`);
+        setFormData({ bookerName: "", eventName: "", phone: "", contact: "", notes: "" });
+        setBookingSlots([]);
+        setFiles([]);
+      } else {
+        alert("เกิดข้อผิดพลาดในการจองคิว โปรดลองอีกครั้ง");
+      }
+    } catch (error) {
+      console.error(error);
+      alert("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const isUploading = files.some((f) => f.status === "compressing" || f.status === "uploading");
+  const hasErrors = files.some((f) => f.status === "error");
+
+  return (
+    <div className="w-[95%] max-w-[1800px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 xl:gap-8 items-stretch py-4">
+      
+      {/* Left Box: Calendar & Queue List */}
+      <div className="lg:col-span-8 xl:col-span-8 bg-white p-6 md:p-8 rounded-[2rem] shadow-xl border border-slate-200 flex flex-col lg:flex-row gap-6 xl:gap-8 h-full">
+        
+        {/* Calendar Column */}
+        <div className="flex-1 flex flex-col h-full">
+        <h2 className="text-3xl font-extrabold text-slate-800 mb-2">จัดคิวงานที่ต้องการ</h2>
+        <p className="text-slate-500 text-base mb-6">เลือกวันที่ เวลา และประเภทงาน จากนั้นกด "เพิ่มลงคิว"</p>
+        
+        <div className="bg-slate-50 rounded-3xl p-5 border border-slate-200 flex flex-col items-center flex-1">
+          <div className="overflow-x-auto w-full flex justify-center bg-white rounded-2xl p-4 shadow-sm border border-slate-100 mb-6">
+            <Calendar
+              mode="range"
+              defaultMonth={addDays(new Date(), 3)}
+              selected={date}
+              onSelect={setDate}
+              numberOfMonths={1}
+              locale={th}
+              disabled={disabledDates}
+              fixedWeeks={true}
+              className="p-2 bg-transparent [--cell-size:2.5rem] md:[--cell-size:3.5rem] [&_.rdp-caption_label]:text-lg [&_.rdp-weekday]:text-sm [&_.rdp-day_today]:bg-blue-50 [&_.rdp-day_today]:text-blue-600 [&_.rdp-day_today]:font-bold [&_.rdp-day_today]:border [&_.rdp-day_today]:border-blue-200"
+            />
+          </div>
+          
+          <div className="w-full space-y-5">
+            <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col sm:flex-row items-center gap-4 justify-between">
+              <span className="font-semibold text-slate-700 whitespace-nowrap">เวลาทำงาน</span>
+              <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full sm:w-auto justify-center sm:justify-end">
+                <TimePicker
+                  value={tempTime.start}
+                  onChange={(val) => setTempTime({ ...tempTime, start: val })}
+                  label="เริ่ม"
+                />
+                <span className="text-slate-400 font-medium">-</span>
+                <TimePicker
+                  value={tempTime.end}
+                  onChange={(val) => setTempTime({ ...tempTime, end: val })}
+                  label="จบ"
+                />
+              </div>
+            </div>
+
+            <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+              <span className="block font-semibold text-slate-700 mb-3">ประเภทงานสำหรับคิวนี้ <span className="text-red-500">*</span></span>
+              <div className="flex flex-wrap gap-2">
+                {SERVICE_OPTIONS.map((service) => {
+                  const isSelected = tempServices.includes(service);
+                  return (
+                    <button
+                      key={service}
+                      type="button"
+                      onClick={() => toggleTempService(service)}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-xl border font-medium transition-all text-sm ${
+                        isSelected 
+                          ? "bg-blue-50 border-blue-500 text-blue-700 shadow-sm" 
+                          : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
+                      }`}
+                    >
+                      {isSelected && <Check className="w-4 h-4" />}
+                      {service}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            
+            <Button 
+              type="button" 
+              onClick={handleAddSlot}
+              disabled={!date?.from || tempServices.length === 0}
+              className="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold h-12 rounded-xl flex items-center gap-2 transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed mt-auto"
+            >
+              <Plus className="w-5 h-5" />
+              เพิ่มลงรายการคิวงาน
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Queue Column */}
+      <div className="w-full lg:w-[300px] xl:w-[350px] 2xl:w-[400px] bg-slate-50 p-6 rounded-[1.5rem] border border-blue-100 flex flex-col h-full">
+          <h3 className="text-xl font-bold text-slate-800 mb-4 flex items-center justify-between">
+            <span className="flex items-center gap-2">
+              รายการคิวงาน
+            </span>
+            <span className="bg-blue-100 text-blue-700 text-sm py-1 px-3 rounded-full font-bold">
+              {bookingSlots.length} รายการ
+            </span>
+          </h3>
+          
+          <div className="flex-1">
+            {bookingSlots.length === 0 ? (
+              <div className="h-full min-h-[300px] bg-slate-50 border border-dashed border-slate-300 rounded-2xl p-6 flex flex-col items-center justify-center text-slate-400">
+                <CalendarDays className="w-10 h-10 mb-3 opacity-30" />
+                <p className="text-sm font-medium">ยังไม่มีคิวงานที่เลือก</p>
+                <p className="text-xs mt-1 text-center">จัดคิวงานฝั่งซ้ายแล้วกดเพิ่มลงรายการ</p>
+              </div>
+            ) : (
+              <div className="space-y-3 h-full overflow-y-auto pr-2 custom-scrollbar">
+                {bookingSlots.map((slot, index) => {
+                  const dateText = slot.to 
+                    ? `${format(slot.from, "dd MMM", { locale: th })} - ${format(slot.to, "dd MMM", { locale: th })}`
+                    : format(slot.from, "dd MMM yyyy", { locale: th });
+                    
+                  return (
+                    <div key={slot.id} className="relative flex flex-col bg-slate-50 border border-slate-200 p-4 rounded-xl group transition-all hover:border-blue-300 hover:shadow-sm">
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="font-bold text-slate-800 text-sm flex items-center gap-2">
+                          <span className="bg-slate-200 text-slate-600 text-[10px] w-4 h-4 flex items-center justify-center rounded-full">
+                            {index + 1}
+                          </span>
+                          {dateText}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveSlot(slot.id)}
+                          className="text-slate-400 hover:text-red-500 transition-colors"
+                          title="ลบคิวนี้"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                      
+                      <div className="text-slate-600 text-xs font-medium pl-6 mb-2">
+                        เวลา: {slot.start} น. - {slot.end} น.
+                      </div>
+                      
+                      <div className="pl-6 flex flex-wrap gap-1.5">
+                        {slot.services.map(srv => (
+                          <span key={slot.id + srv} className="bg-blue-100 text-blue-700 text-[10px] px-2 py-0.5 rounded-md font-semibold">
+                            {srv}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Right Side: User Info Form */}
+      <div className="lg:col-span-4 xl:col-span-4 bg-white p-6 md:p-8 rounded-[2rem] shadow-xl border border-slate-200 h-full flex flex-col">
+        <h3 className="text-lg font-bold text-slate-900 mb-5">ข้อมูลติดต่อเพื่อยืนยัน</h3>
+          <form onSubmit={handleSubmit} className="space-y-4 flex flex-col flex-1">
+            <div>
+              <label className="block text-xs font-medium text-slate-700 mb-1">ชื่อผู้จอง <span className="text-red-500">*</span></label>
+              <Input
+                required
+                value={formData.bookerName}
+                onChange={(e) => setFormData({ ...formData, bookerName: e.target.value })}
+                className="bg-slate-50 border-slate-200 text-sm h-10 rounded-xl"
+                placeholder="เช่น องค์การนักศึกษา, ชมรมดนตรี"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-slate-700 mb-1">ชื่องาน <span className="text-red-500">*</span></label>
+              <Input
+                required
+                value={formData.eventName}
+                onChange={(e) => setFormData({ ...formData, eventName: e.target.value })}
+                className="bg-slate-50 border-slate-200 text-sm h-10 rounded-xl"
+                placeholder="เช่น กิจกรรมรับน้อง, งานปัจฉิมนิเทศ"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-slate-700 mb-1">เบอร์โทรศัพท์ <span className="text-red-500">*</span></label>
+              <Input
+                required
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                className="bg-slate-50 border-slate-200 text-sm h-10 rounded-xl"
+                placeholder="08x-xxx-xxxx"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-slate-700 mb-1">ช่องทางติดต่ออื่น (Line/IG) <span className="text-red-500">*</span></label>
+              <Input
+                required
+                value={formData.contact}
+                onChange={(e) => setFormData({ ...formData, contact: e.target.value })}
+                className="bg-slate-50 border-slate-200 text-sm h-10 rounded-xl"
+                placeholder="@line_id, IG"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-slate-700 mb-1">อัปโหลดไฟล์อ้างอิง (สูงสุด 5 ไฟล์)</label>
+              <div className="flex items-center gap-2">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => document.getElementById("file-upload")?.click()}
+                  disabled={files.length >= 5}
+                  className="w-full bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl border-dashed border-2 h-12"
+                >
+                  <UploadCloud className="w-5 h-5 mr-2 text-slate-400" />
+                  เพิ่มรูปภาพหรือ PDF
+                </Button>
+                <Input
+                  id="file-upload"
+                  type="file"
+                  multiple
+                  accept="image/*,.pdf"
+                  className="hidden"
+                  onChange={handleFileChange}
+                  disabled={files.length >= 5}
+                />
+              </div>
+              
+              {files.length > 0 && (
+                <div className="mt-3 space-y-2 max-h-40 overflow-y-auto custom-scrollbar">
+                  {files.map((f) => (
+                    <div key={f.id} className="flex items-center justify-between p-2.5 text-sm border border-slate-100 rounded-lg bg-slate-50 shadow-sm">
+                      <span className="truncate max-w-[150px] font-medium text-slate-700">{f.name}</span>
+                      <div className="flex items-center gap-3">
+                        {f.status === "compressing" && <span className="flex items-center text-xs text-orange-500 font-medium"><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> บีบอัด...</span>}
+                        {f.status === "uploading" && <span className="flex items-center text-xs text-blue-500 font-medium"><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> อัปโหลด...</span>}
+                        {f.status === "success" && <span className="flex items-center text-xs text-green-600 font-bold"><CheckCircle2 className="w-4 h-4 mr-1.5" /> สำเร็จ</span>}
+                        {f.status === "error" && <span className="text-xs text-red-500 font-medium" title={f.errorMsg}>ล้มเหลว</span>}
+                        
+                        <button type="button" onClick={() => removeFile(f.id)} className="text-slate-400 hover:text-red-500 transition-colors p-1">
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-slate-700 mb-1">รายละเอียดเพิ่มเติม</label>
+              <textarea
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                className="flex w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none min-h-[80px]"
+                placeholder="สถานที่จัดงาน, บรีฟงานเบื้องต้น เช่น ลานกิจกรรมตึกกิจกรรมนักศึกษา..."
+              />
+            </div>
+
+            <div className="pt-4 mt-auto">
+              <Button 
+                type="submit" 
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold h-14 text-lg rounded-xl shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={bookingSlots.length === 0 || loading || isUploading || hasErrors}
+              >
+                {loading ? (
+                  <span className="flex items-center"><Loader2 className="w-5 h-5 mr-2 animate-spin" /> กำลังส่งข้อมูล...</span>
+                ) : isUploading ? (
+                  <span className="flex items-center"><Loader2 className="w-5 h-5 mr-2 animate-spin" /> รออัปโหลดไฟล์...</span>
+                ) : (
+                  "ยืนยันการจองคิว"
+                )}
+              </Button>
+            </div>
+          </form>
+        </div>
+    </div>
+  );
+}
