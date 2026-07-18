@@ -1,5 +1,6 @@
 import { google } from "googleapis";
 import path from "path";
+import fs from "fs";
 
 // Define the scopes for Google Drive
 const SCOPES = ["https://www.googleapis.com/auth/drive"];
@@ -22,13 +23,20 @@ export async function getGoogleDriveClient() {
       },
       scopes: SCOPES,
     });
-  } else {
-    // Fallback to local keyfile
-    auth = new google.auth.GoogleAuth({
-      keyFile: KEYFILE_PATH,
-      scopes: SCOPES,
-    });
+    // Fallback to local keyfile only if we are in development or if the file exists
+    // (To prevent Vercel builds from crashing if env vars are missing)
+    if (fs.existsSync(KEYFILE_PATH)) {
+      auth = new google.auth.GoogleAuth({
+        keyFile: KEYFILE_PATH,
+        scopes: SCOPES,
+      });
+    } else {
+      console.warn("No Google Drive credentials found! Returning null client.");
+      return null;
+    }
   }
+
+  if (!auth) return null;
 
   const client = await auth.getClient();
   return google.drive({ version: "v3", auth: client as any });
@@ -39,6 +47,7 @@ export async function getGoogleDriveClient() {
  */
 export async function getGalleryImages(folderName = "Gallery_Images") {
   const drive = await getGoogleDriveClient();
+  if (!drive) return [];
   try {
     // Find the folder ID first
     const folderRes = await drive.files.list({
