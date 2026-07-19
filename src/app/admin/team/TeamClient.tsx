@@ -281,7 +281,13 @@ export default function TeamClient() {
                 )}
                 
                 {imageSrc && (
-                  <div className="mt-3">
+                  <div className="mt-3 border rounded-xl p-4 bg-slate-50">
+                    <div className="flex justify-between items-center mb-3">
+                      <span className="text-sm font-semibold text-slate-700">Crop Image</span>
+                      <Button variant="outline" size="sm" onClick={() => setImageSrc(null)} className="text-red-500 hover:text-red-600 hover:bg-red-50 border-red-200">
+                        ยกเลิกรูปที่เลือก
+                      </Button>
+                    </div>
                     <div className="relative h-[300px] sm:h-[400px] w-full bg-slate-900 rounded-xl overflow-hidden shadow-inner">
                       <Cropper
                         image={imageSrc}

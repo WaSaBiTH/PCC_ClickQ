@@ -125,6 +125,7 @@ function FlipCard({ src, index, total, phase, scatterPos, containerSize, morphPr
                 width: IMG_WIDTH,
                 height: IMG_HEIGHT,
                 x, y, rotate, scale, opacity, zIndex,
+                willChange: "transform",
             }}
             className="cursor-pointer group"
             onClick={() => setSpin(spin + 360)}
@@ -158,7 +159,7 @@ function FlipCard({ src, index, total, phase, scatterPos, containerSize, morphPr
                             onImageLoad?.();
                         }
                     }}
-                    className={`h-full w-full object-cover transition-all duration-700 brightness-[1.02] contrast-[1.1] group-hover:brightness-110 group-hover:scale-105 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
+                    className={`h-full w-full object-cover transition-transform duration-700 group-hover:scale-105 will-change-transform ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
                 />
             </motion.div>
         </motion.div>
@@ -341,14 +342,14 @@ export default function IntroAnimation({ images = [] }: { images?: any[] }) {
                 {!isFullyLoaded && mounted && (
                     <motion.div 
                         initial={{ opacity: 1 }}
-                        exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
+                        exit={{ opacity: 0 }}
                         transition={{ duration: 0.8 }}
-                        className="absolute inset-0 z-[200] bg-slate-100/60 backdrop-blur-xl"
+                        className="absolute inset-0 z-[200] bg-slate-100/90"
                     />
                 )}
             </AnimatePresence>
             
-            <div className={`flex h-full w-full flex-col items-center justify-center perspective-1000 transition-all duration-1000 ${isFullyLoaded ? 'blur-0 scale-100' : 'blur-md scale-105'}`}>
+            <div className={`flex h-full w-full flex-col items-center justify-center perspective-1000 transition-all duration-1000 ${isFullyLoaded ? 'scale-100 opacity-100' : 'scale-105 opacity-0'}`}>
 
                 <motion.div
                     style={{ opacity: contentOpacity, y: contentY }}
@@ -357,9 +358,9 @@ export default function IntroAnimation({ images = [] }: { images?: any[] }) {
                     <AnimatePresence mode="wait">
                         <motion.div
                             key={captionIndex}
-                            initial={{ opacity: 0, y: 15, filter: "blur(4px)" }}
-                            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                            exit={{ opacity: 0, y: -15, filter: "blur(4px)" }}
+                            initial={{ opacity: 0, y: 15 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -15 }}
                             transition={{ duration: 0.8, ease: "easeInOut" }}
                             className="flex flex-col items-center"
                         >

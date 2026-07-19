@@ -15,6 +15,7 @@ interface HomeLayoutProps {
 
 export default function HomeLayout({ heroSection, teamSection, fbLink, igLink }: HomeLayoutProps) {
   const [activeSection, setActiveSection] = useState<"hero" | "team">("hero");
+  const [isNavVisible, setIsNavVisible] = useState(true);
 
   return (
     <main className="h-[100svh] w-full bg-slate-100 text-slate-900 overflow-hidden relative">
@@ -28,7 +29,7 @@ export default function HomeLayout({ heroSection, teamSection, fbLink, igLink }:
             >
               <span className="hidden md:inline text-slate-900">PhotoClubClickQ</span>
             </div>
-            <div className="fixed bottom-20 left-1/2 -translate-x-1/2 md:static md:translate-x-0 flex items-center gap-4 md:gap-3 z-50">
+            <div className={`fixed bottom-20 left-1/2 -translate-x-1/2 md:static md:translate-x-0 items-center gap-4 md:gap-3 z-50 transition-opacity duration-300 ${activeSection === 'team' ? 'opacity-0 pointer-events-none md:opacity-100 md:pointer-events-auto flex' : 'opacity-100 flex'}`}>
               {igLink && (
                 <a href={igLink} target="_blank" rel="noreferrer" className="flex items-center justify-center w-10 h-10 md:w-auto md:h-auto md:bg-transparent rounded-full bg-white/30 backdrop-blur-md border border-white/40 shadow-[0_4px_12px_rgba(0,0,0,0.1)] md:border-none md:shadow-none md:backdrop-blur-none text-pink-500 md:text-slate-500 md:hover:text-pink-500 hover:bg-white/50 md:hover:bg-transparent transition-all" title="Instagram">
                   <Instagram className="h-5 w-5" />
@@ -64,8 +65,20 @@ export default function HomeLayout({ heroSection, teamSection, fbLink, igLink }:
       </nav>
 
       {/* Mobile Bottom Navigation (Sticky) */}
-      <nav className="md:hidden fixed bottom-0 w-full z-50 bg-white border-t pb-safe shadow-[0_-5px_15px_-5px_rgba(0,0,0,0.1)]">
-        <div className="flex items-center justify-around h-16 px-2">
+      <nav className={`md:hidden fixed bottom-0 w-full z-50 transition-transform duration-300 ease-in-out ${isNavVisible ? 'translate-y-0' : 'translate-y-full'}`}>
+        {/* Toggle Button */}
+        <button 
+          onClick={() => setIsNavVisible(!isNavVisible)}
+          className="absolute -top-7 left-1/2 -translate-x-1/2 bg-white border border-slate-200 border-b-0 rounded-t-xl px-6 py-1.5 text-slate-500 shadow-[0_-4px_6px_rgba(0,0,0,0.05)] flex items-center justify-center z-10"
+          aria-label="Toggle Navigation"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform duration-300 ${!isNavVisible ? 'rotate-180 -translate-y-0.5' : 'translate-y-0.5'}`}>
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
+        </button>
+        
+        <div className="bg-white border-t pb-safe shadow-[0_-5px_15px_-5px_rgba(0,0,0,0.1)] relative z-20">
+          <div className="flex items-center justify-around h-16 px-2">
           <button onClick={() => setActiveSection("hero")} className={`flex flex-col items-center justify-center w-full h-full space-y-1 ${activeSection === "hero" ? "text-orange-500" : "text-slate-500"}`}>
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
             <span className="text-[10px] font-medium">หน้าแรก</span>
@@ -89,6 +102,7 @@ export default function HomeLayout({ heroSection, teamSection, fbLink, igLink }:
             <span className="text-[10px] font-medium text-orange-500">จองคิว</span>
           </Link>
         </div>
+        </div>
       </nav>
 
       {/* Hidden Management Login Button */}
@@ -102,7 +116,7 @@ export default function HomeLayout({ heroSection, teamSection, fbLink, igLink }:
 
       {/* Sliding Wrapper - Handles the locked full-page transitions */}
       <div 
-        className="h-full w-full transition-transform duration-1000 ease-[cubic-bezier(0.22,1,0.36,1)]"
+        className="h-full w-full transition-transform duration-1000 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform"
         style={{ transform: activeSection === "team" ? "translateY(-100svh)" : "translateY(0)" }}
       >
         {/* Section 1: Hero */}
@@ -111,7 +125,10 @@ export default function HomeLayout({ heroSection, teamSection, fbLink, igLink }:
         </div>
 
         {/* Section 2: Team */}
-        <div className="h-[100svh] w-full bg-slate-100 text-slate-900 pt-8 md:pt-16 pb-0 flex flex-col justify-start relative overflow-y-auto">
+        <div 
+          className="h-[100svh] w-full bg-slate-100 text-slate-900 pt-8 md:pt-16 pb-0 flex flex-col justify-start relative overflow-y-auto"
+          style={{ WebkitOverflowScrolling: 'touch' }}
+        >
           {teamSection}
         </div>
       </div>

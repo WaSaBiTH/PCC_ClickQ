@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { format } from "date-fns";
 import { AlertCircle } from "lucide-react";
+import MobileNavWrapper from "@/components/mobile-nav-wrapper";
 
 export const revalidate = 60; // Cache for 60 seconds
 
@@ -93,7 +94,7 @@ export default async function GalleryPage() {
       </nav>
 
       {/* Mobile Bottom Navigation (Sticky) */}
-      <nav className="md:hidden fixed bottom-0 w-full z-50 bg-white border-t pb-safe">
+      <MobileNavWrapper>
         <div className="flex items-center justify-around h-16 px-2">
           <Link href="/" className="flex flex-col items-center justify-center w-full h-full space-y-1 text-slate-500">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
@@ -118,7 +119,7 @@ export default async function GalleryPage() {
             <span className="text-[10px] font-medium text-orange-500">จองคิว</span>
           </Link>
         </div>
-      </nav>
+      </MobileNavWrapper>
 
       {/* Main Content */}
       <main className="container mx-auto px-4 pt-24 pb-8 md:pt-32 md:pb-24">
