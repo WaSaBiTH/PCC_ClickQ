@@ -25,10 +25,9 @@ export default function LoginPage() {
       });
 
       if (res.ok) {
-        router.refresh(); // Clear client-side router cache so it sees the new cookie
-        setTimeout(() => {
-          router.push("/admin/dashboard");
-        }, 100);
+        // Use a hard navigation to avoid client-side router transition getting stuck
+        // if the target server component takes a while to load or fails.
+        window.location.href = "/admin/dashboard";
       } else {
         setError("Invalid username or password");
         setIsLoading(false);
