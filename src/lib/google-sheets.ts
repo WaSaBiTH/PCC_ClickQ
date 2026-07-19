@@ -106,7 +106,7 @@ export async function getApprovedGooglePhotosLinks(): Promise<string[]> {
   const bookings = await getBookings();
   
   // Bookings structure: Name(0), Phone(1), Contact(2), Date(3), TimeSlot(4), ServiceType(5), DriveLink(6), Status(7), Notes(8), GooglePhotosLink(9)
-  const validBookings = bookings.slice(1)
+  const validBookings: { row: any[], index: number }[] = bookings.slice(1)
     .map((row: any[], index: number) => ({ row, index }))
     .filter((item: { row: any[], index: number }) => {
       const row = item.row;
@@ -114,7 +114,7 @@ export async function getApprovedGooglePhotosLinks(): Promise<string[]> {
     });
   
   // Sort by row index descending (latest submitted/added row comes first)
-  validBookings.sort((a, b) => b.index - a.index);
+  validBookings.sort((a: { index: number }, b: { index: number }) => b.index - a.index);
   
   const uniqueLinks = new Set<string>();
   for (const b of validBookings) {
