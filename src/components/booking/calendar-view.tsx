@@ -14,11 +14,11 @@ import {
   addDays,
 } from "date-fns";
 import { th } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, X, ExternalLink, Image as ImageIcon, MapPin, Clock } from "lucide-react";
+import { ChevronLeft, ChevronRight, X, ExternalLink, Image as ImageIcon, FileText, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 // --- Types & Mock Data ---
-type BookingStatus = "pending" | "accepted" | "completed";
+type BookingStatus = "pending" | "accepted" | "completed" | "rejected";
 
 interface Booking {
   id: string;
@@ -27,7 +27,7 @@ interface Booking {
   clientName: string;
   service: string;
   status: BookingStatus;
-  location?: string;
+  notes?: string;
   photosUrl?: string;
 }
 
@@ -36,22 +36,24 @@ function subDays(date: Date, amount: number) {
 }
 
 const MOCK_BOOKINGS: Booking[] = [
-  { id: "1", date: new Date(), time: "10:00 - 12:00", clientName: "พี่เจ ช่างภาพ", service: "ถ่ายรูปรับปริญญา", status: "accepted", location: "จุฬาลงกรณ์มหาวิทยาลัย" },
-  { id: "2", date: addDays(new Date(), 2), time: "14:00 - 18:00", clientName: "งานแต่งคุณเอ", service: "วิดีโอ", status: "pending", location: "โรงแรมสยามเคมปินสกี้" },
+  { id: "1", date: new Date(), time: "10:00 - 12:00", clientName: "พี่เจ ช่างภาพ", service: "ถ่ายรูปรับปริญญา", status: "accepted", notes: "จุฬาลงกรณ์มหาวิทยาลัย" },
+  { id: "2", date: addDays(new Date(), 2), time: "14:00 - 18:00", clientName: "งานแต่งคุณเอ", service: "วิดีโอ", status: "pending", notes: "โรงแรมสยามเคมปินสกี้" },
   { id: "3", date: subDays(new Date(), 5), time: "09:00 - 17:00", clientName: "น้องบี", service: "ถ่ายรูปโปรไฟล์", status: "completed", photosUrl: "https://photos.google.com" },
-  { id: "4", date: addDays(new Date(), 5), time: "18:00 - 22:00", clientName: "คอนเสิร์ต KMITL", service: "ไลฟ์สตรีม", status: "accepted", location: "หอประชุม KMITL" },
+  { id: "4", date: addDays(new Date(), 5), time: "18:00 - 22:00", clientName: "คอนเสิร์ต KMITL", service: "ไลฟ์สตรีม", status: "accepted", notes: "หอประชุม KMITL" },
 ];
 
 const statusColors: Record<BookingStatus, string> = {
   pending: "bg-yellow-100 text-yellow-800 border-yellow-300",
   accepted: "bg-blue-100 text-blue-800 border-blue-300",
   completed: "bg-green-100 text-green-800 border-green-300",
+  rejected: "bg-red-100 text-red-800 border-red-300 line-through opacity-70",
 };
 
 const statusText: Record<BookingStatus, string> = {
   pending: "รอการยืนยัน",
   accepted: "รับงานแล้ว",
   completed: "จบงานแล้ว",
+  rejected: "ปฏิเสธรับงาน",
 };
 
 export interface CalendarViewProps {
@@ -62,7 +64,7 @@ export interface CalendarViewProps {
     clientName: string;
     service: string;
     status: BookingStatus;
-    location?: string;
+    notes?: string;
     photosUrl?: string;
   }[];
 }
@@ -149,6 +151,10 @@ export default function CalendarView({ initialBookings }: CalendarViewProps) {
           <div className="w-3 h-3 rounded-full bg-green-500"></div>
           <span className="text-slate-600 font-medium">จบงานแล้ว (Completed)</span>
         </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full bg-red-500"></div>
+          <span className="text-slate-600 font-medium">ปฏิเสธรับงาน (Rejected)</span>
+        </div>
       </div>
 
       {/* Days of week header */}
@@ -167,8 +173,18 @@ export default function CalendarView({ initialBookings }: CalendarViewProps) {
           const isCurrentMonth = isSameMonth(dayItem, monthStart);
           const isToday = isSameDay(dayItem, new Date());
           
-          // Get bookings for this day
-          const dayBookings = bookings.filter((b) => isSameDay(b.date, dayItem));
+          // Get bookings for this day and sort them by priority: Pending > Accepted > Completed > Rejected
+          const statusPriority = {
+            pending: 1,
+            accepted: 2,
+            completed: 3,
+            rejected: 4,
+          };
+          
+          const dayBookings = bookings
+            .filter((b) => isSameDay(b.date, dayItem))
+            .sort((a, b) => statusPriority[a.status] - statusPriority[b.status]);
+          
           const hasBookings = dayBookings.length > 0;
 
           return (
@@ -235,26 +251,38 @@ export default function CalendarView({ initialBookings }: CalendarViewProps) {
                   <div className={`absolute top-0 left-0 w-1.5 h-full ${statusColors[booking.status].split(' ')[0]}`}></div>
                   
                   <div className="flex justify-between items-start mb-3 pl-2">
-                    <div>
-                      <h4 className="font-bold text-lg text-slate-800">{booking.clientName}</h4>
-                      <span className="inline-flex items-center text-xs font-semibold px-2 py-1 bg-slate-200 text-slate-700 rounded-md mt-1">
-                        {booking.service}
-                      </span>
+                    <div className="flex-1 pr-4">
+                      {(() => {
+                        const parts = booking.clientName.split(" - ");
+                        const booker = parts[0];
+                        const event = parts.slice(1).join(" - ");
+                        
+                        return event ? (
+                          <>
+                            <h4 className="font-bold text-lg text-slate-800 leading-tight mb-1">{event}</h4>
+                            <p className="text-sm font-medium text-slate-500 mb-2">โดย: {booker}</p>
+                          </>
+                        ) : (
+                          <h4 className="font-bold text-lg text-slate-800 mb-2">{booker}</h4>
+                        );
+                      })()}
                     </div>
-                    <span className={`text-xs font-bold px-3 py-1 rounded-full border ${statusColors[booking.status]}`}>
+                    <span className={`text-xs font-bold px-3 py-1 rounded-full border whitespace-nowrap shrink-0 ${statusColors[booking.status]}`}>
                       {statusText[booking.status]}
                     </span>
                   </div>
 
                   <div className="space-y-2 text-sm text-slate-600 pl-2">
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-4 h-4 text-slate-400" />
-                      <span>{booking.time} น.</span>
-                    </div>
-                    {booking.location && (
+                    {booking.time && (
                       <div className="flex items-center gap-2">
-                        <MapPin className="w-4 h-4 text-slate-400" />
-                        <span>{booking.location}</span>
+                        <Clock className="w-4 h-4 text-slate-400" />
+                        <span>{booking.time} น.</span>
+                      </div>
+                    )}
+                    {booking.notes && (
+                      <div className="flex items-start gap-2 mt-1">
+                        <FileText className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+                        <span className="whitespace-pre-wrap">{booking.notes}</span>
                       </div>
                     )}
                   </div>

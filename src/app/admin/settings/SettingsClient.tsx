@@ -13,6 +13,21 @@ export default function SettingsClient() {
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  
+  // Custom Toast Notification State
+  const [toast, setToast] = useState<{ show: boolean, type: 'success' | 'error', message: string }>({ show: false, type: 'success', message: '' });
+
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ show: true, type, message });
+    setTimeout(() => {
+      setToast(prev => ({ ...prev, show: false }));
+    }, 4000);
+  };
+
+  // Prune Data state
+  const [showPruneDialog, setShowPruneDialog] = useState(false);
+  const [pruneConfirmText, setPruneConfirmText] = useState("");
+  const [isPruning, setIsPruning] = useState(false);
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -121,6 +136,27 @@ export default function SettingsClient() {
     newUrls[index] = temp;
     setCustomUrls(newUrls);
     setActiveLinkIndex(index + 1);
+  };
+
+  const handlePruneData = async () => {
+    if (pruneConfirmText !== "CONFIRM") return;
+    setIsPruning(true);
+    try {
+      const res = await fetch("/api/admin/prune", { method: "POST" });
+      if (res.ok) {
+        showToast("ล้างข้อมูลสำเร็จแล้วครับ! (Data Pruned Successfully)");
+        setShowPruneDialog(false);
+        setPruneConfirmText("");
+      } else {
+        const data = await res.json();
+        showToast(`เกิดข้อผิดพลาด: ${data.error || 'Failed to prune data'}`, 'error');
+      }
+    } catch (e) {
+      console.error(e);
+      showToast("เกิดข้อผิดพลาดในการเชื่อมต่อ (Connection error)", 'error');
+    } finally {
+      setIsPruning(false);
+    }
   };
 
   return (
@@ -256,6 +292,79 @@ export default function SettingsClient() {
             </>
           )}
         </div>
+
+        {/* Global Toast Notification */}
+        {toast.show && (
+          <div className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-bottom-5 fade-in duration-300">
+            <div className={`flex items-center gap-3 px-6 py-4 rounded-xl shadow-2xl border ${
+              toast.type === 'success' ? 'bg-green-50 border-green-200 text-green-800' : 'bg-red-50 border-red-200 text-red-800'
+            }`}>
+              <div className={`p-1 rounded-full ${toast.type === 'success' ? 'bg-green-200 text-green-700' : 'bg-red-200 text-red-700'}`}>
+                {toast.type === 'success' ? (
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                  </svg>
+                ) : (
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                )}
+              </div>
+              <p className="font-semibold">{toast.message}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Danger Zone */}
+        <div className="bg-red-50 border border-red-200 rounded-lg shadow-sm p-6 mb-6">
+          <h2 className="text-xl font-bold text-red-700 flex items-center gap-2 mb-2">
+            <Trash2 className="w-5 h-5" /> Danger Zone
+          </h2>
+          <p className="text-sm text-red-600 mb-4">
+            ล้างข้อมูลทั้งหมดในระบบ (Bookings) เพื่อเตรียมพร้อมสำหรับเปิดเทอมใหม่ ข้อมูลในหน้า Team, Settings และ Gallery จะไม่ถูกลบ
+          </p>
+          <Button 
+            onClick={() => setShowPruneDialog(true)}
+            className="bg-red-600 hover:bg-red-700 text-white font-bold"
+          >
+            ล้างข้อมูลทั้งหมด (Prune Data)
+          </Button>
+        </div>
+
+        {/* Prune Confirmation Dialog */}
+        {showPruneDialog && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-lg shadow-lg w-[400px]">
+              <h3 className="text-xl font-bold text-red-600 mb-2">ยืนยันการล้างข้อมูล</h3>
+              <p className="text-sm text-slate-600 mb-4">
+                การกระทำนี้จะลบข้อมูลคิวงานทั้งหมดและไม่สามารถกู้คืนได้ (ยกเว้น Team, Settings, Gallery)<br/><br/>
+                กรุณาพิมพ์คำว่า <strong>CONFIRM</strong> เพื่อยืนยัน
+              </p>
+              <input 
+                type="text" 
+                value={pruneConfirmText}
+                onChange={(e) => setPruneConfirmText(e.target.value)}
+                className="w-full border border-red-300 p-2 rounded mb-4 focus:outline-none focus:ring-2 focus:ring-red-500"
+                placeholder="พิมพ์ CONFIRM"
+              />
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => {
+                  setShowPruneDialog(false);
+                  setPruneConfirmText("");
+                }} disabled={isPruning}>Cancel</Button>
+                <Button 
+                  onClick={handlePruneData}
+                  disabled={pruneConfirmText !== "CONFIRM" || isPruning}
+                  className="bg-red-600 hover:bg-red-700 text-white flex items-center"
+                >
+                  {isPruning && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                  {isPruning ? "กำลังลบข้อมูล..." : "ยืนยันลบข้อมูล"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );

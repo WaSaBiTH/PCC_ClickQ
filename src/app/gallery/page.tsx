@@ -3,6 +3,7 @@ import { scrapeSingleAlbum } from "@/lib/google-photos-scraper";
 import Image from "next/image";
 import Link from "next/link";
 import { format } from "date-fns";
+import { AlertCircle } from "lucide-react";
 
 export const revalidate = 60; // Cache for 60 seconds
 
@@ -20,14 +21,25 @@ export default async function GalleryPage() {
 
     let coverImage = "";
     let photoCount = 0;
+    let isDeadLink = false;
     
     if (link && link.includes("photos.app.goo.gl")) {
-      const images = await scrapeSingleAlbum(link);
-      if (images && images.length > 0) {
-        coverImage = images[0].thumbnailLink;
-        photoCount = images.length;
+      try {
+        const images = await scrapeSingleAlbum(link);
+        if (images && images.length > 0) {
+          coverImage = images[0].thumbnailLink;
+          photoCount = images.length;
+        } else {
+          isDeadLink = true;
+        }
+      } catch (e) {
+        isDeadLink = true;
       }
     }
+
+    const itemDate = new Date(dateStr);
+    const isValidDate = !isNaN(itemDate.getTime());
+    const isOld = isValidDate && (Date.now() - itemDate.getTime() > 365 * 24 * 60 * 60 * 1000);
 
     return {
       name,
@@ -35,15 +47,19 @@ export default async function GalleryPage() {
       dateStr,
       link,
       coverImage,
-      photoCount
+      photoCount,
+      isDeadLink,
+      isOld,
+      itemDate,
+      isValidDate
     };
   }));
 
   // Filter out items without links or valid data
   const validItems = galleryItems.filter(item => item.name && item.link).sort((a, b) => {
     // Sort newest first if date is valid
-    const dateA = new Date(a.dateStr).getTime() || 0;
-    const dateB = new Date(b.dateStr).getTime() || 0;
+    const dateA = a.isValidDate ? a.itemDate.getTime() : 0;
+    const dateB = b.isValidDate ? b.itemDate.getTime() : 0;
     return dateB - dateA;
   });
 
@@ -85,8 +101,14 @@ export default async function GalleryPage() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
             {validItems.map((item, idx) => (
-              <div key={idx} className="group flex flex-col bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-                <a href={item.link} target="_blank" rel="noreferrer" className="block relative aspect-[4/5] overflow-hidden bg-slate-100">
+              <div key={idx} className={`group flex flex-col bg-white rounded-3xl shadow-sm border ${item.isOld ? 'border-red-200' : 'border-slate-100'} overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1`}>
+                <a 
+                  href={item.isDeadLink ? "#" : item.link} 
+                  target={item.isDeadLink ? "_self" : "_blank"} 
+                  rel="noreferrer" 
+                  className={`block relative aspect-[4/5] overflow-hidden bg-slate-100 ${item.isDeadLink ? 'cursor-not-allowed opacity-80' : ''}`}
+                  onClick={(e) => { if(item.isDeadLink) e.preventDefault(); }}
+                >
                   {item.coverImage ? (
                     <Image 
                       src={item.coverImage}
@@ -110,25 +132,34 @@ export default async function GalleryPage() {
                     </div>
                   )}
                   <div className="absolute bottom-4 left-4 right-4 translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300">
-                    <div className="w-full py-2.5 bg-white/95 backdrop-blur text-slate-900 rounded-xl text-sm font-bold text-center shadow-lg">
-                      ดูอัลบั้มเต็ม
+                    <div className={`w-full py-2.5 backdrop-blur rounded-xl text-sm font-bold text-center shadow-lg ${item.isDeadLink ? 'bg-red-500/90 text-white' : 'bg-white/95 text-slate-900'}`}>
+                      {item.isDeadLink ? "ลิงก์นี้ถูกลบไปแล้ว" : "ดูอัลบั้มเต็ม"}
                     </div>
                   </div>
                 </a>
-                <div className="p-5 flex flex-col flex-1">
+                <div className="p-5 flex flex-col flex-1 relative">
                   <div className="flex items-center justify-between mb-3">
                     <span className="text-[11px] font-bold px-2.5 py-1 bg-orange-100 text-orange-700 rounded-full tracking-wider uppercase">
                       {item.serviceType || "Photography"}
                     </span>
-                    <span className="text-xs font-medium text-slate-400">
+                    <span className={`text-xs font-medium ${item.isOld ? 'text-red-400' : 'text-slate-400'}`}>
                       {item.dateStr && !isNaN(new Date(item.dateStr).getTime()) 
                         ? format(new Date(item.dateStr), 'dd MMM yyyy') 
                         : item.dateStr || ""}
                     </span>
                   </div>
-                  <h3 className="text-lg font-bold text-slate-900 line-clamp-2 leading-tight">
+                  <h3 className="text-lg font-bold text-slate-900 line-clamp-2 leading-tight pr-6">
                     {item.name}
                   </h3>
+                  
+                  {item.isOld && (
+                    <div 
+                      className="absolute bottom-5 right-5 text-red-500 hover:text-red-600 transition-colors cursor-help animate-pulse" 
+                      title="อัลบั้มนี้อาจจะถูกลบ"
+                    >
+                      <AlertCircle className="w-5 h-5" />
+                    </div>
+                  )}
                 </div>
               </div>
             ))}

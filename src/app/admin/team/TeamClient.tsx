@@ -319,7 +319,7 @@ export default function TeamClient() {
                       if (currentDisplayUrl && currentDisplayUrl.includes("drive.google.com")) {
                         const idMatch = currentDisplayUrl.match(/\/d\/([a-zA-Z0-9_-]+)/) || currentDisplayUrl.match(/id=([a-zA-Z0-9_-]+)/);
                         if (idMatch && idMatch[1]) {
-                          currentDisplayUrl = `https://lh3.googleusercontent.com/d/${idMatch[1]}`;
+                          currentDisplayUrl = `/api/image-proxy?id=${idMatch[1]}`;
                         }
                       }
                       return (
@@ -328,6 +328,7 @@ export default function TeamClient() {
                           onError={(e) => { e.currentTarget.src = "/PCC Photo Club.webp"; }}
                           className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-sm" 
                           alt="Current" 
+                          referrerPolicy="no-referrer"
                         />
                       );
                     })()}
@@ -381,7 +382,7 @@ export default function TeamClient() {
                     if (displayUrl.includes("drive.google.com")) {
                       const idMatch = displayUrl.match(/\/d\/([a-zA-Z0-9_-]+)/) || displayUrl.match(/id=([a-zA-Z0-9_-]+)/);
                       if (idMatch && idMatch[1]) {
-                        displayUrl = `https://lh3.googleusercontent.com/d/${idMatch[1]}`;
+                        displayUrl = `/api/image-proxy?id=${idMatch[1]}`;
                       }
                     }
 
@@ -392,6 +393,7 @@ export default function TeamClient() {
                           alt={m.memberName} 
                           onError={(e) => { e.currentTarget.src = "/PCC Photo Club.webp"; }}
                           className="w-20 h-20 rounded-full object-cover bg-slate-100 shadow-sm border border-slate-200" 
+                          referrerPolicy="no-referrer"
                         />
                         <div className="flex-1 min-w-0">
                           <div className="flex flex-col gap-1 mb-1">

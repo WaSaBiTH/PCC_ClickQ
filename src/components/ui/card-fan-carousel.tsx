@@ -296,6 +296,7 @@ export default function SocialCards({ cards }: SocialCardsProps) {
                   alt={card.alt || `Card ${index}`} 
                   onError={(e) => { e.currentTarget.src = "/PCC%20Photo%20Club.webp"; }}
                   className="absolute inset-0 w-full h-full object-cover z-10 transition-transform duration-700 group-hover:scale-105 contrast-[0.95] brightness-[1.05] saturate-[1.1]" 
+                  referrerPolicy="no-referrer"
                 />
                 
                 <div className="absolute inset-x-0 top-0 p-4 md:p-6 z-20 flex justify-end items-start gap-2 bg-gradient-to-b from-black/80 via-black/30 to-transparent pb-16 pointer-events-none">

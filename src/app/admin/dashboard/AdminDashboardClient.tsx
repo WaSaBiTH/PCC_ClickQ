@@ -5,6 +5,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Loader2, Users, Settings } from "lucide-react";
 import Link from "next/link";
+import { format } from "date-fns";
+import { th } from "date-fns/locale";
 
 interface Props {
   initialBookings: any[];
@@ -15,8 +17,16 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
   const [bookings, setBookings] = useState(initialBookings);
   const [updatingAction, setUpdatingAction] = useState<{ rowIndex: number, action: string } | null>(null);
   
+  // State for bulk actions
+  const [selectedRows, setSelectedRows] = useState<number[]>([]);
+  const [isBulkUpdating, setIsBulkUpdating] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0 });
+  
+  // State for active filter tab
+  const [activeTab, setActiveTab] = useState<string>("Pending");
+  
   // State for the Google Photos/Drive Link prompt
-  const [promptLink, setPromptLink] = useState<{ rowIndex: number, link: string } | null>(null);
+  const [promptLink, setPromptLink] = useState<{ rowIndices: number[], link: string } | null>(null);
   
   // State for expanded row details
   const [expandedRow, setExpandedRow] = useState<number | null>(null);
@@ -55,8 +65,101 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
       alert("Failed to update status");
     } finally {
       setUpdatingAction(null);
-      setPromptLink(null);
     }
+  };
+
+  const handleBulkStatusUpdate = async (status: string, googlePhotosLink?: string) => {
+    if (selectedRows.length === 0) return;
+    
+    setIsBulkUpdating(true);
+    setBulkProgress({ current: 0, total: selectedRows.length });
+    
+    const updatedBookings = [...bookings];
+    let hasError = false;
+
+    for (let i = 0; i < selectedRows.length; i++) {
+      const rowIndex = selectedRows[i];
+      const rowData = bookings[rowIndex];
+      
+      const bookingDetails = {
+        name: rowData[0],
+        serviceType: rowData[5],
+        date: rowData[3]
+      };
+
+      try {
+        const res = await fetch("/api/admin/bookings", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ rowIndex, status, googlePhotosLink, bookingDetails }),
+        });
+        
+        if (res.ok) {
+          updatedBookings[rowIndex][7] = status;
+          if (googlePhotosLink !== undefined) {
+            updatedBookings[rowIndex][9] = googlePhotosLink;
+          }
+        } else {
+          hasError = true;
+        }
+      } catch (error) {
+        hasError = true;
+        console.error(error);
+      }
+      
+      setBulkProgress({ current: i + 1, total: selectedRows.length });
+    }
+    
+    setBookings(updatedBookings);
+    setIsBulkUpdating(false);
+    setPromptLink(null);
+    if (!hasError) setSelectedRows([]); // Clear selection on complete success
+    else alert("Some updates failed. Please check the queue.");
+  };
+
+  const toggleRowSelection = (rowIndex: number) => {
+    setSelectedRows(prev => 
+      prev.includes(rowIndex) 
+        ? prev.filter(id => id !== rowIndex)
+        : [...prev, rowIndex]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    const validRows = bookings
+      .map((row, i) => ({ row, rowIndex: i }))
+      .slice(1) // Skip header
+      .filter(({ row }) => {
+        if (!row[0] || String(row[0]).trim() === "") return false;
+        const status = row[7] || "Pending";
+        
+        // Exclude old rejected from select all
+        if (status === "Rejected") {
+          const diffDays = (new Date().getTime() - new Date(row[3]).getTime()) / (1000 * 3600 * 24);
+          if (diffDays > 3) return false;
+        }
+
+        return status === activeTab;
+      })
+      .map(({ rowIndex }) => rowIndex);
+      
+    // Check if all currently visible valid rows are selected
+    const allVisibleSelected = validRows.every(r => selectedRows.includes(r));
+    
+    if (allVisibleSelected) {
+      // Deselect all visible
+      setSelectedRows(selectedRows.filter(r => !validRows.includes(r)));
+    } else {
+      // Select all visible
+      const newSelections = new Set([...selectedRows, ...validRows]);
+      setSelectedRows(Array.from(newSelections));
+    }
+  };
+
+  // Change tab and clear selection
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    setSelectedRows([]); // Clear selection when switching tabs to prevent accidental bulk actions
   };
 
 
@@ -65,7 +168,7 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
   const [loadingQueueStatus, setLoadingQueueStatus] = useState<boolean>(true);
 
   useEffect(() => {
-    fetch("/api/admin/settings?key=booking_status")
+    fetch(`/api/admin/settings?key=booking_status&t=${Date.now()}`)
       .then(res => res.json())
       .then(data => {
         if (data.value === "closed") setIsQueueOpen(false);
@@ -95,6 +198,29 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
     }
   };
 
+  // Calculate stats
+  const stats = {
+    Pending: 0,
+    Accepted: 0,
+    Completed: 0,
+    Rejected: 0
+  };
+
+  bookings.slice(1).forEach(row => {
+    if (!row[0] || String(row[0]).trim() === "") return;
+    const status = row[7] || "Pending";
+    
+    // Skip old rejected
+    if (status === "Rejected") {
+      const diffDays = (new Date().getTime() - new Date(row[3]).getTime()) / (1000 * 3600 * 24);
+      if (diffDays > 3) return;
+    }
+
+    if (stats[status as keyof typeof stats] !== undefined) {
+      stats[status as keyof typeof stats]++;
+    }
+  });
+
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -105,6 +231,11 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
             <span className="text-slate-500 text-sm font-normal">| Admin</span>
           </a>
           <div className="flex items-center gap-2 md:gap-4">
+            <Link href="/admin/gallery">
+              <Button variant="ghost" className="text-slate-600 hover:text-slate-900" title="Manage Gallery">
+                <span className="hidden md:inline">Gallery</span>
+              </Button>
+            </Link>
             <Link href="/admin/team">
               <Button variant="ghost" className="text-slate-600 hover:text-slate-900" title="Manage Team">
                 <Users className="w-5 h-5 mr-0 md:mr-2" />
@@ -150,14 +281,26 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
               </button>
             </div>
           </div>
-          <a
-            href={`https://docs.google.com/spreadsheets/d/${spreadsheetId}`}
-            target="_blank"
-            rel="noreferrer"
-            className="text-blue-600 hover:underline"
-          >
-            Open Google Sheet
-          </a>
+        </div>
+
+        {/* 4 Summary Boxes / Tabs */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          {[
+            { id: "Pending", label: "รอการยืนยัน", count: stats.Pending, color: "bg-yellow-50 text-yellow-700 border-yellow-200 hover:bg-yellow-100", activeColor: "ring-2 ring-yellow-500 shadow-md" },
+            { id: "Accepted", label: "รับงานแล้ว", count: stats.Accepted, color: "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100", activeColor: "ring-2 ring-blue-500 shadow-md" },
+            { id: "Completed", label: "จบงานแล้ว", count: stats.Completed, color: "bg-green-50 text-green-700 border-green-200 hover:bg-green-100", activeColor: "ring-2 ring-green-500 shadow-md" },
+            { id: "Rejected", label: "ปฏิเสธรับงาน", count: stats.Rejected, color: "bg-red-50 text-red-700 border-red-200 hover:bg-red-100", activeColor: "ring-2 ring-red-500 shadow-md" }
+          ].map(tab => (
+            <div 
+              key={tab.id}
+              onClick={() => handleTabChange(tab.id)}
+              className={`cursor-pointer border rounded-xl p-5 flex flex-col items-center justify-center transition-all ${tab.color} ${activeTab === tab.id ? tab.activeColor : 'opacity-70 hover:opacity-100'}`}
+            >
+              <span className="text-3xl font-bold mb-1">{tab.count}</span>
+              <span className="text-sm font-semibold">{tab.id}</span>
+              <span className="text-xs opacity-80 mt-1">({tab.label})</span>
+            </div>
+          ))}
         </div>
         
         {promptLink && (
@@ -175,15 +318,79 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={() => setPromptLink(null)}>Cancel</Button>
                 <Button 
-                  onClick={() => handleStatusUpdate(promptLink.rowIndex, "Completed", promptLink.link)}
-                  disabled={updatingAction !== null}
+                  onClick={() => {
+                    if (promptLink.rowIndices.length === 1) {
+                      const rowIndex = promptLink.rowIndices[0];
+                      handleStatusUpdate(rowIndex, "Completed", promptLink.link);
+                      setPromptLink(null);
+                    } else {
+                      handleBulkStatusUpdate("Completed", promptLink.link);
+                    }
+                  }}
+                  disabled={updatingAction !== null || isBulkUpdating}
                   className="bg-green-600 hover:bg-green-700 text-white flex items-center"
                 >
-                  {updatingAction?.action === "Completed" && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                  {updatingAction?.action === "Completed" ? "Saving..." : "Submit"}
+                  {(updatingAction !== null || isBulkUpdating) && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                  {(updatingAction !== null || isBulkUpdating) ? "Saving..." : "Submit"}
                 </Button>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Bulk Action Toolbar */}
+        {selectedRows.length > 0 && (
+          <div className="bg-white p-4 rounded-xl shadow-md border border-blue-100 mb-6 flex flex-col sm:flex-row items-center justify-between gap-4 animate-in slide-in-from-top-4">
+            <div className="flex items-center gap-2">
+              <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-bold">
+                {selectedRows.length} selected
+              </span>
+              <span className="text-slate-600 text-sm font-medium">Bulk Actions:</span>
+            </div>
+            
+            <div className="flex flex-wrap items-center gap-2">
+              {selectedRows.some(idx => !bookings[idx][7] || bookings[idx][7] === "Pending") && (
+                <>
+                  <Button 
+                    variant="outline" 
+                    className="text-blue-600 border-blue-600 hover:bg-blue-50 bg-white"
+                    onClick={() => handleBulkStatusUpdate("Accepted")}
+                    disabled={isBulkUpdating}
+                  >
+                    Accept All
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="text-red-600 border-red-600 hover:bg-red-50 bg-white"
+                    onClick={() => handleBulkStatusUpdate("Rejected")}
+                    disabled={isBulkUpdating}
+                  >
+                    Reject All
+                  </Button>
+                </>
+              )}
+              {selectedRows.some(idx => bookings[idx][7] === "Accepted") && (
+                <Button 
+                  variant="outline" 
+                  className="text-green-600 border-green-600 hover:bg-green-50 bg-white"
+                  onClick={() => {
+                    // Only submit links for items that are actually accepted
+                    const acceptedRows = selectedRows.filter(idx => bookings[idx][7] === "Accepted");
+                    setPromptLink({ rowIndices: acceptedRows, link: "" });
+                  }}
+                  disabled={isBulkUpdating}
+                >
+                  Submit Work for All
+                </Button>
+              )}
+            </div>
+            
+            {isBulkUpdating && (
+              <div className="w-full sm:w-auto flex items-center gap-2 text-sm font-medium text-slate-500">
+                <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
+                Updating {bulkProgress.current} / {bulkProgress.total}
+              </div>
+            )}
           </div>
         )}
 
@@ -191,6 +398,36 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-[50px]">
+                  <input 
+                    type="checkbox" 
+                    className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                    onChange={toggleSelectAll}
+                    checked={
+                      bookings.slice(1).filter(row => {
+                        if (!row[0] || String(row[0]).trim() === "") return false;
+                        const status = row[7] || "Pending";
+                        if (status === "Rejected" && (new Date().getTime() - new Date(row[3]).getTime()) / (1000 * 3600 * 24) > 3) return false;
+                        return status === activeTab;
+                      }).length > 0 &&
+                      bookings.slice(1).filter(row => {
+                        if (!row[0] || String(row[0]).trim() === "") return false;
+                        const status = row[7] || "Pending";
+                        if (status === "Rejected" && (new Date().getTime() - new Date(row[3]).getTime()) / (1000 * 3600 * 24) > 3) return false;
+                        return status === activeTab;
+                      }).every((_, idx) => {
+                        // Find the real index in the original bookings array
+                        const realIndex = bookings.findIndex((r, i) => i > 0 && r === bookings.slice(1).filter(row => {
+                            if (!row[0] || String(row[0]).trim() === "") return false;
+                            const status = row[7] || "Pending";
+                            if (status === "Rejected" && (new Date().getTime() - new Date(row[3]).getTime()) / (1000 * 3600 * 24) > 3) return false;
+                            return status === activeTab;
+                          })[idx]);
+                        return selectedRows.includes(realIndex);
+                      })
+                    }
+                  />
+                </TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Phone</TableHead>
                 <TableHead>Date</TableHead>
@@ -207,15 +444,48 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
                 // Hide empty rows (e.g., if there's no name)
                 if (!row[0] || String(row[0]).trim() === "") return null;
 
+                // Auto-hide (delete) rejected bookings older than 3 days
+                if (row[7] === "Rejected") {
+                  const bookingDate = new Date(row[3]);
+                  const today = new Date();
+                  const diffTime = today.getTime() - bookingDate.getTime();
+                  const diffDays = diffTime / (1000 * 3600 * 24);
+                  if (diffDays > 3) return null;
+                }
+
+                // Filter by active tab
+                const status = row[7] || "Pending";
+                if (status !== activeTab) return null;
+
                 return (
                   <React.Fragment key={i}>
                     <TableRow 
-                      className="cursor-pointer hover:bg-slate-50 transition-colors"
+                      className={`cursor-pointer hover:bg-slate-50 transition-colors ${selectedRows.includes(rowIndex) ? 'bg-blue-50/50' : ''}`}
                       onClick={() => setExpandedRow(expandedRow === rowIndex ? null : rowIndex)}
                     >
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <input 
+                          type="checkbox" 
+                          className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                          checked={selectedRows.includes(rowIndex)}
+                          onChange={() => toggleRowSelection(rowIndex)}
+                        />
+                      </TableCell>
                       <TableCell className="font-medium text-slate-900">{row[0]}</TableCell>
                       <TableCell>{row[1]}</TableCell>
-                      <TableCell>{row[3]}</TableCell>
+                      <TableCell>
+                        {(() => {
+                          try {
+                            const d = new Date(row[3]);
+                            if (!isNaN(d.getTime())) {
+                              return format(d, "dd MMM yyyy", { locale: th });
+                            }
+                            return row[3];
+                          } catch(e) {
+                            return row[3];
+                          }
+                        })()}
+                      </TableCell>
                       <TableCell>{row[5]}</TableCell>
                       <TableCell>
                         <span
@@ -272,7 +542,10 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
                               size="sm" 
                               variant="outline" 
                               className="text-green-600 border-green-600 hover:bg-green-50 bg-white flex items-center"
-                              onClick={() => setPromptLink({ rowIndex, link: "" })}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setPromptLink({ rowIndices: [rowIndex], link: "" });
+                              }}
                               disabled={updatingAction !== null}
                             >
                               Submit Work
@@ -283,7 +556,7 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
                     </TableRow>
                     {expandedRow === rowIndex && (
                       <TableRow className="bg-slate-50/80 hover:bg-slate-50/80">
-                        <TableCell colSpan={7} className="p-0 border-b">
+                        <TableCell colSpan={8} className="p-0 border-b">
                           <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-5 text-sm animate-in slide-in-from-top-1 duration-200">
                             <div>
                               <p className="font-semibold text-slate-700 mb-1">ช่องทางติดต่ออื่น (Contact):</p>
@@ -316,7 +589,7 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
               })}
               {bookings.length <= 1 && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                  <TableCell colSpan={8} className="text-center py-8 text-gray-500">
                     No bookings found.
                   </TableCell>
                 </TableRow>

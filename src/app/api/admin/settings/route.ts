@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { updateSetting, getSetting } from "@/lib/google-sheets-api";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(request: Request) {
   try {
     const { key, value } = await request.json();

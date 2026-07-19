@@ -1,4 +1,4 @@
-import { getApprovedGooglePhotosLinks } from "./google-sheets";
+import { getApprovedGooglePhotosLinks, getApprovedGooglePhotosData } from "./google-sheets";
 import { getSetting, getFallbackUrls } from "./google-sheets-api";
 
 export async function scrapeSingleAlbum(albumUrl: string): Promise<any[]> {
@@ -41,9 +41,50 @@ export async function scrapeGooglePhotosAlbum(): Promise<any[]> {
 
   // 1. Try fetching from approved booking links first
   try {
-    const approvedLinks = await getApprovedGooglePhotosLinks();
-    if (approvedLinks.length > 0) {
-      const urlsToScrape = approvedLinks.slice(0, 5); // Limit to 5
+    const approvedData = await getApprovedGooglePhotosData();
+    const now = new Date();
+    
+    const recentLinks: string[] = [];
+    const oldLinks: string[] = [];
+    
+    for (const data of approvedData) {
+      let isRecent = false;
+      if (data.date) {
+        // Try parsing the date. For standard formats like YYYY-MM-DD or MM/DD/YYYY
+        // If DD/MM/YYYY, it might be NaN or incorrect, but we try best effort.
+        let d = new Date(data.date);
+        if (isNaN(d.getTime()) && data.date.includes('/')) {
+            // try swapping DD and MM just in case
+            const parts = data.date.split('/');
+            if (parts.length === 3) {
+                d = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`); // YYYY-MM-DD
+            }
+        }
+        
+        if (!isNaN(d.getTime())) {
+          const diffDays = Math.abs(now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24);
+          if (diffDays <= 7) {
+            isRecent = true;
+          }
+        }
+      }
+      
+      if (isRecent) {
+        recentLinks.push(data.link);
+      } else {
+        oldLinks.push(data.link);
+      }
+    }
+
+    if (recentLinks.length > 0) {
+      const urlsToScrape = recentLinks.slice(0, 5); // Limit to 5
+      for (const url of urlsToScrape) {
+        const images = await scrapeSingleAlbum(url);
+        allImages.push(...images);
+      }
+    } else if (oldLinks.length > 0) {
+      // If no recent album, prioritize old submitted albums before fallback
+      const urlsToScrape = oldLinks.slice(0, 5);
       for (const url of urlsToScrape) {
         const images = await scrapeSingleAlbum(url);
         allImages.push(...images);
@@ -53,7 +94,7 @@ export async function scrapeGooglePhotosAlbum(): Promise<any[]> {
     console.error("Failed to get approved Google Photos links:", err);
   }
 
-  // 2. If no images found from approved links, fallback to custom settings URLs
+  // 2. If no images found from either recent or old links, fallback to custom settings URLs
   if (allImages.length === 0) {
     try {
       // First try the new direct column B and E fallback
@@ -93,6 +134,12 @@ export async function scrapeGooglePhotosAlbum(): Promise<any[]> {
 
   if (allImages.length === 0) {
     console.warn("No Google Photos Album URLs available or could be scraped. Falling back to default images.");
+  } else {
+    // Shuffle images so they don't repeat in the same order
+    for (let i = allImages.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [allImages[i], allImages[j]] = [allImages[j], allImages[i]];
+    }
   }
 
   return allImages;

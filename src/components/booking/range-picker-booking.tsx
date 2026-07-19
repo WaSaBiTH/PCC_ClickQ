@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { format, addDays, eachDayOfInterval, startOfDay } from "date-fns";
 import { th } from "date-fns/locale";
 import { DateRange } from "react-day-picker";
+import { useRouter } from "next/navigation";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,6 +38,8 @@ export default function RangePickerBooking() {
   const [tempTime, setTempTime] = useState({ start: "09:00", end: "17:00" });
   const [tempServices, setTempServices] = useState<string[]>(["ถ่ายรูป"]);
   const [bookingSlots, setBookingSlots] = useState<BookingSlot[]>([]);
+  const router = useRouter();
+  const [isSuccessSpinning, setIsSuccessSpinning] = useState(false);
 
   // Calculate disabled dates
   const disabledDates = [
@@ -63,9 +66,9 @@ export default function RangePickerBooking() {
 
   const [files, setFiles] = useState<UploadFile[]>([]);
   const [loading, setLoading] = useState(false);
-  const [alertState, setAlertState] = useState<{isOpen: boolean, message: string, title?: string, type?: 'success'|'error'|'warning'}>({ isOpen: false, message: "" });
+  const [alertState, setAlertState] = useState<{isOpen: boolean, message: React.ReactNode, title?: string, type?: 'success'|'error'|'warning'}>({ isOpen: false, message: "" });
 
-  const showAlert = (message: string, type: 'success'|'error'|'warning' = 'warning', title?: string) => {
+  const showAlert = (message: React.ReactNode, type: 'success'|'error'|'warning' = 'warning', title?: string) => {
     setAlertState({
       isOpen: true,
       message,
@@ -186,6 +189,30 @@ export default function RangePickerBooking() {
     setLoading(true);
 
     try {
+      // Check for duplicate event name
+      const getBookingsRes = await fetch("/api/bookings");
+      if (getBookingsRes.ok) {
+        const data = await getBookingsRes.json();
+        const existingBookings = data.bookings || [];
+        const isDuplicate = existingBookings.some((row: string[]) => {
+          const clientName = row[0] || "";
+          const parts = clientName.split(" - ");
+          const event = parts.slice(1).join(" - ");
+          return event.trim().toLowerCase() === formData.eventName.trim().toLowerCase();
+        });
+
+        if (isDuplicate) {
+          showAlert(
+            <div className="flex flex-col gap-1">
+              <span>ชื่องานนี้ถูกจองไปแล้ว กรุณาใช้ชื่องานอื่น</span>
+              <span className="text-red-500 font-bold">(ห้ามใช้ชื่องานซ้ำ)</span>
+            </div>, 
+            "error"
+          );
+          setLoading(false);
+          return;
+        }
+      }
       const driveLinks = files
         .filter(f => f.status === "success" && f.url)
         .map(f => f.url)
@@ -200,13 +227,32 @@ export default function RangePickerBooking() {
         })
         .join("\n");
 
+      const allDates = new Set<string>();
+      bookingSlots.forEach(s => {
+        if (!s.to) {
+          allDates.add(format(s.from, "yyyy-MM-dd"));
+        } else {
+          try {
+            const days = eachDayOfInterval({ start: s.from, end: s.to });
+            days.forEach(d => allDates.add(format(d, "yyyy-MM-dd")));
+          } catch (e) {
+            allDates.add(format(s.from, "yyyy-MM-dd"));
+          }
+        }
+      });
+      const datesString = Array.from(allDates).join(", ");
+
+      // Collect all unique services across all slots
+      const allServices = new Set<string>();
+      bookingSlots.forEach(s => s.services.forEach(srv => allServices.add(srv)));
+
       // API expects name, phone, contact, date, serviceType, notes, driveLink
       const payload = {
         name: `${formData.bookerName} - ${formData.eventName}`,
         phone: formData.phone || "-", // Provide default if empty
         contact: formData.contact,
-        date: bookingSlots.map(s => format(s.from, "yyyy-MM-dd")).join(", "),
-        serviceType: bookingSlots.map(s => s.services.join(", ")).join(" | "),
+        date: datesString,
+        serviceType: Array.from(allServices).join(", "),
         notes: `คิวงานทั้งหมด:\n${slotsStr}\n\nรายละเอียดเพิ่มเติม:\n${formData.notes}`,
         driveLink: driveLinks,
       };
@@ -218,10 +264,14 @@ export default function RangePickerBooking() {
       });
 
       if (response.ok) {
-        showAlert(`การจองคิวสำเร็จ!\nชื่อ: ${formData.bookerName}\nคิวงานทั้งหมด:\n${slotsStr}`, 'success');
-        setFormData({ bookerName: "", eventName: "", phone: "", contact: "", notes: "" });
-        setBookingSlots([]);
-        setFiles([]);
+        setIsSuccessSpinning(true);
+        setTimeout(() => {
+          setIsSuccessSpinning(false);
+          showAlert(`การจองคิวสำเร็จ!\nชื่อ: ${formData.bookerName}\nคิวงานทั้งหมด:\n${slotsStr}`, 'success');
+          setFormData({ bookerName: "", eventName: "", phone: "", contact: "", notes: "" });
+          setBookingSlots([]);
+          setFiles([]);
+        }, 5000);
       } else {
         showAlert("เกิดข้อผิดพลาดในการจองคิว โปรดลองอีกครั้ง", "error");
       }
@@ -277,12 +327,12 @@ export default function RangePickerBooking() {
       <div className="lg:col-span-8 xl:col-span-8 bg-white p-4 md:p-6 lg:p-8 rounded-[2rem] shadow-xl border border-slate-200 flex flex-col lg:flex-row gap-6 xl:gap-8 h-full min-h-0">
         
         {/* Calendar Column */}
-        <div className="flex-1 flex flex-col h-full min-h-0 overflow-y-auto custom-scrollbar pr-2">
-        <h2 className="text-3xl font-extrabold text-slate-800 mb-2 flex-none">จัดคิวงานที่ต้องการ</h2>
-        <p className="text-slate-500 text-base mb-6 flex-none">เลือกวันที่ เวลา และประเภทงาน จากนั้นกด "เพิ่มลงคิว"</p>
+        <div className="flex-1 flex flex-col h-full min-h-0">
+        <h2 className="text-2xl font-extrabold text-slate-800 mb-1 flex-none">จัดคิวงานที่ต้องการ</h2>
+        <p className="text-slate-500 text-sm mb-3 flex-none">เลือกวันที่ เวลา และประเภทงาน จากนั้นกด "เพิ่มลงคิว"</p>
         
-        <div className="bg-slate-50 rounded-3xl p-5 border border-slate-200 flex flex-col items-center flex-1">
-          <div className="overflow-x-auto w-full flex justify-center bg-white rounded-2xl p-4 shadow-sm border border-slate-100 mb-6">
+        <div className="bg-slate-50 rounded-2xl p-3 border border-slate-200 flex flex-col items-center flex-1 min-h-0">
+          <div className="w-full flex justify-center bg-white rounded-xl p-2 shadow-sm border border-slate-100 mb-3 flex-none">
             <Calendar
               mode="range"
               defaultMonth={addDays(new Date(), 3)}
@@ -292,13 +342,13 @@ export default function RangePickerBooking() {
               locale={th}
               disabled={disabledDates}
               fixedWeeks={true}
-              className="p-2 bg-transparent [--cell-size:2.5rem] md:[--cell-size:3.5rem] [&_.rdp-caption_label]:text-lg [&_.rdp-weekday]:text-sm [&_.rdp-day_today]:bg-blue-50 [&_.rdp-day_today]:text-blue-600 [&_.rdp-day_today]:font-bold [&_.rdp-day_today]:border [&_.rdp-day_today]:border-blue-200"
+              className="p-1 bg-transparent [--cell-size:2.2rem] md:[--cell-size:2.8rem] xl:[--cell-size:3rem] [&_.rdp-caption_label]:text-base [&_.rdp-weekday]:text-xs [&_.rdp-day_today]:bg-blue-50 [&_.rdp-day_today]:text-blue-600 [&_.rdp-day_today]:font-bold [&_.rdp-day_today]:border [&_.rdp-day_today]:border-blue-200"
             />
           </div>
           
-          <div className="w-full space-y-5">
-            <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col sm:flex-row items-center gap-4 justify-between">
-              <span className="font-semibold text-slate-700 whitespace-nowrap">เวลาทำงาน</span>
+          <div className="w-full space-y-3 flex flex-col flex-1 min-h-0">
+            <div className="bg-white p-3 md:p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col sm:flex-row items-center gap-3 justify-between flex-none">
+              <span className="font-semibold text-slate-700 whitespace-nowrap text-sm">เวลาทำงาน</span>
               <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full sm:w-auto justify-center sm:justify-end">
                 <TimePicker
                   value={tempTime.start}
@@ -314,8 +364,8 @@ export default function RangePickerBooking() {
               </div>
             </div>
 
-            <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
-              <span className="block font-semibold text-slate-700 mb-3">ประเภทงานสำหรับคิวนี้ <span className="text-red-500">*</span></span>
+            <div className="bg-white p-3 md:p-4 rounded-xl border border-slate-100 shadow-sm flex-none">
+              <span className="block font-semibold text-slate-700 mb-2 text-sm">ประเภทงาน <span className="text-red-500">*</span></span>
               <div className="flex flex-wrap gap-2">
                 {SERVICE_OPTIONS.map((service) => {
                   const isSelected = tempServices.includes(service);
@@ -324,13 +374,13 @@ export default function RangePickerBooking() {
                       key={service}
                       type="button"
                       onClick={() => toggleTempService(service)}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-xl border font-medium transition-all text-sm ${
+                      className={`flex items-center gap-1.5 px-3 py-1.5 md:px-4 md:py-2 rounded-lg border font-medium transition-all text-xs md:text-sm ${
                         isSelected 
                           ? "bg-blue-50 border-blue-500 text-blue-700 shadow-sm" 
                           : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
                       }`}
                     >
-                      {isSelected && <Check className="w-4 h-4" />}
+                      {isSelected && <Check className="w-3.5 h-3.5 md:w-4 md:h-4" />}
                       {service}
                     </button>
                   );
@@ -342,7 +392,7 @@ export default function RangePickerBooking() {
               type="button" 
               onClick={handleAddSlot}
               disabled={!date?.from || tempServices.length === 0}
-              className="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold h-12 rounded-xl flex items-center gap-2 transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed mt-auto"
+              className="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold h-10 md:h-12 rounded-xl flex items-center gap-2 transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed mt-auto flex-none"
             >
               <Plus className="w-5 h-5" />
               เพิ่มลงรายการคิวงาน
@@ -442,24 +492,22 @@ export default function RangePickerBooking() {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">เบอร์โทรศัพท์ <span className="text-red-500">*</span></label>
+              <label className="block text-xs font-medium text-slate-700 mb-1">เบอร์โทรศัพท์</label>
               <Input
-                required
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 className="bg-slate-50 border-slate-200 text-sm h-10 rounded-xl"
-                placeholder="08x-xxx-xxxx"
+                placeholder="08x-xxx-xxxx (ไม่บังคับ)"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">ช่องทางติดต่ออื่น (Line/IG) <span className="text-red-500">*</span></label>
+              <label className="block text-xs font-medium text-slate-700 mb-1">ช่องทางติดต่ออื่น (Line/IG)</label>
               <Input
-                required
                 value={formData.contact}
                 onChange={(e) => setFormData({ ...formData, contact: e.target.value })}
                 className="bg-slate-50 border-slate-200 text-sm h-10 rounded-xl"
-                placeholder="@line_id, IG"
+                placeholder="@line_id, IG (ไม่บังคับ)"
               />
             </div>
 
@@ -536,9 +584,25 @@ export default function RangePickerBooking() {
           </form>
         </div>
         
-        {/* Custom Alert Modal */}
+        
+        {/* Custom Alert Modal & Spinning Overlay */}
         <AnimatePresence>
-          {alertState.isOpen && (
+          {isSuccessSpinning && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="bg-white rounded-2xl shadow-2xl p-8 flex flex-col items-center justify-center text-center"
+              >
+                <Loader2 className="w-16 h-16 animate-spin text-blue-500 mb-4" />
+                <h3 className="text-xl font-bold text-slate-800">กำลังจัดเตรียมคิวงานของคุณ...</h3>
+                <p className="text-slate-500 text-sm mt-2">กรุณารอสักครู่</p>
+              </motion.div>
+            </div>
+          )}
+
+          {alertState.isOpen && !isSuccessSpinning && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
               <motion.div
                 initial={{ opacity: 0, scale: 0.95, y: 10 }}
@@ -559,7 +623,12 @@ export default function RangePickerBooking() {
                 </div>
                 
                 <Button 
-                  onClick={() => setAlertState({ ...alertState, isOpen: false })}
+                  onClick={() => {
+                    setAlertState({ ...alertState, isOpen: false });
+                    if (alertState.type === 'success') {
+                      router.push('/schedule');
+                    }
+                  }}
                   className={`w-full font-bold h-12 rounded-xl text-white ${
                     alertState.type === 'success' ? 'bg-green-600 hover:bg-green-700' :
                     alertState.type === 'error' ? 'bg-red-600 hover:bg-red-700' :

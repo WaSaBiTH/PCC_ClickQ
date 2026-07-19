@@ -1,9 +1,13 @@
 import { google } from "googleapis";
 import path from "path";
 
-const SCOPES = ["https://www.googleapis.com/auth/spreadsheets"];
+const SCOPES = [
+  "https://www.googleapis.com/auth/spreadsheets",
+  "https://www.googleapis.com/auth/drive"
+];
 const KEYFILE_PATH = path.join(process.cwd(), "pccclickq-8b26393bf8f0.json");
-const SPREADSHEET_ID = "1lx5S3UquU5SqChAfADeUyDN2yd0jd6dlsmXeuZ-m6d4";
+const SPREADSHEET_ID = process.env.SPREADSHEET_ID || "1lx5S3UquU5SqChAfADeUyDN2yd0jd6dlsmXeuZ-m6d4";
+const PRUNE_DRIVE_FOLDER_ID = process.env.PRUNE_DRIVE_FOLDER_ID || "1qkakow5riHrQB6C0LVgPaZ2HlFrkwYvY";
 
 let auth: any = null;
 
@@ -108,6 +112,9 @@ export async function updateSetting(key: string, value: string) {
         values: [[key, value]],
       },
     });
+
+    // Invalidate the cache so subsequent reads get the fresh data
+    delete sheetCache[`Settings!A:Z`];
   } catch (error) {
     console.error("Error updating setting:", error);
     throw error;
@@ -136,5 +143,81 @@ export async function getFallbackUrls(): Promise<string[]> {
   } catch (error) {
     console.error("Error fetching fallback URLs from sheet:", error);
     return [];
+  }
+}
+
+/**
+ * Prune all data from sheets except for specified ones (Team, Settings, Gallery)
+ */
+export async function pruneData() {
+  const client = await getAuthClient();
+  const sheets = google.sheets({ version: "v4", auth: client as any });
+  const drive = google.drive({ version: "v3", auth: client as any });
+  
+  try {
+    // 1. Get all sheet names
+    const spreadsheet = await sheets.spreadsheets.get({
+      spreadsheetId: SPREADSHEET_ID,
+    });
+    
+    const excludedSheets = ["Team_Members", "Settings", "Gallery", "UsersAdmin"];
+    const sheetTitles = spreadsheet.data.sheets?.map(s => s.properties?.title).filter(Boolean) as string[] || [];
+    
+    const rangesToClear = sheetTitles
+      .filter(title => !excludedSheets.includes(title))
+      .map(title => `${title}!A2:Z`); // Clear from row 2 onwards to preserve headers
+      
+    if (rangesToClear.length > 0) {
+      await sheets.spreadsheets.values.batchClear({
+        spreadsheetId: SPREADSHEET_ID,
+        requestBody: {
+          ranges: rangesToClear
+        }
+      });
+      
+      // Invalidate cache for all cleared sheets
+      rangesToClear.forEach(range => {
+        const sheetName = range.split('!')[0];
+        delete sheetCache[`${sheetName}!A:Z`];
+      });
+    }
+
+    // 2. Delete all files in the specified Google Drive folder
+    try {
+      let pageToken: string | undefined = undefined;
+      const filesToDelete: string[] = [];
+      
+      do {
+        const res: any = await drive.files.list({
+          q: `'${PRUNE_DRIVE_FOLDER_ID}' in parents and trashed = false`,
+          fields: "nextPageToken, files(id)",
+          pageToken: pageToken,
+        });
+        
+        if (res.data.files) {
+          filesToDelete.push(...res.data.files.map((f: any) => f.id));
+        }
+        pageToken = res.data.nextPageToken;
+      } while (pageToken);
+      
+      // Remove files from the folder concurrently (Service account is Editor, not Owner, so we removeParents instead of delete)
+      for (let i = 0; i < filesToDelete.length; i += 5) {
+        const chunk = filesToDelete.slice(i, i + 5);
+        await Promise.all(chunk.map(fileId => 
+          drive.files.update({ 
+            fileId, 
+            removeParents: PRUNE_DRIVE_FOLDER_ID 
+          }).catch(e => console.error(`Failed to remove drive file ${fileId}:`, e))
+        ));
+      }
+      console.log(`Removed ${filesToDelete.length} files from Drive folder ${PRUNE_DRIVE_FOLDER_ID}`);
+    } catch (driveError) {
+      console.error("Error clearing Google Drive folder (Make sure Service Account has Editor access to the folder):", driveError);
+    }
+    
+    return { success: true, clearedSheets: sheetTitles.filter(title => !excludedSheets.includes(title)) };
+  } catch (error) {
+    console.error("Error pruning data:", error);
+    throw error;
   }
 }

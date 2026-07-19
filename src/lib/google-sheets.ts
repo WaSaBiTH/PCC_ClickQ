@@ -103,6 +103,14 @@ export async function updateBookingStatus(rowIndex: number, status: string, goog
  * Fetch all approved Google Photos Links
  */
 export async function getApprovedGooglePhotosLinks(): Promise<string[]> {
+  const data = await getApprovedGooglePhotosData();
+  return data.map(d => d.link);
+}
+
+/**
+ * Fetch all approved Google Photos Links with Date
+ */
+export async function getApprovedGooglePhotosData(): Promise<{link: string, date: string}[]> {
   const bookings = await getBookings();
   
   // Bookings structure: Name(0), Phone(1), Contact(2), Date(3), TimeSlot(4), ServiceType(5), DriveLink(6), Status(7), Notes(8), GooglePhotosLink(9)
@@ -116,10 +124,14 @@ export async function getApprovedGooglePhotosLinks(): Promise<string[]> {
   // Sort by row index descending (latest submitted/added row comes first)
   validBookings.sort((a: { index: number }, b: { index: number }) => b.index - a.index);
   
+  const results: {link: string, date: string}[] = [];
   const uniqueLinks = new Set<string>();
   for (const b of validBookings) {
-    uniqueLinks.add(b.row[9]);
+    if (!uniqueLinks.has(b.row[9])) {
+      uniqueLinks.add(b.row[9]);
+      results.push({ link: b.row[9], date: b.row[3] || "" });
+    }
   }
   
-  return Array.from(uniqueLinks);
+  return results;
 }
