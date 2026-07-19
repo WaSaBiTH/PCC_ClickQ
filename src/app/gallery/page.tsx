@@ -64,14 +64,16 @@ export default async function GalleryPage() {
   });
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
-      {/* Navigation */}
+    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans pb-20 md:pb-0">
+      {/* Navigation - Top Bar (Desktop) & Top Logo (Mobile) */}
       <nav className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-md border-b shadow-sm">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <Link href="/" className="font-bold text-xl hover:opacity-80 transition-opacity">
-            PhotoClubClickQ
+        <div className="container mx-auto px-4 h-16 flex items-center justify-between md:justify-between justify-center relative">
+          <Link href="/" className="font-bold text-xl hover:opacity-80 transition-opacity absolute md:relative left-4 md:left-0">
+            <span className="hidden md:inline">PhotoClubClickQ</span>
+            <span className="md:hidden">ClickQ</span>
           </Link>
-          <div className="flex gap-2 sm:gap-4 items-center">
+          
+          <div className="hidden md:flex gap-4 items-center">
             <Link href="/" className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">
               หน้าแรก
             </Link>
@@ -90,8 +92,36 @@ export default async function GalleryPage() {
         </div>
       </nav>
 
+      {/* Mobile Bottom Navigation (Sticky) */}
+      <nav className="md:hidden fixed bottom-0 w-full z-50 bg-white border-t pb-safe">
+        <div className="flex items-center justify-around h-16 px-2">
+          <Link href="/" className="flex flex-col items-center justify-center w-full h-full space-y-1 text-slate-500">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            <span className="text-[10px] font-medium">หน้าแรก</span>
+          </Link>
+          <Link href="/#team" className="flex flex-col items-center justify-center w-full h-full space-y-1 text-slate-500">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <span className="text-[10px] font-medium">ทีมงาน</span>
+          </Link>
+          <Link href="/gallery" className="flex flex-col items-center justify-center w-full h-full space-y-1 text-orange-500">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+            <span className="text-[10px] font-medium">แกลลอรี่</span>
+          </Link>
+          <Link href="/schedule" className="flex flex-col items-center justify-center w-full h-full space-y-1 text-slate-500">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <span className="text-[10px] font-medium">ตารางงาน</span>
+          </Link>
+          <Link href="/booking" className="flex flex-col items-center justify-center w-full h-full space-y-1 text-slate-500">
+            <div className="bg-orange-500 text-white p-2 rounded-full -mt-6 border-4 border-slate-100 shadow-md">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/></svg>
+            </div>
+            <span className="text-[10px] font-medium text-orange-500">จองคิว</span>
+          </Link>
+        </div>
+      </nav>
+
       {/* Main Content */}
-      <main className="container mx-auto px-4 pt-32 pb-24">
+      <main className="container mx-auto px-4 pt-24 pb-8 md:pt-32 md:pb-24">
 
         {validItems.length === 0 ? (
           <div className="text-center bg-white p-16 rounded-3xl border border-slate-100 shadow-sm max-w-2xl mx-auto">
@@ -99,14 +129,14 @@ export default async function GalleryPage() {
             <p className="text-slate-400 text-sm mt-2">ผลงานที่ถูกส่งมอบแล้วจะแสดงที่นี่โดยอัตโนมัติ</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+          <div className="grid max-[400px]:grid-cols-1 grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-8">
             {validItems.map((item, idx) => (
               <div key={idx} className={`group flex flex-col bg-white rounded-3xl shadow-sm border ${item.isOld ? 'border-red-200' : 'border-slate-100'} overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1`}>
                 <a 
                   href={item.isDeadLink ? "#" : item.link} 
                   target={item.isDeadLink ? "_self" : "_blank"} 
                   rel="noreferrer" 
-                  className={`block relative aspect-[4/5] overflow-hidden bg-slate-100 ${item.isDeadLink ? 'cursor-not-allowed opacity-80' : ''}`}
+                  className={`block relative aspect-[3/4] overflow-hidden bg-slate-100 ${item.isDeadLink ? 'cursor-not-allowed opacity-80' : ''}`}
                   onClick={(e) => { if(item.isDeadLink) e.preventDefault(); }}
                 >
                   {item.coverImage ? (

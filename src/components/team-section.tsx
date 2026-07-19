@@ -74,7 +74,7 @@ export default function TeamSection({ teamMembers }: TeamSectionProps) {
   const displayCards = getFilteredMembers();
 
   return (
-    <div className="w-full flex flex-col items-center h-full justify-center">
+    <div className="w-full flex flex-col items-center min-h-full justify-start pt-4 pb-24 md:pb-8">
       <div className="container mx-auto px-4 mb-2 md:mb-4 text-center">
         <h2 className="text-3xl md:text-4xl font-bold mb-2 tracking-tight text-slate-800">ทำความรู้จักกับทีมงานของเรา</h2>
         <p className="text-slate-500 text-sm md:text-base max-w-2xl mx-auto mb-6">
@@ -83,19 +83,17 @@ export default function TeamSection({ teamMembers }: TeamSectionProps) {
 
         {/* Liquid Crystal Filter Tabs */}
         <div 
-          className={`inline-flex items-center justify-center p-1 mb-2 bg-white/40 backdrop-blur-xl rounded-full overflow-hidden relative transition-all duration-1000 ${
+          className={`grid grid-cols-3 items-center p-1 mb-2 bg-white/40 backdrop-blur-xl rounded-full relative transition-all duration-1000 w-full max-w-sm mx-auto ${
             activeTab === null 
               ? 'border border-orange-400/80 shadow-[0_0_15px_rgba(251,146,60,0.4)] animate-[pulse_3.5s_cubic-bezier(0.4,0,0.6,1)_infinite]' 
-              : 'border border-white/60 shadow-[0_8px_32px_rgba(0,0,0,0.04)]'
+              : 'border border-slate-200/60 shadow-[0_8px_32px_rgba(0,0,0,0.04)]'
           }`}
         >
           {/* Animated Background Indicator */}
           <div 
-            className={`absolute top-1 bottom-1 rounded-full bg-gradient-to-r from-orange-400 to-orange-500 shadow-lg shadow-orange-500/30 transition-all duration-500 ease-spring ${activeTab === null ? 'opacity-0 scale-90' : 'opacity-100 scale-100'}`}
+            className={`absolute top-1 bottom-1 w-[calc(33.33%-2.66px)] rounded-full bg-gradient-to-r from-orange-400 to-orange-500 shadow-lg shadow-orange-500/30 transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${activeTab === null ? 'opacity-0 scale-90' : 'opacity-100 scale-100'}`}
             style={{
-              width: "100px",
-              transform: `translateX(${activeTab === "ปัจจุบัน" ? "0px" : activeTab === "ศิษย์เก่า" ? "100px" : activeTab === "บุคลากร" ? "200px" : "0px"})`,
-              left: "4px"
+              transform: `translateX(${activeTab === "ปัจจุบัน" ? "4px" : activeTab === "ศิษย์เก่า" ? "calc(100% + 4px)" : activeTab === "บุคลากร" ? "calc(200% + 4px)" : "4px"})`,
             }}
           />
           
@@ -103,10 +101,10 @@ export default function TeamSection({ teamMembers }: TeamSectionProps) {
             <button
               key={tab}
               onClick={() => setActiveTab(activeTab === tab ? null : tab)}
-              className={`relative z-10 w-[100px] py-1.5 text-xs font-semibold rounded-full transition-all duration-300 ${
+              className={`relative z-10 w-full py-2 md:py-2.5 text-[11px] md:text-sm font-bold rounded-full transition-all duration-300 ${
                 activeTab === tab 
-                  ? "text-white text-shadow-sm" 
-                  : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
+                  ? "text-white drop-shadow-sm" 
+                  : "text-slate-500 hover:text-slate-800 hover:bg-white/40"
               }`}
             >
               {tab}

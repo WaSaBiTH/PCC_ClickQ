@@ -25,13 +25,16 @@ export default function LoginPage() {
       });
 
       if (res.ok) {
-        window.location.href = "/admin/dashboard";
+        router.refresh(); // Clear client-side router cache so it sees the new cookie
+        setTimeout(() => {
+          router.push("/admin/dashboard");
+        }, 100);
       } else {
         setError("Invalid username or password");
+        setIsLoading(false);
       }
     } catch (err) {
       setError("An error occurred during login");
-    } finally {
       setIsLoading(false);
     }
   };

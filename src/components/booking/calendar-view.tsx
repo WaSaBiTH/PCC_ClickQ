@@ -70,7 +70,8 @@ export interface CalendarViewProps {
 }
 
 export default function CalendarView({ initialBookings }: CalendarViewProps) {
-  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [viewMode, setViewMode] = useState<"month" | "week" | "day">("month");
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   
@@ -81,28 +82,44 @@ export default function CalendarView({ initialBookings }: CalendarViewProps) {
       : MOCK_BOOKINGS
   );
 
-  const nextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
-  const prevMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
+  const nextPeriod = () => {
+    if (viewMode === "month") setCurrentDate(addMonths(currentDate, 1));
+    else if (viewMode === "week") setCurrentDate(addDays(currentDate, 7));
+    else setCurrentDate(addDays(currentDate, 1));
+  };
+  const prevPeriod = () => {
+    if (viewMode === "month") setCurrentDate(subMonths(currentDate, 1));
+    else if (viewMode === "week") setCurrentDate(subDays(currentDate, 7));
+    else setCurrentDate(subDays(currentDate, 1));
+  };
 
   const onDateClick = (day: Date, dayBookings: Booking[]) => {
-    // ถกเถียง: ถ้าไม่มีตารางงาน กดแล้วให้เงียบ ไม่แสดง Modal
     if (dayBookings.length === 0) return;
-    
     setSelectedDate(day);
     setIsModalOpen(true);
   };
 
-  // --- Calendar Grid Logic ---
-  const monthStart = startOfMonth(currentMonth);
+  // --- Calendar Grid Logic (Month View) ---
+  const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(monthStart);
   const startDate = startOfWeek(monthStart);
   const endDate = endOfWeek(monthEnd);
 
-  const days: Date[] = [];
+  const monthDays: Date[] = [];
   let day = startDate;
   while (day <= endDate) {
-    days.push(day);
+    monthDays.push(day);
     day = addDays(day, 1);
+  }
+
+  // --- Week View Logic ---
+  const weekStart = startOfWeek(currentDate);
+  const weekEnd = endOfWeek(weekStart);
+  const weekDaysDates: Date[] = [];
+  let wDay = weekStart;
+  while (wDay <= weekEnd) {
+    weekDaysDates.push(wDay);
+    wDay = addDays(wDay, 1);
   }
 
   const weekDays = ["อา.", "จ.", "อ.", "พ.", "พฤ.", "ศ.", "ส."];
@@ -111,123 +128,282 @@ export default function CalendarView({ initialBookings }: CalendarViewProps) {
     ? bookings.filter((b) => isSameDay(b.date, selectedDate))
     : [];
 
+  const renderAgendaCard = (booking: Booking) => (
+    <div key={booking.id} className="border border-slate-200 rounded-2xl p-5 bg-white shadow-sm relative overflow-hidden flex flex-col">
+      {/* Status Ribbon */}
+      <div className={`absolute top-0 left-0 w-1.5 h-full ${statusColors[booking.status].split(' ')[0]}`}></div>
+      
+      <div className="flex justify-between items-start mb-3 pl-2 gap-4">
+        <div className="flex-1 pr-2">
+          {(() => {
+            const parts = booking.clientName.split(" - ");
+            const booker = parts[0];
+            const event = parts.slice(1).join(" - ");
+            
+            return event ? (
+              <>
+                <h4 className="font-bold text-base md:text-lg text-slate-800 leading-tight mb-1">{event}</h4>
+                <p className="text-xs md:text-sm font-medium text-slate-500 mb-2">โดย: {booker}</p>
+              </>
+            ) : (
+              <h4 className="font-bold text-base md:text-lg text-slate-800 mb-2">{booker}</h4>
+            );
+          })()}
+        </div>
+        <span className={`text-[10px] md:text-xs font-bold px-2 md:px-3 py-1 rounded-full border whitespace-nowrap shrink-0 ${statusColors[booking.status]}`}>
+          {statusText[booking.status]}
+        </span>
+      </div>
+
+      <div className="space-y-2 text-xs md:text-sm text-slate-600 pl-2">
+        {booking.time && (
+          <div className="flex items-center gap-2">
+            <Clock className="w-4 h-4 text-slate-400 shrink-0" />
+            <span>{booking.time} น.</span>
+          </div>
+        )}
+        {booking.notes && (
+          <div className="flex items-start gap-2 mt-1">
+            <FileText className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+            <span className="whitespace-pre-wrap leading-relaxed">{booking.notes}</span>
+          </div>
+        )}
+      </div>
+
+      {booking.status === "completed" && booking.photosUrl && (
+        <div className="mt-4 pt-4 border-t border-slate-100 pl-2">
+          <a 
+            href={booking.photosUrl} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200 px-3 py-1.5 md:px-4 md:py-2 rounded-xl text-xs md:text-sm font-semibold transition-colors w-fit"
+          >
+            <ImageIcon className="w-4 h-4" />
+            ดูรูปภาพ
+            <ExternalLink className="w-3 h-3 ml-1" />
+          </a>
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <div className="w-full h-full flex flex-col bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden">
       
       {/* Header Controls */}
-      <div className="flex items-center justify-between p-6 pb-2 border-b border-slate-100">
-        <h2 className="text-2xl md:text-3xl font-bold text-slate-800 tracking-tight">
-          {format(currentMonth, "MMMM yyyy", { locale: th })}
+      <div className="flex items-center justify-between p-4 md:p-6 md:pb-4 border-b border-slate-100 gap-2">
+        <h2 className="text-lg md:text-2xl font-bold text-slate-800 tracking-tight flex-1 truncate">
+          {viewMode === "day" 
+            ? format(currentDate, "d MMMM yyyy", { locale: th }) 
+            : format(currentDate, "MMMM yyyy", { locale: th })}
         </h2>
-        <div className="flex gap-2 items-center">
-          <Button variant="outline" onClick={() => setCurrentMonth(new Date())} className="bg-white border-slate-200 text-slate-700 hover:bg-slate-50 px-3 md:px-4 hidden sm:block">
-            เดือนปัจจุบัน
-          </Button>
-          <Button variant="outline" size="icon" onClick={() => setCurrentMonth(new Date())} className="bg-white border-slate-200 text-slate-700 hover:bg-slate-50 sm:hidden">
-            วันนี้
-          </Button>
-          <div className="flex gap-1">
-            <Button variant="outline" size="icon" onClick={prevMonth} className="bg-white border-slate-200 text-slate-700 hover:bg-slate-50">
-              <ChevronLeft className="h-5 w-5" />
+        
+        <div className="flex items-center gap-2 md:gap-4 shrink-0">
+          {/* Desktop View Switcher */}
+          <div className="hidden md:flex bg-slate-100 rounded-lg p-1 shrink-0">
+            <button onClick={() => setViewMode("month")} className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${viewMode === "month" ? "bg-white shadow-sm text-slate-900" : "text-slate-600 hover:text-slate-900"}`}>เดือน</button>
+            <button onClick={() => setViewMode("week")} className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${viewMode === "week" ? "bg-white shadow-sm text-slate-900" : "text-slate-600 hover:text-slate-900"}`}>สัปดาห์</button>
+            <button onClick={() => setViewMode("day")} className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${viewMode === "day" ? "bg-white shadow-sm text-slate-900" : "text-slate-600 hover:text-slate-900"}`}>วัน</button>
+          </div>
+
+          <div className="flex gap-1.5 md:gap-2 items-center">
+            <Button variant="outline" size="sm" onClick={() => setCurrentDate(new Date())} className="bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hidden md:flex">
+              วันนี้
             </Button>
-            <Button variant="outline" size="icon" onClick={nextMonth} className="bg-white border-slate-200 text-slate-700 hover:bg-slate-50">
-              <ChevronRight className="h-5 w-5" />
+            <Button variant="outline" size="sm" onClick={() => setCurrentDate(new Date())} className="bg-white border-slate-200 text-slate-700 hover:bg-slate-50 md:hidden px-2.5 text-xs h-8">
+              วันนี้
             </Button>
+            <div className="flex gap-1">
+              <Button variant="outline" size="icon" onClick={prevPeriod} className="h-8 w-8 md:h-9 md:w-9 bg-white border-slate-200 text-slate-700 hover:bg-slate-50 shrink-0">
+                <ChevronLeft className="h-4 w-4 md:h-5 md:w-5" />
+              </Button>
+              <Button variant="outline" size="icon" onClick={nextPeriod} className="h-8 w-8 md:h-9 md:w-9 bg-white border-slate-200 text-slate-700 hover:bg-slate-50 shrink-0">
+                <ChevronRight className="h-4 w-4 md:h-5 md:w-5" />
+              </Button>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Status Legend */}
-      <div className="flex flex-wrap gap-4 px-6 py-3 text-sm bg-slate-50 border-b border-slate-100">
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
-          <span className="text-slate-600 font-medium">รอการยืนยัน (Pending)</span>
+      <div className="flex overflow-x-auto custom-scrollbar gap-4 px-4 md:px-6 py-2.5 text-[11px] md:text-sm bg-slate-50 border-b border-slate-100 whitespace-nowrap">
+        <div className="flex items-center gap-1.5 md:gap-2">
+          <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-yellow-400"></div>
+          <span className="text-slate-600 font-medium">รอการยืนยัน</span>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-          <span className="text-slate-600 font-medium">รับงานแล้ว (Accepted)</span>
+        <div className="flex items-center gap-1.5 md:gap-2">
+          <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-blue-500"></div>
+          <span className="text-slate-600 font-medium">รับงานแล้ว</span>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-green-500"></div>
-          <span className="text-slate-600 font-medium">จบงานแล้ว (Completed)</span>
+        <div className="flex items-center gap-1.5 md:gap-2">
+          <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-green-500"></div>
+          <span className="text-slate-600 font-medium">จบงานแล้ว</span>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-red-500"></div>
-          <span className="text-slate-600 font-medium">ปฏิเสธรับงาน (Rejected)</span>
+        <div className="flex items-center gap-1.5 md:gap-2">
+          <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-red-500"></div>
+          <span className="text-slate-600 font-medium">ปฏิเสธรับงาน</span>
         </div>
       </div>
 
-      {/* Days of week header */}
-      <div className="grid grid-cols-7 bg-slate-50 border-b border-slate-200">
-        {weekDays.map((dayName) => (
-          <div key={dayName} className="py-2 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">
-            {dayName}
+      {/* --- Month View --- */}
+      {viewMode === "month" && (
+        <>
+          <div className="grid grid-cols-7 bg-slate-50 border-b border-slate-200">
+            {weekDays.map((dayName) => (
+              <div key={dayName} className="py-2 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">
+                {dayName}
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
 
-      {/* Calendar Grid */}
-      <div className="flex-1 grid grid-cols-7 bg-slate-200 overflow-hidden auto-rows-fr">
-        {/* Calendar Cells */}
-        {days.map((dayItem, idx) => {
-          const isCurrentMonth = isSameMonth(dayItem, monthStart);
-          const isToday = isSameDay(dayItem, new Date());
-          
-          // Get bookings for this day and sort them by priority: Pending > Accepted > Completed > Rejected
-          const statusPriority = {
-            pending: 1,
-            accepted: 2,
-            completed: 3,
-            rejected: 4,
-          };
-          
-          const dayBookings = bookings
-            .filter((b) => isSameDay(b.date, dayItem))
-            .sort((a, b) => statusPriority[a.status] - statusPriority[b.status]);
-          
-          const hasBookings = dayBookings.length > 0;
+          <div className="flex-1 grid grid-cols-7 bg-slate-200 overflow-hidden auto-rows-fr">
+            {monthDays.map((dayItem, idx) => {
+              const isCurrentMonth = isSameMonth(dayItem, monthStart);
+              const isToday = isSameDay(dayItem, new Date());
+              const statusPriority = { pending: 1, accepted: 2, completed: 3, rejected: 4 };
+              const dayBookings = bookings
+                .filter((b) => isSameDay(b.date, dayItem))
+                .sort((a, b) => statusPriority[a.status] - statusPriority[b.status]);
+              const hasBookings = dayBookings.length > 0;
 
-          return (
-            <div
-              key={idx}
-              onClick={() => onDateClick(dayItem, dayBookings)}
-              className={`
-                bg-white p-2 border-r border-b border-slate-100 transition-colors flex flex-col gap-1 overflow-hidden
-                ${!isCurrentMonth ? "bg-slate-50/50 text-slate-400" : ""}
-                ${isToday ? "bg-blue-50/30" : ""}
-                ${hasBookings ? "cursor-pointer hover:bg-slate-50" : "cursor-default"}
-              `}
-            >
-              <div className="flex justify-between items-center mb-1">
-                <span className={`text-sm font-semibold w-7 h-7 flex items-center justify-center rounded-full ${isToday ? "bg-blue-600 text-white" : "text-slate-700"}`}>
-                  {format(dayItem, "d")}
-                </span>
-                {hasBookings && (
-                  <span className="text-[10px] font-medium text-slate-500">{dayBookings.length} คิว</span>
-                )}
-              </div>
-
-              {/* Bookings List inside cell */}
-              <div className="flex-1 overflow-y-auto space-y-1 custom-scrollbar pr-1">
-                {dayBookings.map((booking) => (
-                  <div
-                    key={booking.id}
-                    className={`text-[10px] md:text-xs px-2 py-1.5 rounded-md border ${statusColors[booking.status]} truncate flex items-center justify-between font-medium`}
-                    title={`${booking.time} - ${booking.clientName} (${booking.service})`}
-                  >
-                    <span className="truncate">{booking.clientName}</span>
+              return (
+                <div
+                  key={idx}
+                  onClick={() => onDateClick(dayItem, dayBookings)}
+                  className={`
+                    bg-white p-1 md:p-2 border-r border-b border-slate-100 transition-colors flex flex-col gap-0.5 md:gap-1 overflow-hidden
+                    ${!isCurrentMonth ? "bg-slate-50/50 text-slate-400" : ""}
+                    ${isToday ? "bg-blue-50/30" : ""}
+                    ${hasBookings ? "cursor-pointer hover:bg-slate-50" : "cursor-default"}
+                  `}
+                >
+                  <div className="flex justify-between items-start md:items-center mb-0.5 md:mb-1">
+                    <span className={`text-xs md:text-sm font-semibold w-6 h-6 md:w-7 md:h-7 flex items-center justify-center rounded-full ${isToday ? "bg-blue-600 text-white" : "text-slate-700"}`}>
+                      {format(dayItem, "d")}
+                    </span>
+                    {hasBookings && (
+                      <span className="hidden md:inline-block text-[10px] font-medium text-slate-500">{dayBookings.length} คิว</span>
+                    )}
                   </div>
-                ))}
-              </div>
+
+                  {/* Desktop Pills */}
+                  <div className="hidden md:flex flex-1 flex-col overflow-y-auto space-y-1 custom-scrollbar pr-1">
+                    {dayBookings.map((booking) => (
+                      <div
+                        key={booking.id}
+                        className={`text-xs px-2 py-1.5 rounded-md border ${statusColors[booking.status]} truncate flex items-center justify-between font-medium`}
+                        title={`${booking.time} - ${booking.clientName} (${booking.service})`}
+                      >
+                        <span className="truncate">{booking.clientName}</span>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {/* Mobile Dots */}
+                  <div className="flex md:hidden flex-wrap gap-1 mt-0.5">
+                    {dayBookings.map((booking) => (
+                      <div key={booking.id} className={`w-1.5 h-1.5 rounded-full ${statusColors[booking.status].split(' ')[0]}`} />
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      {/* --- Week View --- */}
+      {viewMode === "week" && (
+        <div className="flex-1 flex flex-col overflow-hidden bg-slate-50">
+          <div className="grid grid-cols-7 bg-white border-b border-slate-200 shadow-sm z-10 shrink-0">
+             {weekDaysDates.map((dayItem, idx) => {
+                const isToday = isSameDay(dayItem, new Date());
+                const isSelected = isSameDay(dayItem, currentDate);
+                const dayBookings = bookings.filter((b) => isSameDay(b.date, dayItem));
+                
+                return (
+                  <div 
+                    key={idx} 
+                    onClick={() => { setViewMode("day"); setCurrentDate(dayItem); }}
+                    className={`py-3 flex flex-col items-center justify-center gap-1 cursor-pointer transition-colors hover:bg-slate-50 border-b-2 ${isSelected ? "border-blue-500 bg-blue-50/30" : "border-transparent"}`}
+                  >
+                    <div className={`text-[10px] md:text-xs font-medium uppercase ${isToday ? "text-blue-600" : "text-slate-500"}`}>{weekDays[idx]}</div>
+                    <div className={`text-base md:text-xl font-bold w-7 h-7 md:w-9 md:h-9 flex items-center justify-center rounded-full ${isToday ? "bg-blue-600 text-white" : "text-slate-800"}`}>{format(dayItem, "d")}</div>
+                    <div className="flex gap-0.5 h-1.5 mt-0.5">
+                      {dayBookings.slice(0,3).map(b => (
+                        <div key={b.id} className={`w-1.5 h-1.5 rounded-full ${statusColors[b.status].split(' ')[0]}`} />
+                      ))}
+                      {dayBookings.length > 3 && <div className="w-1.5 h-1.5 rounded-full bg-slate-300" />}
+                    </div>
+                  </div>
+                );
+             })}
+          </div>
+          
+          <div className="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar space-y-6">
+             {weekDaysDates.map((dayItem) => {
+               const dayBookings = bookings.filter((b) => isSameDay(b.date, dayItem));
+               if (dayBookings.length === 0) return null;
+               
+               return (
+                 <div key={dayItem.toString()} className="flex flex-col md:flex-row gap-4">
+                   <div className="md:w-24 shrink-0 flex flex-row md:flex-col gap-2 md:gap-0 items-baseline md:items-start border-b md:border-b-0 border-slate-200 pb-2 md:pb-0">
+                     <span className="text-sm font-bold text-slate-800">{format(dayItem, "d MMMM")}</span>
+                     <span className="text-xs font-medium text-slate-500">วัน{format(dayItem, "EEEE", { locale: th })}</span>
+                   </div>
+                   <div className="flex-1 space-y-3">
+                     {dayBookings.map(renderAgendaCard)}
+                   </div>
+                 </div>
+               );
+             })}
+             {bookings.filter(b => b.date >= weekStart && b.date <= weekEnd).length === 0 && (
+               <div className="flex flex-col items-center justify-center h-full text-slate-400 p-8 text-center">
+                 <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                   <Clock className="w-8 h-8 opacity-50" />
+                 </div>
+                 <p className="text-lg font-medium text-slate-500">ไม่มีคิวงานในสัปดาห์นี้</p>
+               </div>
+             )}
+          </div>
+        </div>
+      )}
+
+      {/* --- Day View --- */}
+      {viewMode === "day" && (
+        <div className="flex-1 flex flex-col overflow-hidden bg-slate-50">
+          <div className="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar">
+            <div className="max-w-2xl mx-auto space-y-4">
+              {(() => {
+                const dayBookings = bookings.filter((b) => isSameDay(b.date, currentDate));
+                if (dayBookings.length === 0) {
+                  return (
+                    <div className="flex flex-col items-center justify-center py-20 text-slate-400">
+                       <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                         <Clock className="w-10 h-10 opacity-50" />
+                       </div>
+                       <p className="text-lg font-medium text-slate-500">ไม่มีคิวงานในวันนี้</p>
+                    </div>
+                  );
+                }
+                return dayBookings.map(renderAgendaCard);
+              })()}
             </div>
-          );
-        })}
+          </div>
+        </div>
+      )}
+
+      {/* Mobile View Switcher (Bottom Navbar) */}
+      <div className="md:hidden flex items-center justify-between bg-white border-t border-slate-200 p-2 gap-2 mt-auto pb-safe">
+        <button onClick={() => setViewMode("month")} className={`flex-1 py-2.5 text-sm font-semibold rounded-xl transition-all ${viewMode === "month" ? "bg-slate-100 text-slate-900" : "text-slate-500 hover:bg-slate-50"}`}>เดือน</button>
+        <button onClick={() => setViewMode("week")} className={`flex-1 py-2.5 text-sm font-semibold rounded-xl transition-all ${viewMode === "week" ? "bg-slate-100 text-slate-900" : "text-slate-500 hover:bg-slate-50"}`}>สัปดาห์</button>
+        <button onClick={() => setViewMode("day")} className={`flex-1 py-2.5 text-sm font-semibold rounded-xl transition-all ${viewMode === "day" ? "bg-slate-100 text-slate-900" : "text-slate-500 hover:bg-slate-50"}`}>วัน</button>
       </div>
 
       {/* Job Details Modal */}
       {isModalOpen && selectedDate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
-          <div className="bg-white border border-slate-200 rounded-3xl p-6 w-full max-w-lg shadow-2xl relative max-h-[90vh] flex flex-col">
+        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 sm:p-4 bg-slate-900/40 backdrop-blur-sm">
+          <div className="bg-white border-t sm:border border-slate-200 rounded-t-3xl sm:rounded-3xl p-6 w-full max-w-lg shadow-2xl relative max-h-[85vh] flex flex-col">
             <button
               onClick={() => setIsModalOpen(false)}
               className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-full transition-colors"

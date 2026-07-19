@@ -284,7 +284,7 @@ export default function SocialCards({ cards }: SocialCardsProps) {
   return (
     <section className="flex flex-col items-center w-full py-2 lg:py-4 px-4 md:px-8 relative z-20 overflow-visible">
       <div className="flex items-center justify-center w-full max-w-[90rem]">
-        <div ref={containerRef} className="fan-layout flex relative justify-center items-center w-full max-w-[80rem] h-[450px] md:h-[550px] lg:h-[650px] xl:h-[700px]">
+        <div ref={containerRef} className="fan-layout flex relative justify-center items-center w-full max-w-[80rem] h-[380px] md:h-[550px] lg:h-[650px] xl:h-[700px]">
           {cards.map((card, index) => {
             const image = (
               <div className="relative w-full h-full overflow-hidden rounded-[32px] shadow-2xl group bg-white">
@@ -337,9 +337,9 @@ export default function SocialCards({ cards }: SocialCardsProps) {
               </div>
             );
             return card.linkUrl ? (
-              <a key={index} href={card.linkUrl} onClick={(e) => handleCardClick(e, index)} target={card.linkUrl.startsWith("http") ? "_blank" : "_self"} rel="noopener noreferrer" className="fan-card block cursor-pointer w-[280px] h-[400px] md:w-[340px] md:h-[480px] lg:w-[400px] lg:h-[560px] xl:w-[440px] xl:h-[600px] absolute">{image}</a>
+              <a key={index} href={card.linkUrl} onClick={(e) => handleCardClick(e, index)} target={card.linkUrl.startsWith("http") ? "_blank" : "_self"} rel="noopener noreferrer" className="fan-card block cursor-pointer w-[240px] h-[340px] md:w-[340px] md:h-[480px] lg:w-[400px] lg:h-[560px] xl:w-[440px] xl:h-[600px] absolute">{image}</a>
             ) : (
-              <div key={index} onClick={(e) => handleCardClick(e, index)} className="fan-card block cursor-pointer w-[280px] h-[400px] md:w-[340px] md:h-[480px] lg:w-[400px] lg:h-[560px] xl:w-[440px] xl:h-[600px] absolute">{image}</div>
+              <div key={index} onClick={(e) => handleCardClick(e, index)} className="fan-card block cursor-pointer w-[240px] h-[340px] md:w-[340px] md:h-[480px] lg:w-[400px] lg:h-[560px] xl:w-[440px] xl:h-[600px] absolute">{image}</div>
             );
           })}
         </div>

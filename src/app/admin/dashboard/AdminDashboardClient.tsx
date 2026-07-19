@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Loader2, Users, Settings } from "lucide-react";
+import { Loader2, Users, Settings, LogOut, Image as ImageIcon } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
@@ -224,58 +224,61 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <nav className="bg-white border-b shadow-sm sticky top-0 z-40 mb-8">
-        <div className="max-w-6xl mx-auto px-8 h-16 flex items-center justify-between">
-          <a href="/" className="font-bold text-xl hover:opacity-80 flex items-center gap-2">
-            <span className="text-orange-500">PhotoClubClickQ</span>
-            <span className="text-slate-500 text-sm font-normal">| Admin</span>
+      <nav className="bg-white border-b shadow-sm sticky top-0 z-40 mb-4 md:mb-8">
+        <div className="max-w-6xl mx-auto px-4 md:px-8 h-16 flex items-center justify-between">
+          <a href="/" className="font-bold text-lg md:text-xl hover:opacity-80 flex items-center gap-1 md:gap-2 truncate">
+            <span className="hidden sm:inline text-orange-500">PhotoClubClickQ</span>
+            <span className="sm:hidden text-orange-500">PCC</span>
+            <span className="text-slate-500 text-sm font-normal truncate">| Admin</span>
           </a>
-          <div className="flex items-center gap-2 md:gap-4">
+          <div className="flex items-center gap-1 md:gap-4 shrink-0">
             <Link href="/admin/gallery">
-              <Button variant="ghost" className="text-slate-600 hover:text-slate-900" title="Manage Gallery">
+              <Button variant="ghost" size="icon" className="md:w-auto md:px-4 text-slate-600 hover:text-slate-900" title="Manage Gallery">
+                <ImageIcon className="w-5 h-5 md:hidden" />
                 <span className="hidden md:inline">Gallery</span>
               </Button>
             </Link>
             <Link href="/admin/team">
-              <Button variant="ghost" className="text-slate-600 hover:text-slate-900" title="Manage Team">
-                <Users className="w-5 h-5 mr-0 md:mr-2" />
+              <Button variant="ghost" size="icon" className="md:w-auto md:px-4 text-slate-600 hover:text-slate-900" title="Manage Team">
+                <Users className="w-5 h-5 md:mr-2" />
                 <span className="hidden md:inline">Team</span>
               </Button>
             </Link>
             <Link href="/admin/settings">
-              <Button variant="ghost" className="text-slate-600 hover:text-slate-900" title="Settings">
-                <Settings className="w-5 h-5 mr-0 md:mr-2" />
+              <Button variant="ghost" size="icon" className="md:w-auto md:px-4 text-slate-600 hover:text-slate-900" title="Settings">
+                <Settings className="w-5 h-5 md:mr-2" />
                 <span className="hidden md:inline">Settings</span>
               </Button>
             </Link>
-            <Button variant="ghost" onClick={async () => {
+            <Button variant="ghost" size="icon" className="md:w-auto md:px-4 text-red-600 hover:text-red-700 hover:bg-red-50" title="ออกจากระบบ" onClick={async () => {
               await fetch('/api/admin/logout', { method: 'POST' });
               window.location.href = '/';
             }}>
-              ออกจากระบบ
+              <LogOut className="w-5 h-5 md:mr-2" />
+              <span className="hidden md:inline">ออกจากระบบ</span>
             </Button>
           </div>
         </div>
       </nav>
-      <div className="p-8 max-w-6xl mx-auto pt-0 w-full flex-1">
-        <div className="flex justify-between items-center mb-8">
-          <div className="flex items-center gap-4">
-            <h1 className="text-3xl font-bold">Management Queue</h1>
-            <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-full border border-slate-200 shadow-sm">
-              <span className={`text-sm font-bold ${loadingQueueStatus ? "text-slate-400" : isQueueOpen ? "text-green-600" : "text-red-600"}`}>
-                {loadingQueueStatus ? "กำลังโหลด..." : isQueueOpen ? "เปิดรับคิว" : "ปิดรับคิวชั่วคราว"}
+      <div className="p-4 md:p-8 max-w-6xl mx-auto pt-0 w-full flex-1">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 md:mb-8 gap-4">
+          <div className="flex items-center gap-2 sm:gap-4 justify-between w-full sm:w-auto">
+            <h1 className="text-2xl sm:text-3xl font-bold">Management Queue</h1>
+            <div className="flex items-center gap-2 sm:gap-3 bg-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border border-slate-200 shadow-sm shrink-0">
+              <span className={`text-xs sm:text-sm font-bold ${loadingQueueStatus ? "text-slate-400" : isQueueOpen ? "text-green-600" : "text-red-600"}`}>
+                {loadingQueueStatus ? "กำลังโหลด..." : isQueueOpen ? "เปิดรับคิว" : "ปิดรับคิว"}
               </span>
               <button
                 onClick={handleToggleQueue}
                 disabled={loadingQueueStatus}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 ${
+                className={`relative inline-flex h-5 w-9 sm:h-6 sm:w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 ${
                   isQueueOpen ? "bg-green-500" : "bg-slate-300"
                 }`}
               >
                 <span className="sr-only">Toggle Queue</span>
                 <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    isQueueOpen ? "translate-x-6" : "translate-x-1"
+                  className={`inline-block h-3.5 w-3.5 sm:h-4 sm:w-4 transform rounded-full bg-white transition-transform ${
+                    isQueueOpen ? "translate-x-5 sm:translate-x-6" : "translate-x-1"
                   }`}
                 />
               </button>
@@ -394,208 +397,353 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
           </div>
         )}
 
-        <div className="bg-white rounded-lg shadow overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[50px]">
-                  <input 
-                    type="checkbox" 
-                    className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                    onChange={toggleSelectAll}
-                    checked={
-                      bookings.slice(1).filter(row => {
-                        if (!row[0] || String(row[0]).trim() === "") return false;
-                        const status = row[7] || "Pending";
-                        if (status === "Rejected" && (new Date().getTime() - new Date(row[3]).getTime()) / (1000 * 3600 * 24) > 3) return false;
-                        return status === activeTab;
-                      }).length > 0 &&
-                      bookings.slice(1).filter(row => {
-                        if (!row[0] || String(row[0]).trim() === "") return false;
-                        const status = row[7] || "Pending";
-                        if (status === "Rejected" && (new Date().getTime() - new Date(row[3]).getTime()) / (1000 * 3600 * 24) > 3) return false;
-                        return status === activeTab;
-                      }).every((_, idx) => {
-                        // Find the real index in the original bookings array
-                        const realIndex = bookings.findIndex((r, i) => i > 0 && r === bookings.slice(1).filter(row => {
-                            if (!row[0] || String(row[0]).trim() === "") return false;
-                            const status = row[7] || "Pending";
-                            if (status === "Rejected" && (new Date().getTime() - new Date(row[3]).getTime()) / (1000 * 3600 * 24) > 3) return false;
-                            return status === activeTab;
-                          })[idx]);
-                        return selectedRows.includes(realIndex);
-                      })
-                    }
-                  />
-                </TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Phone</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Service Type</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Work Link</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {bookings.slice(1).map((row: any[], i: number) => {
-                const rowIndex = i + 1; // 1-indexed for the data row
-                
-                // Hide empty rows (e.g., if there's no name)
-                if (!row[0] || String(row[0]).trim() === "") return null;
+        <div className="bg-transparent md:bg-white rounded-none md:rounded-lg md:shadow overflow-hidden md:overflow-x-auto">
+          {/* Desktop Table View */}
+          <div className="hidden md:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[50px]">
+                    <input 
+                      type="checkbox" 
+                      className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                      onChange={toggleSelectAll}
+                      checked={
+                        bookings.slice(1).filter(row => {
+                          if (!row[0] || String(row[0]).trim() === "") return false;
+                          const status = row[7] || "Pending";
+                          if (status === "Rejected" && (new Date().getTime() - new Date(row[3]).getTime()) / (1000 * 3600 * 24) > 3) return false;
+                          return status === activeTab;
+                        }).length > 0 &&
+                        bookings.slice(1).filter(row => {
+                          if (!row[0] || String(row[0]).trim() === "") return false;
+                          const status = row[7] || "Pending";
+                          if (status === "Rejected" && (new Date().getTime() - new Date(row[3]).getTime()) / (1000 * 3600 * 24) > 3) return false;
+                          return status === activeTab;
+                        }).every((_, idx) => {
+                          // Find the real index in the original bookings array
+                          const realIndex = bookings.findIndex((r, i) => i > 0 && r === bookings.slice(1).filter(row => {
+                              if (!row[0] || String(row[0]).trim() === "") return false;
+                              const status = row[7] || "Pending";
+                              if (status === "Rejected" && (new Date().getTime() - new Date(row[3]).getTime()) / (1000 * 3600 * 24) > 3) return false;
+                              return status === activeTab;
+                            })[idx]);
+                          return selectedRows.includes(realIndex);
+                        })
+                      }
+                    />
+                  </TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Phone</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Service Type</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Work Link</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {bookings.slice(1).map((row: any[], i: number) => {
+                  const rowIndex = i + 1; // 1-indexed for the data row
+                  
+                  // Hide empty rows (e.g., if there's no name)
+                  if (!row[0] || String(row[0]).trim() === "") return null;
 
-                // Auto-hide (delete) rejected bookings older than 3 days
-                if (row[7] === "Rejected") {
-                  const bookingDate = new Date(row[3]);
-                  const today = new Date();
-                  const diffTime = today.getTime() - bookingDate.getTime();
-                  const diffDays = diffTime / (1000 * 3600 * 24);
-                  if (diffDays > 3) return null;
-                }
+                  // Auto-hide (delete) rejected bookings older than 3 days
+                  if (row[7] === "Rejected") {
+                    const bookingDate = new Date(row[3]);
+                    const today = new Date();
+                    const diffTime = today.getTime() - bookingDate.getTime();
+                    const diffDays = diffTime / (1000 * 3600 * 24);
+                    if (diffDays > 3) return null;
+                  }
 
-                // Filter by active tab
-                const status = row[7] || "Pending";
-                if (status !== activeTab) return null;
+                  // Filter by active tab
+                  const status = row[7] || "Pending";
+                  if (status !== activeTab) return null;
 
-                return (
-                  <React.Fragment key={i}>
-                    <TableRow 
-                      className={`cursor-pointer hover:bg-slate-50 transition-colors ${selectedRows.includes(rowIndex) ? 'bg-blue-50/50' : ''}`}
-                      onClick={() => setExpandedRow(expandedRow === rowIndex ? null : rowIndex)}
-                    >
-                      <TableCell onClick={(e) => e.stopPropagation()}>
-                        <input 
-                          type="checkbox" 
-                          className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                          checked={selectedRows.includes(rowIndex)}
-                          onChange={() => toggleRowSelection(rowIndex)}
-                        />
-                      </TableCell>
-                      <TableCell className="font-medium text-slate-900">{row[0]}</TableCell>
-                      <TableCell>{row[1]}</TableCell>
-                      <TableCell>
-                        {(() => {
-                          try {
-                            const d = new Date(row[3]);
-                            if (!isNaN(d.getTime())) {
-                              return format(d, "dd MMM yyyy", { locale: th });
+                  return (
+                    <React.Fragment key={i}>
+                      <TableRow 
+                        className={`cursor-pointer hover:bg-slate-50 transition-colors ${selectedRows.includes(rowIndex) ? 'bg-blue-50/50' : ''}`}
+                        onClick={() => setExpandedRow(expandedRow === rowIndex ? null : rowIndex)}
+                      >
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <input 
+                            type="checkbox" 
+                            className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                            checked={selectedRows.includes(rowIndex)}
+                            onChange={() => toggleRowSelection(rowIndex)}
+                          />
+                        </TableCell>
+                        <TableCell className="font-medium text-slate-900">{row[0]}</TableCell>
+                        <TableCell>{row[1]}</TableCell>
+                        <TableCell>
+                          {(() => {
+                            try {
+                              const d = new Date(row[3]);
+                              if (!isNaN(d.getTime())) {
+                                return format(d, "dd MMM yyyy", { locale: th });
+                              }
+                              return row[3];
+                            } catch(e) {
+                              return row[3];
                             }
-                            return row[3];
-                          } catch(e) {
-                            return row[3];
-                          }
-                        })()}
-                      </TableCell>
-                      <TableCell>{row[5]}</TableCell>
-                      <TableCell>
-                        <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            row[7] === "Completed" || row[7] === "Approved"
-                              ? "bg-green-100 text-green-800"
-                              : row[7] === "Rejected"
-                              ? "bg-red-100 text-red-800"
-                              : row[7] === "Accepted"
-                              ? "bg-blue-100 text-blue-800"
-                              : "bg-yellow-100 text-yellow-800"
-                          }`}
-                        >
-                          {row[7] || "Pending"}
-                        </span>
-                      </TableCell>
-                      <TableCell className="max-w-[200px] truncate" title={row[9]}>
-                        {row[9] ? (
-                          <a href={row[9]} target="_blank" rel="noreferrer" className="text-blue-500 hover:underline" onClick={(e) => e.stopPropagation()}>
-                            View Work
-                          </a>
-                        ) : (
-                          <span className="text-slate-400">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell onClick={(e) => e.stopPropagation()}>
-                        <div className="flex gap-2">
-                          {(!row[7] || row[7] === "Pending") && (
-                            <>
+                          })()}
+                        </TableCell>
+                        <TableCell>{row[5]}</TableCell>
+                        <TableCell>
+                          <span
+                            className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              row[7] === "Completed" || row[7] === "Approved"
+                                ? "bg-green-100 text-green-800"
+                                : row[7] === "Rejected"
+                                ? "bg-red-100 text-red-800"
+                                : row[7] === "Accepted"
+                                ? "bg-blue-100 text-blue-800"
+                                : "bg-yellow-100 text-yellow-800"
+                            }`}
+                          >
+                            {row[7] || "Pending"}
+                          </span>
+                        </TableCell>
+                        <TableCell className="max-w-[200px] truncate" title={row[9]}>
+                          {row[9] ? (
+                            <a href={row[9]} target="_blank" rel="noreferrer" className="text-blue-500 hover:underline" onClick={(e) => e.stopPropagation()}>
+                              View Work
+                            </a>
+                          ) : (
+                            <span className="text-slate-400">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <div className="flex gap-2">
+                            {(!row[7] || row[7] === "Pending") && (
+                              <>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline" 
+                                  className="text-blue-600 border-blue-600 hover:bg-blue-50 bg-white flex items-center"
+                                  onClick={() => handleStatusUpdate(rowIndex, "Accepted")}
+                                  disabled={updatingAction !== null}
+                                >
+                                  {updatingAction?.rowIndex === rowIndex && updatingAction?.action === "Accepted" && <Loader2 className="w-3 h-3 mr-1 animate-spin" />}
+                                  Accept
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline" 
+                                  className="text-red-600 border-red-600 hover:bg-red-50 bg-white flex items-center"
+                                  onClick={() => handleStatusUpdate(rowIndex, "Rejected")}
+                                  disabled={updatingAction !== null}
+                                >
+                                  {updatingAction?.rowIndex === rowIndex && updatingAction?.action === "Rejected" && <Loader2 className="w-3 h-3 mr-1 animate-spin" />}
+                                  Reject
+                                </Button>
+                              </>
+                            )}
+                            {row[7] === "Accepted" && (
                               <Button 
                                 size="sm" 
                                 variant="outline" 
-                                className="text-blue-600 border-blue-600 hover:bg-blue-50 bg-white flex items-center"
-                                onClick={() => handleStatusUpdate(rowIndex, "Accepted")}
+                                className="text-green-600 border-green-600 hover:bg-green-50 bg-white flex items-center"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setPromptLink({ rowIndices: [rowIndex], link: "" });
+                                }}
                                 disabled={updatingAction !== null}
                               >
-                                {updatingAction?.rowIndex === rowIndex && updatingAction?.action === "Accepted" && <Loader2 className="w-3 h-3 mr-1 animate-spin" />}
-                                Accept
+                                Submit Work
                               </Button>
-                              <Button 
-                                size="sm" 
-                                variant="outline" 
-                                className="text-red-600 border-red-600 hover:bg-red-50 bg-white flex items-center"
-                                onClick={() => handleStatusUpdate(rowIndex, "Rejected")}
-                                disabled={updatingAction !== null}
-                              >
-                                {updatingAction?.rowIndex === rowIndex && updatingAction?.action === "Rejected" && <Loader2 className="w-3 h-3 mr-1 animate-spin" />}
-                                Reject
-                              </Button>
-                            </>
-                          )}
-                          {row[7] === "Accepted" && (
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
-                              className="text-green-600 border-green-600 hover:bg-green-50 bg-white flex items-center"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setPromptLink({ rowIndices: [rowIndex], link: "" });
-                              }}
-                              disabled={updatingAction !== null}
-                            >
-                              Submit Work
-                            </Button>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                    {expandedRow === rowIndex && (
-                      <TableRow className="bg-slate-50/80 hover:bg-slate-50/80">
-                        <TableCell colSpan={8} className="p-0 border-b">
-                          <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-5 text-sm animate-in slide-in-from-top-1 duration-200">
-                            <div>
-                              <p className="font-semibold text-slate-700 mb-1">ช่องทางติดต่ออื่น (Contact):</p>
-                              <p className="text-slate-600">{row[2] || "-"}</p>
-                            </div>
-                            <div>
-                              <p className="font-semibold text-slate-700 mb-1">ไฟล์อ้างอิง:</p>
-                              {row[6] ? (
-                                <div className="flex flex-wrap gap-2">
-                                  {String(row[6]).split(',').map((link, idx) => (
-                                    <a key={idx} href={link.trim()} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline break-all bg-blue-50 px-3 py-1 rounded font-medium">
-                                      ไฟล์อ้างอิง {idx + 1}
-                                    </a>
-                                  ))}
-                                </div>
-                              ) : (
-                                <p className="text-slate-600">-</p>
-                              )}
-                            </div>
-                            <div className="md:col-span-2">
-                              <p className="font-semibold text-slate-700 mb-1">รายละเอียดคิวงานเพิ่มเติม (Details & Notes):</p>
-                              <div className="text-slate-600 whitespace-pre-wrap bg-white p-4 rounded-xl border border-slate-200 shadow-sm leading-relaxed">{row[8] || "-"}</div>
-                            </div>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
+                      {expandedRow === rowIndex && (
+                        <TableRow className="bg-slate-50/80 hover:bg-slate-50/80">
+                          <TableCell colSpan={8} className="p-0 border-b">
+                            <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-5 text-sm animate-in slide-in-from-top-1 duration-200">
+                              <div>
+                                <p className="font-semibold text-slate-700 mb-1">ช่องทางติดต่ออื่น (Contact):</p>
+                                <p className="text-slate-600">{row[2] || "-"}</p>
+                              </div>
+                              <div>
+                                <p className="font-semibold text-slate-700 mb-1">ไฟล์อ้างอิง:</p>
+                                {row[6] ? (
+                                  <div className="flex flex-wrap gap-2">
+                                    {String(row[6]).split(',').map((link, idx) => (
+                                      <a key={idx} href={link.trim()} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline break-all bg-blue-50 px-3 py-1 rounded font-medium">
+                                        ไฟล์อ้างอิง {idx + 1}
+                                      </a>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <p className="text-slate-600">-</p>
+                                )}
+                              </div>
+                              <div className="md:col-span-2">
+                                <p className="font-semibold text-slate-700 mb-1">รายละเอียดคิวงานเพิ่มเติม (Details & Notes):</p>
+                                <div className="text-slate-600 whitespace-pre-wrap bg-white p-4 rounded-xl border border-slate-200 shadow-sm leading-relaxed">{row[8] || "-"}</div>
+                              </div>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+                {bookings.length <= 1 && (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center py-8 text-gray-500">
+                      No bookings found.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Mobile Card List View */}
+          <div className="md:hidden flex flex-col gap-4">
+            {bookings.slice(1).map((row: any[], i: number) => {
+              const rowIndex = i + 1;
+              if (!row[0] || String(row[0]).trim() === "") return null;
+
+              if (row[7] === "Rejected") {
+                const bookingDate = new Date(row[3]);
+                const diffDays = (new Date().getTime() - bookingDate.getTime()) / (1000 * 3600 * 24);
+                if (diffDays > 3) return null;
+              }
+
+              const status = row[7] || "Pending";
+              if (status !== activeTab) return null;
+
+              const isExpanded = expandedRow === rowIndex;
+              const isSelected = selectedRows.includes(rowIndex);
+
+              return (
+                <div 
+                  key={i} 
+                  className={`bg-white border rounded-xl shadow-sm overflow-hidden transition-all ${isSelected ? 'border-blue-400 ring-1 ring-blue-400' : 'border-slate-200'}`}
+                >
+                  <div className="p-4" onClick={() => setExpandedRow(isExpanded ? null : rowIndex)}>
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="flex items-center gap-2">
+                        <input 
+                          type="checkbox" 
+                          className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                          checked={isSelected}
+                          onChange={(e) => { e.stopPropagation(); toggleRowSelection(rowIndex); }}
+                        />
+                        <div>
+                          <h3 className="font-bold text-slate-900 text-lg leading-none">{row[0]}</h3>
+                          <p className="text-xs text-slate-500 mt-1">{row[5]}</p>
+                        </div>
+                      </div>
+                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                        status === "Completed" || status === "Approved" ? "bg-green-100 text-green-800" :
+                        status === "Rejected" ? "bg-red-100 text-red-800" :
+                        status === "Accepted" ? "bg-blue-100 text-blue-800" :
+                        "bg-yellow-100 text-yellow-800"
+                      }`}>
+                        {status}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center text-sm text-slate-600 mb-1 mt-3">
+                      <span className="font-medium w-16">Date:</span>
+                      {(() => {
+                        try {
+                          const d = new Date(row[3]);
+                          return !isNaN(d.getTime()) ? format(d, "dd MMM yyyy", { locale: th }) : row[3];
+                        } catch(e) { return row[3]; }
+                      })()}
+                    </div>
+                    <div className="flex items-center text-sm text-slate-600">
+                      <span className="font-medium w-16">Phone:</span>
+                      {row[1]}
+                    </div>
+                  </div>
+
+                  {isExpanded && (
+                    <div className="px-4 pb-4 bg-slate-50 border-t border-slate-100 text-sm animate-in slide-in-from-top-2 pt-3">
+                      <div className="mb-3">
+                        <p className="font-semibold text-slate-700 mb-1">Contact:</p>
+                        <p className="text-slate-600">{row[2] || "-"}</p>
+                      </div>
+                      <div className="mb-3">
+                        <p className="font-semibold text-slate-700 mb-1">Reference Files:</p>
+                        {row[6] ? (
+                          <div className="flex flex-wrap gap-2">
+                            {String(row[6]).split(',').map((link, idx) => (
+                              <a key={idx} href={link.trim()} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline break-all bg-blue-50 px-2 py-1 rounded text-xs">
+                                File {idx + 1}
+                              </a>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-slate-600">-</p>
+                        )}
+                      </div>
+                      <div>
+                        <p className="font-semibold text-slate-700 mb-1">Details & Notes:</p>
+                        <div className="text-slate-600 whitespace-pre-wrap bg-white p-3 rounded-lg border border-slate-200 shadow-sm leading-relaxed">{row[8] || "-"}</div>
+                      </div>
+                      {row[9] && (
+                        <div className="mt-3 pt-3 border-t">
+                          <p className="font-semibold text-slate-700 mb-1">Work Link:</p>
+                          <a href={row[9]} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline break-all">
+                            {row[9]}
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Actions Footer */}
+                  <div className="flex border-t border-slate-100 divide-x divide-slate-100">
+                    {(!row[7] || row[7] === "Pending") && (
+                      <>
+                        <button 
+                          className="w-1/2 h-12 flex items-center justify-center font-bold text-green-600 bg-white hover:bg-green-50 active:bg-green-100 transition-colors disabled:opacity-50"
+                          onClick={() => handleStatusUpdate(rowIndex, "Accepted")}
+                          disabled={updatingAction !== null}
+                        >
+                          {updatingAction?.rowIndex === rowIndex && updatingAction?.action === "Accepted" && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                          Accept
+                        </button>
+                        <button 
+                          className="w-1/2 h-12 flex items-center justify-center font-bold text-red-600 bg-white hover:bg-red-50 active:bg-red-100 transition-colors disabled:opacity-50"
+                          onClick={() => handleStatusUpdate(rowIndex, "Rejected")}
+                          disabled={updatingAction !== null}
+                        >
+                          {updatingAction?.rowIndex === rowIndex && updatingAction?.action === "Rejected" && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                          Reject
+                        </button>
+                      </>
                     )}
-                  </React.Fragment>
-                );
-              })}
-              {bookings.length <= 1 && (
-                <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8 text-gray-500">
-                    No bookings found.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+                    {row[7] === "Accepted" && (
+                      <button 
+                        className="w-full h-12 flex items-center justify-center font-bold text-blue-600 bg-white hover:bg-blue-50 active:bg-blue-100 transition-colors disabled:opacity-50"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPromptLink({ rowIndices: [rowIndex], link: "" });
+                        }}
+                        disabled={updatingAction !== null}
+                      >
+                        Submit Work
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+            {bookings.length <= 1 && (
+              <div className="text-center py-8 text-gray-500 bg-white rounded-xl border border-slate-200">
+                No bookings found.
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

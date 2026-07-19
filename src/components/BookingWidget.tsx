@@ -167,12 +167,12 @@ export function BookingWidget() {
 
   return (
     <Dialog>
-      <DialogTrigger className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring bg-blue-600 text-white shadow hover:bg-blue-700 h-9 px-4 py-2">
+      <DialogTrigger className="inline-flex items-center justify-center rounded-full text-sm font-bold transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring bg-orange-500 text-white shadow hover:bg-orange-600 h-11 px-6 py-2 w-full md:w-auto">
         Book a Session / จองคิวถ่ายรูป
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[425px] w-[95vw] max-h-[90vh] overflow-y-auto px-4 py-6 md:px-6 md:py-6 rounded-2xl">
         <DialogHeader>
-          <DialogTitle>Book a Session</DialogTitle>
+          <DialogTitle className="text-xl">Book a Session</DialogTitle>
           <DialogDescription>
             Fill out the form below to request a booking.
           </DialogDescription>
@@ -182,39 +182,42 @@ export function BookingWidget() {
             Booking submitted successfully! We will contact you soon.
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <label htmlFor="name">Name</label>
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4 py-2">
+            <div className="flex flex-col gap-1.5 w-full">
+              <label htmlFor="name" className="text-sm font-medium">Name</label>
               <Input
                 id="name"
                 required
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="h-11"
               />
             </div>
-            <div className="grid gap-2">
-              <label htmlFor="phone">Phone</label>
+            <div className="flex flex-col gap-1.5 w-full">
+              <label htmlFor="phone" className="text-sm font-medium">Phone</label>
               <Input
                 id="phone"
                 required
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                className="h-11"
               />
             </div>
-            <div className="grid gap-2">
-              <label htmlFor="contact">Line / IG Contact</label>
+            <div className="flex flex-col gap-1.5 w-full">
+              <label htmlFor="contact" className="text-sm font-medium">Line / IG Contact</label>
               <Input
                 id="contact"
                 required
                 value={formData.contact}
                 onChange={(e) => setFormData({ ...formData, contact: e.target.value })}
+                className="h-11"
               />
             </div>
-            <div className="grid gap-2">
-              <label htmlFor="serviceType">Service Type</label>
+            <div className="flex flex-col gap-1.5 w-full">
+              <label htmlFor="serviceType" className="text-sm font-medium">Service Type</label>
               <select
                 id="serviceType"
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
                 value={formData.serviceType}
                 onChange={(e) => setFormData({ ...formData, serviceType: e.target.value })}
               >
@@ -223,37 +226,38 @@ export function BookingWidget() {
                 <option value="LiveStream">LiveStream</option>
               </select>
             </div>
-            <div className="grid gap-2">
-              <label>Date</label>
+            <div className="flex flex-col gap-1.5 w-full">
+              <label className="text-sm font-medium">Date</label>
               <Popover>
                 <PopoverTrigger
                   className={cn(
-                    "inline-flex h-9 items-center justify-start rounded-md border border-input bg-transparent px-3 py-2 text-sm font-normal shadow-sm hover:bg-accent hover:text-accent-foreground w-full",
+                    "inline-flex h-11 items-center justify-start rounded-md border border-input bg-transparent px-3 py-2 text-sm font-normal shadow-sm hover:bg-accent hover:text-accent-foreground w-full",
                     !date && "text-muted-foreground"
                   )}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   {date ? format(date, "PPP") : <span>Pick a date</span>}
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
+                <PopoverContent className="w-auto p-1 mx-auto" align="center">
                   <Calendar
                     mode="single"
                     selected={date}
                     onSelect={setDate}
+                    className="[&_.rdp-weekday]:w-8 [&_.rdp-weekday]:sm:w-9 [&_.rdp-day]:w-8 [&_.rdp-day]:h-8 [&_.rdp-day]:sm:w-9 [&_.rdp-day]:sm:h-9"
                   />
                 </PopoverContent>
               </Popover>
             </div>
             
-            <div className="grid gap-2">
-              <label>Reference / Layout (Max 5 files)</label>
+            <div className="flex flex-col gap-1.5 w-full">
+              <label className="text-sm font-medium">Reference / Layout (Max 5 files)</label>
               <div className="flex items-center gap-2">
                 <Button 
                   type="button" 
                   variant="outline" 
                   onClick={() => document.getElementById("file-upload")?.click()}
                   disabled={files.length >= 5}
-                  className="w-full"
+                  className="w-full h-11"
                 >
                   <UploadCloud className="w-4 h-4 mr-2" />
                   Select Files
@@ -272,7 +276,7 @@ export function BookingWidget() {
               {files.length > 0 && (
                 <div className="mt-2 space-y-2">
                   {files.map((f) => (
-                    <div key={f.id} className="flex items-center justify-between p-2 text-sm border rounded-md">
+                     <div key={f.id} className="flex items-center justify-between p-2 text-sm border rounded-md">
                       <span className="truncate max-w-[200px]">{f.name}</span>
                       <div className="flex items-center gap-2">
                         {f.status === "compressing" && <span className="flex items-center text-xs text-orange-500"><Loader2 className="w-3 h-3 mr-1 animate-spin" /> Compressing</span>}
@@ -290,18 +294,19 @@ export function BookingWidget() {
               )}
             </div>
 
-            <div className="grid gap-2">
-              <label htmlFor="notes">Notes</label>
+            <div className="flex flex-col gap-1.5 w-full">
+              <label htmlFor="notes" className="text-sm font-medium">Notes</label>
               <Input
                 id="notes"
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                className="h-11"
               />
             </div>
             <Button 
               type="submit" 
               disabled={loading || isUploading || hasErrors} 
-              className="mt-4"
+              className="mt-2 w-full h-12 text-base font-bold bg-blue-600 hover:bg-blue-700"
             >
               {loading ? "Submitting..." : isUploading ? "Waiting for uploads..." : "Submit Booking"}
             </Button>

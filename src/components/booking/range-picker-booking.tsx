@@ -321,13 +321,13 @@ export default function RangePickerBooking() {
   }
 
   return (
-    <div className="w-[95%] max-w-[1800px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 xl:gap-8 items-stretch h-full py-4 lg:py-6 overflow-hidden">
+    <div className="w-[95%] max-w-[1800px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 xl:gap-8 items-stretch lg:h-full py-4 lg:py-6 overflow-y-auto lg:overflow-hidden pb-24 lg:pb-6">
       
       {/* Left Box: Calendar & Queue List */}
-      <div className="lg:col-span-8 xl:col-span-8 bg-white p-4 md:p-6 lg:p-8 rounded-[2rem] shadow-xl border border-slate-200 flex flex-col lg:flex-row gap-6 xl:gap-8 h-full min-h-0">
+      <div className="lg:col-span-8 xl:col-span-8 bg-white p-4 md:p-6 lg:p-8 rounded-[2rem] shadow-xl border border-slate-200 flex flex-col lg:flex-row gap-6 xl:gap-8 lg:h-full min-h-0">
         
         {/* Calendar Column */}
-        <div className="flex-1 flex flex-col h-full min-h-0">
+        <div className="flex-1 flex flex-col lg:h-full min-h-0">
         <h2 className="text-2xl font-extrabold text-slate-800 mb-1 flex-none">จัดคิวงานที่ต้องการ</h2>
         <p className="text-slate-500 text-sm mb-3 flex-none">เลือกวันที่ เวลา และประเภทงาน จากนั้นกด "เพิ่มลงคิว"</p>
         
@@ -349,13 +349,13 @@ export default function RangePickerBooking() {
           <div className="w-full space-y-3 flex flex-col flex-1 min-h-0">
             <div className="bg-white p-3 md:p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col sm:flex-row items-center gap-3 justify-between flex-none">
               <span className="font-semibold text-slate-700 whitespace-nowrap text-sm">เวลาทำงาน</span>
-              <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full sm:w-auto justify-center sm:justify-end">
+              <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto justify-center sm:justify-end">
                 <TimePicker
                   value={tempTime.start}
                   onChange={(val) => setTempTime({ ...tempTime, start: val })}
                   label="เริ่ม"
                 />
-                <span className="text-slate-400 font-medium">-</span>
+                <span className="text-slate-400 font-medium hidden sm:block">-</span>
                 <TimePicker
                   value={tempTime.end}
                   onChange={(val) => setTempTime({ ...tempTime, end: val })}
@@ -402,7 +402,7 @@ export default function RangePickerBooking() {
       </div>
 
       {/* Queue Column */}
-      <div className="w-full lg:w-[300px] xl:w-[350px] 2xl:w-[400px] bg-slate-50 p-6 rounded-[1.5rem] border border-blue-100 flex flex-col h-full min-h-0">
+      <div className="w-full lg:w-[300px] xl:w-[350px] 2xl:w-[400px] bg-slate-50 p-6 rounded-[1.5rem] border border-blue-100 flex flex-col lg:h-full min-h-0">
           <h3 className="text-xl font-bold text-slate-800 mb-4 flex items-center justify-between flex-none">
             <span className="flex items-center gap-2">
               รายการคิวงาน
@@ -412,9 +412,9 @@ export default function RangePickerBooking() {
             </span>
           </h3>
           
-          <div className="flex-1 flex flex-col min-h-0">
+          <div className="flex-1 flex flex-col min-h-0 min-h-[150px] lg:min-h-0">
             {bookingSlots.length === 0 ? (
-              <div className="h-full min-h-[300px] bg-slate-50 border border-dashed border-slate-300 rounded-2xl p-6 flex flex-col items-center justify-center text-slate-400">
+              <div className="h-full min-h-[150px] lg:min-h-[300px] bg-slate-50 border border-dashed border-slate-300 rounded-2xl p-6 flex flex-col items-center justify-center text-slate-400">
                 <CalendarDays className="w-10 h-10 mb-3 opacity-30" />
                 <p className="text-sm font-medium">ยังไม่มีคิวงานที่เลือก</p>
                 <p className="text-xs mt-1 text-center">จัดคิวงานฝั่งซ้ายแล้วกดเพิ่มลงรายการ</p>
@@ -466,7 +466,7 @@ export default function RangePickerBooking() {
       </div>
 
       {/* Right Side: User Info Form */}
-      <div className="lg:col-span-4 xl:col-span-4 bg-white p-6 md:p-8 rounded-[2rem] shadow-xl border border-slate-200 h-full flex flex-col min-h-0">
+      <div className="lg:col-span-4 xl:col-span-4 bg-white p-6 md:p-8 rounded-[2rem] shadow-xl border border-slate-200 lg:h-full flex flex-col min-h-0">
         <h3 className="text-lg font-bold text-slate-900 mb-5 flex-none">ข้อมูลติดต่อเพื่อยืนยัน</h3>
           <form onSubmit={handleSubmit} className="space-y-4 flex flex-col flex-1 overflow-y-auto custom-scrollbar pr-2 min-h-0">
             <div>

@@ -15,12 +15,13 @@ interface FlipCardProps {
     morphProgress: any;
     scrollRotate: any;
     allImages: string[];
+    onImageLoad?: () => void;
 }
 
 const IMG_WIDTH = 90;  
 const IMG_HEIGHT = 127; 
 
-function FlipCard({ src, index, total, phase, scatterPos, containerSize, morphProgress, scrollRotate, allImages }: FlipCardProps) {
+function FlipCard({ src, index, total, phase, scatterPos, containerSize, morphProgress, scrollRotate, allImages, onImageLoad }: FlipCardProps) {
     const isMobile = containerSize.width < 768;
     const [spin, setSpin] = useState(0);
     const [imageIndex, setImageIndex] = useState(index);
@@ -91,9 +92,9 @@ function FlipCard({ src, index, total, phase, scatterPos, containerSize, morphPr
             
             const arcPos = {
                 x: xPos,
-                y: yPos + 100, // Move carousel higher up
+                y: yPos + (isMobile ? 50 : 100), 
                 rotation: xPos * 0.05,
-                scale: 1.3 + (zPos * 0.4),
+                scale: (isMobile ? 0.9 : 1.3) + (zPos * (isMobile ? 0.3 : 0.4)),
             };
 
             target = {
@@ -113,6 +114,9 @@ function FlipCard({ src, index, total, phase, scatterPos, containerSize, morphPr
     const scale = useTransform(transformValues, (t: any) => t.scale);
     const opacity = useTransform(transformValues, (t: any) => t.opacity);
     const zIndex = useTransform(scale, (s: any) => Math.round(s * 100));
+
+    const [isLoaded, setIsLoaded] = useState(false);
+    const [hasReportedLoad, setHasReportedLoad] = useState(false);
 
     return (
         <motion.div
@@ -135,15 +139,26 @@ function FlipCard({ src, index, total, phase, scatterPos, containerSize, morphPr
                 />
             )}
             <motion.div
-                className="relative h-full w-full rounded-xl overflow-hidden shadow-lg border-2 border-transparent group-hover:border-white transition-colors"
+                className="relative h-full w-full rounded-xl overflow-hidden shadow-lg border-2 border-transparent group-hover:border-white transition-colors bg-slate-200/50"
                 animate={{ rotateY: spin }}
                 transition={{ duration: 0.6, type: "spring", stiffness: 260, damping: 20 }}
             >
+                {/* Skeleton Loading shimmer */}
+                {!isLoaded && (
+                    <div className="absolute inset-0 bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200 animate-[pulse_1.5s_ease-in-out_infinite]" />
+                )}
                 <img
                     src={currentSrc}
                     alt={`hero-${index}`}
                     referrerPolicy="no-referrer"
-                    className="h-full w-full object-cover transition-all duration-500 brightness-[1.02] contrast-[1.1] group-hover:brightness-110 group-hover:scale-105"
+                    onLoad={() => {
+                        setIsLoaded(true);
+                        if (!hasReportedLoad) {
+                            setHasReportedLoad(true);
+                            onImageLoad?.();
+                        }
+                    }}
+                    className={`h-full w-full object-cover transition-all duration-700 brightness-[1.02] contrast-[1.1] group-hover:brightness-110 group-hover:scale-105 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
                 />
             </motion.div>
         </motion.div>
@@ -196,8 +211,9 @@ export default function IntroAnimation({ images = [] }: { images?: any[] }) {
     const [mounted, setMounted] = useState(false);
     const [captionIndex, setCaptionIndex] = useState(0);
     const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
+    const [loadedCount, setLoadedCount] = useState(0);
     const containerRef = useRef<HTMLDivElement>(null);
-    let displayImages = images.length > 0 ? images.map(img => img.thumbnailLink?.replace('=s220', '=s600') || "") : IMAGES;
+    let displayImages = images.length > 0 ? images.map(img => img.thumbnailLink?.replace('=s220', '=s300') || "") : IMAGES;
     
     // The arc math is designed for exactly 20 images. If we have fewer, repeat them to fill the arc!
     if (displayImages.length > 0 && displayImages.length < 20) {
@@ -208,8 +224,9 @@ export default function IntroAnimation({ images = [] }: { images?: any[] }) {
     }
     
     const isMobileView = containerSize.width > 0 && containerSize.width < 768;
-    const currentTotal = isMobileView ? 10 : 20;
+    const currentTotal = isMobileView ? 7 : 20;
     const activeImages = displayImages.slice(0, currentTotal);
+    const isFullyLoaded = loadedCount >= activeImages.length;
 
     useEffect(() => {
         if (!containerRef.current) return;
@@ -320,7 +337,18 @@ export default function IntroAnimation({ images = [] }: { images?: any[] }) {
             animate={{ opacity: mounted ? 1 : 0 }}
             transition={{ duration: 0.8 }}
         >
-            <div className="flex h-full w-full flex-col items-center justify-center perspective-1000">
+            <AnimatePresence>
+                {!isFullyLoaded && mounted && (
+                    <motion.div 
+                        initial={{ opacity: 1 }}
+                        exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
+                        transition={{ duration: 0.8 }}
+                        className="absolute inset-0 z-[200] bg-slate-100/60 backdrop-blur-xl"
+                    />
+                )}
+            </AnimatePresence>
+            
+            <div className={`flex h-full w-full flex-col items-center justify-center perspective-1000 transition-all duration-1000 ${isFullyLoaded ? 'blur-0 scale-100' : 'blur-md scale-105'}`}>
 
                 <motion.div
                     style={{ opacity: contentOpacity, y: contentY }}
@@ -375,6 +403,7 @@ export default function IntroAnimation({ images = [] }: { images?: any[] }) {
                             morphProgress={morphProgress}
                             scrollRotate={scrollRotate}
                             allImages={displayImages}
+                            onImageLoad={() => setLoadedCount(c => c + 1)}
                         />
                     ))}
                 </div>

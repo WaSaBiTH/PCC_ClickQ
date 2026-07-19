@@ -4,7 +4,7 @@ import { ChevronLeft } from "lucide-react";
 
 export default function BookingPage() {
   return (
-    <div className="h-[100dvh] overflow-hidden bg-slate-50 text-slate-900 font-sans selection:bg-blue-500/30 flex flex-col">
+    <div className="min-h-[100dvh] lg:h-[100dvh] bg-slate-50 text-slate-900 font-sans selection:bg-blue-500/30 flex flex-col">
       
       {/* Navbar/Header */}
       <header className="flex-none sticky top-0 z-50 w-full border-b border-slate-200 bg-white/80 backdrop-blur-md shadow-sm h-16">
@@ -21,7 +21,7 @@ export default function BookingPage() {
       </header>
 
       {/* Main Content */}
-      <main className="w-full flex-1 flex flex-col overflow-hidden h-[calc(100dvh-4rem)]">
+      <main className="w-full flex-1 flex flex-col overflow-y-auto lg:overflow-hidden h-[calc(100dvh-4rem)]">
         <RangePickerBooking />
       </main>
 

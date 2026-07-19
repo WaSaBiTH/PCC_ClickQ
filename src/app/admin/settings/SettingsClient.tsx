@@ -161,16 +161,16 @@ export default function SettingsClient() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <nav className="bg-white border-b shadow-sm sticky top-0 z-40 mb-8">
-        <div className="max-w-6xl mx-auto px-8 h-16 flex items-center justify-between">
-          <Link href="/admin/dashboard" className="font-bold text-xl hover:opacity-80 flex items-center gap-2">
-            <ArrowLeft className="w-5 h-5 mr-1" />
-            <span className="text-orange-500">Back to Dashboard</span>
+      <nav className="bg-white border-b shadow-sm sticky top-0 z-40 mb-4 md:mb-8">
+        <div className="max-w-6xl mx-auto px-4 md:px-8 h-16 flex items-center justify-between">
+          <Link href="/admin/dashboard" className="font-bold text-lg md:text-xl hover:opacity-80 flex items-center gap-2">
+            <ArrowLeft className="w-5 h-5 mr-1 shrink-0" />
+            <span className="text-orange-500 truncate">Back to Dashboard</span>
           </Link>
         </div>
       </nav>
       
-      <div className="p-8 max-w-4xl mx-auto pt-0 w-full flex-1">
+      <div className="p-4 md:p-8 max-w-4xl mx-auto pt-0 w-full flex-1">
         <div className="mb-8">
           <h1 className="text-3xl font-bold">System Settings</h1>
           <p className="text-slate-600 mt-2">Manage fallback URLs and other system configurations.</p>
@@ -191,24 +191,24 @@ export default function SettingsClient() {
             <>
               <div className="space-y-3 mb-4">
                 {customUrls.map((url, index) => (
-                  <div key={index} className="flex items-center gap-2">
+                  <div key={index} className="flex items-center gap-1 sm:gap-2">
                     <input 
                       type="text"
                       value={url}
                       onChange={(e) => handleUrlChange(index, e.target.value)}
-                      className={`flex-1 border p-3 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition-colors ${
+                      className={`flex-1 min-w-0 border p-2 sm:p-3 text-sm sm:text-base rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition-colors ${
                         activeLinkIndex === index
                           ? "border-orange-300 bg-orange-50 text-orange-900"
                           : "border-slate-300 bg-white"
                       }`}
                       placeholder="https://photos.app.goo.gl/..."
                     />
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
                       <Button
                         variant="ghost"
                         onClick={() => moveUrlUp(index)}
                         disabled={index === 0}
-                        className="text-slate-400 hover:text-slate-700 hover:bg-slate-100 p-2 h-auto disabled:opacity-30"
+                        className="text-slate-400 hover:text-slate-700 hover:bg-slate-100 p-1 sm:p-2 h-auto disabled:opacity-30"
                         title="Move up"
                       >
                         <ArrowUp className="w-4 h-4" />
@@ -217,7 +217,7 @@ export default function SettingsClient() {
                         variant="ghost"
                         onClick={() => moveUrlDown(index)}
                         disabled={index === customUrls.length - 1}
-                        className="text-slate-400 hover:text-slate-700 hover:bg-slate-100 p-2 h-auto disabled:opacity-30"
+                        className="text-slate-400 hover:text-slate-700 hover:bg-slate-100 p-1 sm:p-2 h-auto disabled:opacity-30"
                         title="Move down"
                       >
                         <ArrowDown className="w-4 h-4" />
@@ -225,7 +225,7 @@ export default function SettingsClient() {
                       <Button 
                         variant="ghost" 
                         onClick={() => removeUrlField(index)}
-                        className="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 h-auto ml-1"
+                        className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1 sm:p-2 h-auto ml-0 sm:ml-1"
                         title="Remove link"
                       >
                         <Trash2 className="w-4 h-4" />
