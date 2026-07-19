@@ -6,6 +6,8 @@ export async function POST(request: Request) {
   try {
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
+    const uploadType = formData.get("uploadType") as string || "general"; // Get uploadType
+
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
@@ -21,6 +23,7 @@ export async function POST(request: Request) {
       },
       body: JSON.stringify({
         action: "uploadFiles",
+        uploadType: uploadType, // Pass to GAS
         files: [{
           base64: base64Data,
           fileName: file.name,

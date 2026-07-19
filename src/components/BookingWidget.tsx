@@ -87,6 +87,7 @@ export function BookingWidget() {
         // Upload to our API
         const formData = new FormData();
         formData.append("file", fileToUpload);
+        formData.append("uploadType", "booking");
 
         const response = await fetch("/api/upload", {
           method: "POST",

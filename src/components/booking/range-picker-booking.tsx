@@ -8,7 +8,8 @@ import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TimePicker } from "@/components/ui/time-picker";
-import { Check, Plus, Trash2, CalendarDays, UploadCloud, CheckCircle2, Loader2, X } from "lucide-react";
+import { Check, Plus, Trash2, CalendarDays, UploadCloud, CheckCircle2, Loader2, X, AlertTriangle, XCircle } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import imageCompression from "browser-image-compression";
 
 interface BookingSlot {
@@ -62,6 +63,16 @@ export default function RangePickerBooking() {
 
   const [files, setFiles] = useState<UploadFile[]>([]);
   const [loading, setLoading] = useState(false);
+  const [alertState, setAlertState] = useState<{isOpen: boolean, message: string, title?: string, type?: 'success'|'error'|'warning'}>({ isOpen: false, message: "" });
+
+  const showAlert = (message: string, type: 'success'|'error'|'warning' = 'warning', title?: string) => {
+    setAlertState({
+      isOpen: true,
+      message,
+      type,
+      title: title || (type === 'success' ? 'สำเร็จ' : type === 'error' ? 'ข้อผิดพลาด' : 'แจ้งเตือน')
+    });
+  };
 
   const toggleTempService = (service: string) => {
     setTempServices((prev) =>
@@ -73,11 +84,11 @@ export default function RangePickerBooking() {
 
   const handleAddSlot = () => {
     if (!date?.from) {
-      alert("กรุณาเลือกวันที่บนปฏิทิน");
+      showAlert("กรุณาเลือกวันที่บนปฏิทิน");
       return;
     }
     if (tempServices.length === 0) {
-      alert("กรุณาเลือกประเภทงานอย่างน้อย 1 อย่าง");
+      showAlert("กรุณาเลือกประเภทงานอย่างน้อย 1 อย่าง");
       return;
     }
     const newSlot: BookingSlot = {
@@ -101,7 +112,7 @@ export default function RangePickerBooking() {
     const selectedFiles = Array.from(e.target.files);
     
     if (files.length + selectedFiles.length > 5) {
-      alert("คุณสามารถอัปโหลดไฟล์ได้สูงสุด 5 ไฟล์เท่านั้น");
+      showAlert("คุณสามารถอัปโหลดไฟล์ได้สูงสุด 5 ไฟล์เท่านั้น");
       return;
     }
 
@@ -129,6 +140,7 @@ export default function RangePickerBooking() {
 
         const uploadFormData = new FormData();
         uploadFormData.append("file", fileToUpload);
+        uploadFormData.append("uploadType", "booking");
 
         const response = await fetch("/api/upload", {
           method: "POST",
@@ -161,13 +173,13 @@ export default function RangePickerBooking() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (bookingSlots.length === 0) {
-      alert("กรุณาเพิ่มคิวงานอย่างน้อย 1 รายการลงในรายการคิวงาน");
+      showAlert("กรุณาเพิ่มคิวงานอย่างน้อย 1 รายการลงในรายการคิวงาน");
       return;
     }
 
     const isUploading = files.some((f) => f.status === "compressing" || f.status === "uploading");
     if (isUploading) {
-      alert("กรุณารอให้อัปโหลดไฟล์เสร็จสิ้นก่อนกดยืนยัน");
+      showAlert("กรุณารอให้อัปโหลดไฟล์เสร็จสิ้นก่อนกดยืนยัน");
       return;
     }
 
@@ -206,32 +218,66 @@ export default function RangePickerBooking() {
       });
 
       if (response.ok) {
-        alert(`การจองคิวสำเร็จ!\nชื่อ: ${formData.bookerName}\nคิวงานทั้งหมด:\n${slotsStr}`);
+        showAlert(`การจองคิวสำเร็จ!\nชื่อ: ${formData.bookerName}\nคิวงานทั้งหมด:\n${slotsStr}`, 'success');
         setFormData({ bookerName: "", eventName: "", phone: "", contact: "", notes: "" });
         setBookingSlots([]);
         setFiles([]);
       } else {
-        alert("เกิดข้อผิดพลาดในการจองคิว โปรดลองอีกครั้ง");
+        showAlert("เกิดข้อผิดพลาดในการจองคิว โปรดลองอีกครั้ง", "error");
       }
     } catch (error) {
       console.error(error);
-      alert("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
+      showAlert("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์", "error");
     } finally {
       setLoading(false);
     }
   };
 
+  const [isQueueClosed, setIsQueueClosed] = useState(false);
+  const [checkingQueue, setCheckingQueue] = useState(true);
+
+  React.useEffect(() => {
+    fetch("/api/admin/settings?key=booking_status")
+      .then(res => res.json())
+      .then(data => {
+        if (data.value === "closed") setIsQueueClosed(true);
+        else setIsQueueClosed(false);
+      })
+      .catch(err => console.error(err))
+      .finally(() => setCheckingQueue(false));
+  }, []);
+
   const isUploading = files.some((f) => f.status === "compressing" || f.status === "uploading");
   const hasErrors = files.some((f) => f.status === "error");
 
+  if (checkingQueue) {
+    return <div className="w-full h-full flex flex-col items-center justify-center min-h-[500px]">
+      <Loader2 className="w-12 h-12 animate-spin text-blue-500" />
+      <p className="mt-4 text-slate-500 font-medium">กำลังตรวจสอบสถานะคิวงาน...</p>
+    </div>;
+  }
+
+  if (isQueueClosed) {
+    return (
+      <div className="w-[95%] max-w-[1800px] mx-auto h-full flex flex-col items-center justify-center text-center bg-white rounded-[2rem] shadow-sm border border-slate-200 p-8 min-h-[500px]">
+        <XCircle className="w-20 h-20 text-red-500 mb-6" />
+        <h2 className="text-3xl md:text-4xl font-bold text-slate-800 mb-4">ขณะนี้ปิดรับคิวงานชั่วคราว</h2>
+        <p className="text-slate-500 text-base md:text-lg">
+          ขออภัยในความไม่สะดวก คิวงานของเราเต็มแล้ว หรืออยู่ระหว่างการจัดการระบบ<br />
+          กรุณาติดตามและลองใหม่อีกครั้งในภายหลังครับ
+        </p>
+      </div>
+    );
+  }
+
   return (
-    <div className="w-[95%] max-w-[1800px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 xl:gap-8 items-stretch py-4 lg:h-full lg:min-h-0">
+    <div className="w-[95%] max-w-[1800px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 xl:gap-8 items-stretch h-full py-4 lg:py-6 overflow-hidden">
       
       {/* Left Box: Calendar & Queue List */}
-      <div className="lg:col-span-8 xl:col-span-8 bg-white p-6 md:p-8 rounded-[2rem] shadow-xl border border-slate-200 flex flex-col lg:flex-row gap-6 xl:gap-8 h-full lg:min-h-0">
+      <div className="lg:col-span-8 xl:col-span-8 bg-white p-4 md:p-6 lg:p-8 rounded-[2rem] shadow-xl border border-slate-200 flex flex-col lg:flex-row gap-6 xl:gap-8 h-full min-h-0">
         
         {/* Calendar Column */}
-        <div className="flex-1 flex flex-col h-full lg:min-h-0 overflow-y-auto custom-scrollbar pr-2">
+        <div className="flex-1 flex flex-col h-full min-h-0 overflow-y-auto custom-scrollbar pr-2">
         <h2 className="text-3xl font-extrabold text-slate-800 mb-2 flex-none">จัดคิวงานที่ต้องการ</h2>
         <p className="text-slate-500 text-base mb-6 flex-none">เลือกวันที่ เวลา และประเภทงาน จากนั้นกด "เพิ่มลงคิว"</p>
         
@@ -306,7 +352,7 @@ export default function RangePickerBooking() {
       </div>
 
       {/* Queue Column */}
-      <div className="w-full lg:w-[300px] xl:w-[350px] 2xl:w-[400px] bg-slate-50 p-6 rounded-[1.5rem] border border-blue-100 flex flex-col h-full lg:min-h-0">
+      <div className="w-full lg:w-[300px] xl:w-[350px] 2xl:w-[400px] bg-slate-50 p-6 rounded-[1.5rem] border border-blue-100 flex flex-col h-full min-h-0">
           <h3 className="text-xl font-bold text-slate-800 mb-4 flex items-center justify-between flex-none">
             <span className="flex items-center gap-2">
               รายการคิวงาน
@@ -372,7 +418,7 @@ export default function RangePickerBooking() {
       {/* Right Side: User Info Form */}
       <div className="lg:col-span-4 xl:col-span-4 bg-white p-6 md:p-8 rounded-[2rem] shadow-xl border border-slate-200 h-full flex flex-col min-h-0">
         <h3 className="text-lg font-bold text-slate-900 mb-5 flex-none">ข้อมูลติดต่อเพื่อยืนยัน</h3>
-          <form onSubmit={handleSubmit} className="space-y-4 flex flex-col flex-1 overflow-y-auto pr-2 custom-scrollbar min-h-0">
+          <form onSubmit={handleSubmit} className="space-y-4 flex flex-col flex-1 overflow-y-auto custom-scrollbar pr-2 min-h-0">
             <div>
               <label className="block text-xs font-medium text-slate-700 mb-1">ชื่อผู้จอง <span className="text-red-500">*</span></label>
               <Input
@@ -489,6 +535,43 @@ export default function RangePickerBooking() {
             </div>
           </form>
         </div>
+        
+        {/* Custom Alert Modal */}
+        <AnimatePresence>
+          {alertState.isOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm overflow-hidden flex flex-col items-center text-center"
+              >
+                <div className="mb-4">
+                  {alertState.type === 'success' && <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center"><CheckCircle2 className="w-8 h-8 text-green-500" /></div>}
+                  {alertState.type === 'error' && <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center"><XCircle className="w-8 h-8 text-red-500" /></div>}
+                  {alertState.type === 'warning' && <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center"><AlertTriangle className="w-8 h-8 text-amber-500" /></div>}
+                </div>
+                
+                <h3 className="text-xl font-bold text-slate-800 mb-2">{alertState.title}</h3>
+                
+                <div className="text-slate-500 text-sm mb-6 whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto w-full px-2 custom-scrollbar">
+                  {alertState.message}
+                </div>
+                
+                <Button 
+                  onClick={() => setAlertState({ ...alertState, isOpen: false })}
+                  className={`w-full font-bold h-12 rounded-xl text-white ${
+                    alertState.type === 'success' ? 'bg-green-600 hover:bg-green-700' :
+                    alertState.type === 'error' ? 'bg-red-600 hover:bg-red-700' :
+                    'bg-slate-900 hover:bg-slate-800'
+                  }`}
+                >
+                  ตกลง
+                </Button>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
     </div>
   );
 }

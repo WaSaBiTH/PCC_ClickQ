@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { motion, useTransform, useSpring, useMotionValue, animate, AnimatePresence } from "framer-motion";
+import { motion, useTransform, useSpring, useMotionValue, animate, AnimatePresence, useMotionValueEvent } from "framer-motion";
 
 export type AnimationPhase = "scatter" | "line" | "circle" | "arc";
 
@@ -14,14 +14,49 @@ interface FlipCardProps {
     containerSize: { width: number; height: number };
     morphProgress: any;
     scrollRotate: any;
+    allImages: string[];
 }
 
-const IMG_WIDTH = 75;  
-const IMG_HEIGHT = 106; 
+const IMG_WIDTH = 90;  
+const IMG_HEIGHT = 127; 
 
-function FlipCard({ src, index, total, phase, scatterPos, containerSize, morphProgress, scrollRotate }: FlipCardProps) {
+function FlipCard({ src, index, total, phase, scatterPos, containerSize, morphProgress, scrollRotate, allImages }: FlipCardProps) {
     const isMobile = containerSize.width < 768;
     const [spin, setSpin] = useState(0);
+    const [imageIndex, setImageIndex] = useState(index);
+    
+    // Calculate initial angles to set up lap tracking
+    const initialStep = 360 / total;
+    const initialAngle = (index * initialStep) + scrollRotate.get();
+    const prevLapRef = useRef(Math.floor((initialAngle + 180) / 360));
+    const prevAngleRef = useRef(initialAngle);
+
+    useMotionValueEvent(scrollRotate, "change", (latestRotation: number) => {
+        if (phase !== "circle" && phase !== "arc") return;
+        
+        const step = 360 / total;
+        const currentAngle = (index * step) + latestRotation;
+        const currentLap = Math.floor((currentAngle + 180) / 360);
+        const prevLap = prevLapRef.current;
+        const prevAngle = prevAngleRef.current;
+        
+        // Only swap images when spinning backward and passing the back of the wheel (crossing 180 deg)
+        if (currentAngle < prevAngle) {
+            if (currentLap < prevLap) {
+                const lapsCrossed = prevLap - currentLap;
+                setImageIndex(prev => prev + (lapsCrossed * total));
+            }
+        }
+        
+        prevLapRef.current = currentLap;
+        prevAngleRef.current = currentAngle;
+    });
+
+    const safeIndex = imageIndex % Math.max(1, allImages.length);
+    const nextSafeIndex = (imageIndex + total) % Math.max(1, allImages.length);
+    
+    const currentSrc = allImages[safeIndex] || src;
+    const nextSrc = allImages[nextSafeIndex] || src;
 
     const transformValues = useTransform([morphProgress, scrollRotate], ([m, r]: any) => {
         let target = { x: 0, y: 0, rotation: 0, scale: 1, opacity: 1 };
@@ -35,19 +70,19 @@ function FlipCard({ src, index, total, phase, scatterPos, containerSize, morphPr
             target = { x: lineX, y: 0, rotation: 0, scale: 1, opacity: 1 };
         } else {
             const minDimension = Math.min(containerSize.width, containerSize.height);
+            const step = 360 / total;
+            const currentAngle = (index * step) + r;
+
             const circleRadius = Math.min(minDimension * 0.35, 350);
-            const circleAngle = (index / total) * 360;
-            const circleRad = (circleAngle * Math.PI) / 180;
+            const circleRad = (currentAngle * Math.PI) / 180;
             const circlePos = {
                 x: Math.cos(circleRad) * circleRadius,
                 y: Math.sin(circleRad) * circleRadius,
-                rotation: circleAngle + 90,
+                rotation: currentAngle + 90,
             };
 
-            const radiusX = isMobile ? containerSize.width * 0.4 : containerSize.width * 0.25;
-            const radiusY = isMobile ? 60 : 100;
-            const step = 360 / total;
-            const currentAngle = (index * step) + r;
+            const radiusX = isMobile ? containerSize.width * 0.4 : containerSize.width * 0.32;
+            const radiusY = isMobile ? 60 : 130;
             const rad = (currentAngle * Math.PI) / 180;
             
             const xPos = Math.sin(rad) * radiusX;
@@ -90,17 +125,26 @@ function FlipCard({ src, index, total, phase, scatterPos, containerSize, morphPr
             className="cursor-pointer group"
             onClick={() => setSpin(spin + 360)}
         >
+            {/* Preload next image to ensure smooth swapping during rewind */}
+            {nextSrc && (
+                <img 
+                    src={nextSrc} 
+                    alt="preload" 
+                    referrerPolicy="no-referrer"
+                    style={{ position: 'absolute', width: 1, height: 1, opacity: 0, pointerEvents: 'none' }} 
+                />
+            )}
             <motion.div
                 className="relative h-full w-full rounded-xl overflow-hidden shadow-lg border-2 border-transparent group-hover:border-white transition-colors"
                 animate={{ rotateY: spin }}
                 transition={{ duration: 0.6, type: "spring", stiffness: 260, damping: 20 }}
             >
                 <img
-                    src={src}
+                    src={currentSrc}
                     alt={`hero-${index}`}
-                    className="h-full w-full object-cover"
+                    referrerPolicy="no-referrer"
+                    className="h-full w-full object-cover transition-all duration-500 brightness-[1.02] contrast-[1.1] group-hover:brightness-110 group-hover:scale-105"
                 />
-                <div className="absolute inset-0 bg-black/10 transition-colors group-hover:bg-transparent" />
             </motion.div>
         </motion.div>
     );
@@ -133,11 +177,11 @@ const IMAGES = [
 ];
 
 const CAPTIONS = [
-    { title: "PCC Photo Club", subtitle: "ชมรมคนชอบลั่นชัตเตอร์แห่ง PCC" },
-    { title: "เรียนไม่ยุ่ง มุ่งแต่ถ่ายรูป!", subtitle: "เก็บทุกโมเมนต์ฮาๆ และความทรงจำสุดป่วน ฉบับเด็กมหา'ลัย" },
-    { title: "ตากล้องวัยรุ่น พลังล้นเหลือ", subtitle: "ภาพสวยถูกใจ ฟีลลิ่งได้ ในราคานักศึกษาสบายกระเป๋า" },
+    { title: "PCC Photo Club", subtitle: "ชมรมคนชอบลั่นชัตเตอร์ KMITLPCC" },
+    { title: "เรียนไม่ยุ่ง มุ่งแต่ถ่ายรูป!", subtitle: "เก็บทุกโมเมนต์ฮาๆ และความทรงจำสุดป่วน" },
+    { title: "ตากล้องวัยรุ่น พลังล้นเหลือ", subtitle: "ภาพสวยถูกใจ ฟีลลิ่งได้" },
     { title: "รับจบทุกงานกิจกรรม", subtitle: "ให้พวกเราช่วยบันทึกความทรงจำดีๆ ในงานของคุณนะ!" },
-    { title: "แสงสวย มุมเป๊ะ", subtitle: "เรื่องหามุมถ่ายรูป ขอให้ไว้ใจพวกเรา" },
+    { title: "แสงสวย มุมเป๊ะ", subtitle: "เรื่องหามุมถ่ายรูป ขอให้ไว้ใจพวกเรา มั้ง!" },
     { title: "ไม่ใช่แค่กดชัตเตอร์", subtitle: "แต่เราใส่ใจในทุกรายละเอียดของภาพที่คุณได้รับ" },
     { title: "รูปคู่ รูปเดี่ยว รูปหมู่", subtitle: "จัดให้ได้หมดตามที่คุณสั่ง แค่บอกคอนเซปต์มา" },
     { title: "สีสดใส มู้ดดีๆ", subtitle: "พร้อมแต่งภาพให้เสร็จสรรพ นำไปอัพลงโซเชียลต่อได้เลย" },
@@ -162,7 +206,6 @@ export default function IntroAnimation({ images = [] }: { images?: any[] }) {
             displayImages = [...displayImages, ...original];
         }
     }
-    displayImages = displayImages.slice(0, 20);
     
     const isMobileView = containerSize.width > 0 && containerSize.width < 768;
     const currentTotal = isMobileView ? 10 : 20;
@@ -189,8 +232,7 @@ export default function IntroAnimation({ images = [] }: { images?: any[] }) {
 
     const morphProgress = useMotionValue(0);
     const scrollRotate = useMotionValue(0);
-    const smoothMorph = useSpring(morphProgress, { stiffness: 40, damping: 20 });
-    const smoothScrollRotate = useSpring(scrollRotate, { stiffness: 40, damping: 20 });
+    // Remove useSpring for scrollRotate to prevent physics wiggle at exactly 180 degrees
     const mouseX = useMotionValue(0);
     const smoothMouseX = useSpring(mouseX, { stiffness: 30, damping: 20 });
 
@@ -209,12 +251,33 @@ export default function IntroAnimation({ images = [] }: { images?: any[] }) {
 
     useEffect(() => {
         setMounted(true);
+        let isCancelled = false;
+
+        const runAnimationSequence = async () => {
+            let currentRot = 0;
+            while (!isCancelled) {
+                // 1. Forward Spin: 1 loop (360 deg) over 60 seconds. (Images do not swap)
+                await animate(scrollRotate, currentRot + 360, { duration: 60, ease: "linear" });
+                if (isCancelled) break;
+                currentRot += 360;
+                
+                // 2. Fast Rewind: -360 deg over 2.5 seconds. (Images swap at the back of the wheel)
+                await animate(scrollRotate, currentRot - 360, { duration: 2.5, ease: "easeInOut" });
+                if (isCancelled) break;
+                currentRot -= 360;
+            }
+        };
+
         const timer3 = setTimeout(() => {
             setIntroPhase("arc");
             animate(morphProgress, 1, { duration: 1.5, ease: "easeInOut" });
-            animate(scrollRotate, 360, { duration: 40, repeat: Infinity, ease: "linear" });
+            runAnimationSequence();
         }, 1000);
-        return () => { clearTimeout(timer3); };
+
+        return () => { 
+            clearTimeout(timer3); 
+            isCancelled = true;
+        };
     }, [morphProgress, scrollRotate]);
 
     // Caption Rotation
@@ -246,8 +309,8 @@ export default function IntroAnimation({ images = [] }: { images?: any[] }) {
 
     // Removed local state morphValue and rotateValue for performance
 
-    const contentOpacity = useTransform(smoothMorph, [0.8, 1], [0, 1]);
-    const contentY = useTransform(smoothMorph, [0.8, 1], [20, 0]);
+    const contentOpacity = useTransform(morphProgress, [0.8, 1], [0, 1]);
+    const contentY = useTransform(morphProgress, [0.8, 1], [20, 0]);
 
     return (
         <motion.div 
@@ -290,17 +353,17 @@ export default function IntroAnimation({ images = [] }: { images?: any[] }) {
                         className="absolute pointer-events-none drop-shadow-2xl"
                         style={{ 
                             zIndex: 130, // Midway between back cards (90) and front cards (170)
-                            y: 0,       // Matches the carousel center yPos (moved up)
+                            y: -40,       // Matches the carousel center yPos (moved up)
                         }}
                     >
                         <img 
                             src="/PCC%20Photo%20Club.webp" 
                             alt="PCC Photo Club Logo" 
-                            className="w-48 md:w-64 h-auto"
+                            className="w-56 md:w-96 h-auto"
                         />
                     </motion.div>
 
-                    {activeImages.map((src, i) => (
+                    {mounted && containerSize.width > 0 && activeImages.map((src, i) => (
                         <FlipCard
                             key={i}
                             src={src}
@@ -309,8 +372,9 @@ export default function IntroAnimation({ images = [] }: { images?: any[] }) {
                             phase={introPhase} 
                             scatterPos={scatterPositions[i]}
                             containerSize={containerSize}
-                            morphProgress={smoothMorph}
-                            scrollRotate={smoothScrollRotate}
+                            morphProgress={morphProgress}
+                            scrollRotate={scrollRotate}
+                            allImages={displayImages}
                         />
                     ))}
                 </div>

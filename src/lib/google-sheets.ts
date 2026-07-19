@@ -1,55 +1,46 @@
-import { google } from "googleapis";
-import path from "path";
-
-// Define the scopes for Google Sheets
-const SCOPES = ["https://www.googleapis.com/auth/spreadsheets"];
-
-// The ID of the spreadsheet
-export const SPREADSHEET_ID = "1lx5S3UquU5SqChAfADeUyDN2yd0jd6dlsmXeuZ-m6d4";
-
-// Ensure this path matches where your JSON key is located in the project root
-const KEYFILE_PATH = path.join(process.cwd(), "pccclickq-8b26393bf8f0.json");
+const GAS_URL = process.env.GAS_URL || "";
 
 /**
- * Get an authenticated Google Sheets client
+ * Fetch all bookings using GAS_URL (App Script)
  */
-export async function getGoogleSheetsClient() {
-  const auth = new google.auth.GoogleAuth({
-    keyFile: KEYFILE_PATH,
-    scopes: SCOPES,
-  });
-
-  const client = await auth.getClient();
-  const sheets = google.sheets({ version: "v4", auth: client as any });
-  
-  return sheets;
-}
-
-export async function getTeamMembers() {
-  const sheets = await getGoogleSheetsClient();
+export async function getBookings() {
   try {
-    const response = await sheets.spreadsheets.values.get({
-      spreadsheetId: SPREADSHEET_ID,
-      range: "Team_Members!A2:F",
+    const res = await fetch(`${GAS_URL}?action=getBookings`, { 
+      // Next.js cache settings (revalidate every 60s)
+      next: { revalidate: 60 }
     });
-    
-    const rows = response.data.values || [];
-    return rows.map((row) => ({
-      teamType: row[0] || "",
-      memberName: row[1] || "",
-      role: row[2] || "",
-      bio: row[3] || "",
-      imageUrl: row[4] || "",
-      contactLink: row[5] || "",
-    }));
+    const result = await res.json();
+    if (result.status === "success") {
+      return result.data;
+    }
+    return [];
   } catch (error) {
-    console.error("Error fetching team members:", error);
+    console.error("Failed to fetch bookings from GAS:", error);
     return [];
   }
 }
 
 /**
- * Add a new booking to the "Bookings" sheet
+ * Fetch team members (if needed elsewhere)
+ */
+export async function getTeamMembers() {
+  try {
+    const res = await fetch(`${GAS_URL}?action=getTeamMembers`, {
+      next: { revalidate: 60 }
+    });
+    const result = await res.json();
+    if (result.status === "success") {
+      return result.data;
+    }
+    return [];
+  } catch (error) {
+    console.error("Error fetching team members from GAS:", error);
+    return [];
+  }
+}
+
+/**
+ * Add a new booking via GAS_URL
  */
 export async function addBooking(data: {
   name: string;
@@ -60,57 +51,75 @@ export async function addBooking(data: {
   notes: string;
   driveLink?: string;
 }) {
-  const sheets = await getGoogleSheetsClient();
-  
-  // Name, Phone, Contact, Date, TimeSlot, ServiceType, DriveLink, Status
   const row = [
     data.name,
     data.phone,
     data.contact,
     data.date,
-    "", // TimeSlot (not currently in form)
+    "", // TimeSlot
     data.serviceType,
     data.driveLink || "", // DriveLink
     "Pending", // Status
-    data.notes // Added Notes column at the end
+    data.notes
   ];
 
-  await sheets.spreadsheets.values.append({
-    spreadsheetId: SPREADSHEET_ID,
-    range: "Bookings!A:I",
-    valueInputOption: "USER_ENTERED",
-    requestBody: {
-      values: [row],
-    },
+  const res = await fetch(GAS_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      action: "addBooking",
+      row: row,
+    }),
   });
-}
-
-/**
- * Fetch all bookings from the "Bookings" sheet
- */
-export async function getBookings() {
-  const sheets = await getGoogleSheetsClient();
-  const response = await sheets.spreadsheets.values.get({
-    spreadsheetId: SPREADSHEET_ID,
-    range: "Bookings!A:I",
-  });
-  return response.data.values || [];
-}
-
-/**
- * Update the status of a booking
- */
-export async function updateBookingStatus(rowIndex: number, status: string) {
-  const sheets = await getGoogleSheetsClient();
-  // Assuming Status is in column H (index 7)
-  const range = `Bookings!H${rowIndex + 1}`;
   
-  await sheets.spreadsheets.values.update({
-    spreadsheetId: SPREADSHEET_ID,
-    range,
-    valueInputOption: "USER_ENTERED",
-    requestBody: {
-      values: [[status]],
-    },
+  const result = await res.json();
+  if (result.status !== "success") {
+    throw new Error(result.message || "Failed to add booking");
+  }
+}
+
+/**
+ * Update the status of a booking and optionally its Google Photos link via GAS_URL
+ */
+export async function updateBookingStatus(rowIndex: number, status: string, googlePhotosLink?: string) {
+  const res = await fetch(GAS_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      action: "updateBookingStatus",
+      rowIndex,
+      status,
+      googlePhotosLink
+    }),
   });
+
+  const result = await res.json();
+  if (result.status !== "success") {
+    throw new Error(result.message || "Failed to update booking status");
+  }
+}
+
+/**
+ * Fetch all approved Google Photos Links
+ */
+export async function getApprovedGooglePhotosLinks(): Promise<string[]> {
+  const bookings = await getBookings();
+  
+  // Bookings structure: Name(0), Phone(1), Contact(2), Date(3), TimeSlot(4), ServiceType(5), DriveLink(6), Status(7), Notes(8), GooglePhotosLink(9)
+  const validBookings = bookings.slice(1)
+    .map((row: any[], index: number) => ({ row, index }))
+    .filter((item) => {
+      const row = item.row;
+      return row[7] === "Approved" && row[9] && typeof row[9] === 'string' && row[9].trim() !== "";
+    });
+  
+  // Sort by row index descending (latest submitted/added row comes first)
+  validBookings.sort((a, b) => b.index - a.index);
+  
+  const uniqueLinks = new Set<string>();
+  for (const b of validBookings) {
+    uniqueLinks.add(b.row[9]);
+  }
+  
+  return Array.from(uniqueLinks);
 }

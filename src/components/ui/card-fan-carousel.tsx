@@ -10,6 +10,7 @@ export interface CardItem {
   title?: string;
   description?: string;
   tags?: string[];
+  status?: string;
 }
 
 interface SocialCardsProps {
@@ -80,20 +81,22 @@ export default function SocialCards({ cards }: SocialCardsProps) {
   const prevVisible = useRef<Set<number>>(new Set());
 
   const totalCards = cards.length;
-  const needsPagination = totalCards > MAX_VISIBLE;
-  const [centerIndex, setCenterIndex] = useState(needsPagination ? HALF : totalCards >> 1);
+  const needsPagination = totalCards > 1; // Show arrows and allow click if more than 1 card
+  const [centerIndex, setCenterIndex] = useState(0);
 
   const getVisibleMap = useCallback((center: number) => {
     const map = new Map<number, number>();
-    if (!needsPagination) {
+    if (totalCards <= 1) {
       cards.forEach((_, i) => map.set(i, i));
       return map;
     }
-    for (let slot = 0; slot < MAX_VISIBLE; slot++) {
-      map.set(((center + slot - HALF) % totalCards + totalCards) % totalCards, slot);
+    const slotCount = Math.min(MAX_VISIBLE, totalCards);
+    const half = Math.floor(slotCount / 2);
+    for (let slot = 0; slot < slotCount; slot++) {
+      map.set(((center + slot - half) % totalCards + totalCards) % totalCards, slot);
     }
     return map;
-  }, [totalCards, needsPagination, cards]);
+  }, [totalCards, cards]);
 
   const cycle = useCallback((direction: "left" | "right") => {
     if (isAnimating.current || !needsPagination) return;
@@ -135,7 +138,7 @@ export default function SocialCards({ cards }: SocialCardsProps) {
     const isFirstMount = !hasEntered.current;
     const multiplier = getResponsiveMultiplier(window.innerWidth);
     const hMult = getHeightMultiplier(window.innerWidth);
-    const slotCount = needsPagination ? MAX_VISIBLE : totalCards;
+    const slotCount = Math.min(MAX_VISIBLE, totalCards);
     const config = (slot: number) => getSlotConfig(slotCount, slot);
 
     if (isFirstMount) isAnimating.current = true;
@@ -279,39 +282,50 @@ export default function SocialCards({ cards }: SocialCardsProps) {
   );
 
   return (
-    <section className="flex flex-col items-center w-full py-4 lg:py-8 px-4 md:px-8 relative z-20 overflow-visible">
+    <section className="flex flex-col items-center w-full py-2 lg:py-4 px-4 md:px-8 relative z-20 overflow-visible">
       <div className="flex items-center justify-center w-full max-w-[90rem]">
-        <div ref={containerRef} className="fan-layout flex relative justify-center items-center w-full max-w-[80rem] h-[450px] md:h-[650px] lg:h-[700px]">
+        <div ref={containerRef} className="fan-layout flex relative justify-center items-center w-full max-w-[80rem] h-[450px] md:h-[550px] lg:h-[650px] xl:h-[700px]">
           {cards.map((card, index) => {
             const image = (
-              <div className="relative w-full h-full overflow-hidden rounded-[32px] shadow-2xl group">
-                <img src={card.imgUrl} loading="lazy" alt={card.alt || `Card ${index}`} className="absolute inset-0 w-full h-full object-cover z-10 transition-transform duration-700 group-hover:scale-105" />
+              <div className="relative w-full h-full overflow-hidden rounded-[32px] shadow-2xl group bg-white">
+                {/* Soft overlay to make image feel 'softer' */}
+                <div className="absolute inset-0 bg-white/5 mix-blend-overlay z-15 pointer-events-none" />
+                <img 
+                  src={card.imgUrl} 
+                  loading="lazy" 
+                  alt={card.alt || `Card ${index}`} 
+                  onError={(e) => { e.currentTarget.src = "/PCC%20Photo%20Club.webp"; }}
+                  className="absolute inset-0 w-full h-full object-cover z-10 transition-transform duration-700 group-hover:scale-105 contrast-[0.95] brightness-[1.05] saturate-[1.1]" 
+                />
                 
-                {/* Top Overlay: Year/Status */}
-                {card.description && (
-                  <div className="absolute inset-x-0 top-0 p-4 md:p-6 z-20 flex justify-end items-start bg-gradient-to-b from-black/80 via-black/30 to-transparent pb-16 pointer-events-none">
-                    <span className="px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-white text-[10px] md:text-xs font-semibold border border-white/30 shadow-sm truncate max-w-[40%]">
+                <div className="absolute inset-x-0 top-0 p-4 md:p-6 z-20 flex justify-end items-start gap-2 bg-gradient-to-b from-black/80 via-black/30 to-transparent pb-16 pointer-events-none">
+                  {card.status === "Alumni" && (
+                    <span className="px-3 py-1 bg-red-500/80 backdrop-blur-md rounded-full text-white text-[10px] md:text-sm font-semibold border border-red-400/50 shadow-sm">
+                      ศิษย์เก่า
+                    </span>
+                  )}
+                  {card.description && (
+                    <span className="px-3 py-1 bg-slate-700/70 backdrop-blur-md rounded-full text-white/95 text-[10px] md:text-sm font-semibold border border-slate-500/50 shadow-sm truncate max-w-[40%]">
                       {card.description}
                     </span>
-                  </div>
-                )}
+                  )}
+                </div>
                 
                 {/* Bottom Overlay: Name & Team Tags */}
-                <div className="absolute inset-x-0 bottom-0 p-4 md:p-6 z-20 flex flex-col justify-end items-start bg-gradient-to-t from-black/90 via-black/40 to-transparent pt-24 pointer-events-none">
+                <div className="absolute inset-x-0 bottom-0 p-4 md:p-6 z-20 flex flex-col justify-end items-start bg-gradient-to-t from-black/90 via-black/40 to-transparent pt-32 pointer-events-none">
                   {card.title && (
-                    <span className="text-white font-bold text-base md:text-xl drop-shadow-md truncate w-full mb-2">{card.title}</span>
+                    <span className="text-white font-bold text-lg md:text-2xl drop-shadow-md truncate w-full mb-3">{card.title}</span>
                   )}
                   {card.tags && card.tags.length > 0 && (
                     <div className="flex flex-wrap gap-2 items-end justify-start w-full">
                       {card.tags.map((tag, i) => {
-                      // Custom color logic based on team type (optional nice-to-have)
                       let tagColor = "bg-white/20 border-white/30 text-white";
-                      if (tag.includes("วิดีโอ")) tagColor = "bg-blue-500/80 border-blue-400 text-white";
-                      if (tag.includes("ถ่ายรูป")) tagColor = "bg-orange-500/80 border-orange-400 text-white";
-                      if (tag.includes("ไลฟ์")) tagColor = "bg-red-500/80 border-red-400 text-white";
+                      if (tag.includes("วิดีโอ") || tag.toLowerCase().includes("video")) tagColor = "bg-blue-500/80 border-blue-400 text-white";
+                      if (tag.includes("ถ่ายรูป") || tag.toLowerCase().includes("photo")) tagColor = "bg-orange-500/80 border-orange-400 text-white";
+                      if (tag.includes("ไลฟ์") || tag.toLowerCase().includes("live")) tagColor = "bg-red-500/80 border-red-400 text-white";
 
                       return (
-                        <span key={i} className={`px-3 py-1 backdrop-blur-md rounded-full text-[10px] md:text-xs font-semibold border shadow-sm ${tagColor}`}>
+                        <span key={i} className={`px-3 py-1 backdrop-blur-md rounded-full text-[10px] md:text-sm font-semibold border shadow-sm ${tagColor}`}>
                           {tag}
                         </span>
                       );
@@ -322,16 +336,16 @@ export default function SocialCards({ cards }: SocialCardsProps) {
               </div>
             );
             return card.linkUrl ? (
-              <a key={index} href={card.linkUrl} onClick={(e) => handleCardClick(e, index)} target={card.linkUrl.startsWith("http") ? "_blank" : "_self"} rel="noopener noreferrer" className="fan-card block cursor-pointer w-[240px] h-[360px] md:w-[320px] md:h-[480px] lg:w-[360px] lg:h-[520px] absolute">{image}</a>
+              <a key={index} href={card.linkUrl} onClick={(e) => handleCardClick(e, index)} target={card.linkUrl.startsWith("http") ? "_blank" : "_self"} rel="noopener noreferrer" className="fan-card block cursor-pointer w-[280px] h-[400px] md:w-[340px] md:h-[480px] lg:w-[400px] lg:h-[560px] xl:w-[440px] xl:h-[600px] absolute">{image}</a>
             ) : (
-              <div key={index} onClick={(e) => handleCardClick(e, index)} className="fan-card block cursor-pointer w-[240px] h-[360px] md:w-[320px] md:h-[480px] lg:w-[360px] lg:h-[520px] absolute">{image}</div>
+              <div key={index} onClick={(e) => handleCardClick(e, index)} className="fan-card block cursor-pointer w-[280px] h-[400px] md:w-[340px] md:h-[480px] lg:w-[400px] lg:h-[560px] xl:w-[440px] xl:h-[600px] absolute">{image}</div>
             );
           })}
         </div>
       </div>
 
       {needsPagination && (
-        <div className="flex items-center justify-center gap-4 mt-8 md:mt-12 z-30">
+        <div className="flex items-center justify-center gap-4 mt-2 md:mt-4 z-30">
           <button className={`${ARROW_CLASSES} w-10 h-10 md:w-12 md:h-12`} onClick={() => cycle("left")} aria-label="Previous">
             {chevron("left")}
           </button>

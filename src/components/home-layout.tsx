@@ -4,12 +4,16 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
+import { Instagram, Facebook } from '@thesvg/react';
+
 interface HomeLayoutProps {
   heroSection: React.ReactNode;
   teamSection: React.ReactNode;
+  fbLink?: string | null;
+  igLink?: string | null;
 }
 
-export default function HomeLayout({ heroSection, teamSection }: HomeLayoutProps) {
+export default function HomeLayout({ heroSection, teamSection, fbLink, igLink }: HomeLayoutProps) {
   const [activeSection, setActiveSection] = useState<"hero" | "team">("hero");
 
   return (
@@ -17,14 +21,36 @@ export default function HomeLayout({ heroSection, teamSection }: HomeLayoutProps
       {/* Navigation - Fixed over everything */}
       <nav className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-md border-b">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <div 
-            className="font-bold text-xl cursor-pointer hover:opacity-80 transition-opacity"
-            onClick={() => setActiveSection("hero")}
-          >
-            PhotoClubClickQ
+          <div className="flex items-center gap-3">
+            <div 
+              className="font-bold text-xl cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={() => setActiveSection("hero")}
+            >
+              PhotoClubClickQ
+            </div>
+            {igLink && (
+              <a href={igLink} target="_blank" rel="noreferrer" className="text-slate-500 hover:text-pink-500 transition-colors ml-2" title="Instagram">
+                <Instagram className="h-5 w-5" />
+              </a>
+            )}
+            {fbLink && (
+              <a href={fbLink} target="_blank" rel="noreferrer" className="text-slate-500 hover:text-blue-600 transition-colors" title="Facebook">
+                <Facebook className="h-5 w-5" />
+              </a>
+            )}
           </div>
           <div className="flex gap-2 sm:gap-4 items-center">
-            <Button variant="ghost" className="hidden sm:inline-flex">Gallery</Button>
+            {/* Hidden Management Login Button */}
+            <Link 
+              href="/admin/dashboard" 
+              className="fixed top-0 right-0 w-16 h-16 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center bg-black/10 z-[100] text-xs font-bold text-slate-800"
+              title="Management Queue"
+            >
+              Admin
+            </Link>
+            <Link href="/gallery" className="hidden sm:inline-flex text-sm font-medium hover:bg-slate-100 px-4 py-2 rounded-md transition-colors items-center justify-center">
+              Gallery
+            </Link>
             <Button 
               variant="ghost" 
               onClick={() => setActiveSection("team")}
@@ -55,7 +81,7 @@ export default function HomeLayout({ heroSection, teamSection }: HomeLayoutProps
         </div>
 
         {/* Section 2: Team */}
-        <div className="h-[100svh] w-full bg-slate-100 text-slate-900 pt-16 flex flex-col justify-center relative overflow-hidden">
+        <div className="h-[100svh] w-full bg-slate-100 text-slate-900 pt-16 pb-0 flex flex-col justify-start relative overflow-y-auto">
           {teamSection}
         </div>
       </div>

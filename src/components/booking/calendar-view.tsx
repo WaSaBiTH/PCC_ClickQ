@@ -54,11 +54,30 @@ const statusText: Record<BookingStatus, string> = {
   completed: "จบงานแล้ว",
 };
 
-export default function CalendarView() {
+export interface CalendarViewProps {
+  initialBookings?: {
+    id: string;
+    date: string; // ISO String
+    time: string;
+    clientName: string;
+    service: string;
+    status: BookingStatus;
+    location?: string;
+    photosUrl?: string;
+  }[];
+}
+
+export default function CalendarView({ initialBookings }: CalendarViewProps) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [bookings] = useState<Booking[]>(MOCK_BOOKINGS);
+  
+  // If initialBookings is provided, parse the dates, otherwise fallback to mock
+  const [bookings] = useState<Booking[]>(
+    initialBookings 
+      ? initialBookings.map(b => ({ ...b, date: new Date(b.date) }))
+      : MOCK_BOOKINGS
+  );
 
   const nextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
   const prevMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
