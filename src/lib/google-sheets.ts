@@ -108,7 +108,7 @@ export async function getApprovedGooglePhotosLinks(): Promise<string[]> {
   // Bookings structure: Name(0), Phone(1), Contact(2), Date(3), TimeSlot(4), ServiceType(5), DriveLink(6), Status(7), Notes(8), GooglePhotosLink(9)
   const validBookings = bookings.slice(1)
     .map((row: any[], index: number) => ({ row, index }))
-    .filter((item) => {
+    .filter((item: { row: any[], index: number }) => {
       const row = item.row;
       return row[7] === "Approved" && row[9] && typeof row[9] === 'string' && row[9].trim() !== "";
     });
