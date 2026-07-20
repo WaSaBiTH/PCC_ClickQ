@@ -196,8 +196,14 @@ export default function TeamClient() {
           <div className="flex items-center gap-2 md:gap-4 shrink-0">
             <Link href="/admin/dashboard" onClick={() => setNavigatingAction('back')}>
               <Button variant="ghost" size="sm" className="text-slate-600 hover:text-slate-900 md:px-4" disabled={navigatingAction === 'back'}>
-                {navigatingAction === 'back' ? <Loader2 className="w-5 h-5 md:mr-2 animate-spin" /> : <ArrowLeft className="w-5 h-5 md:mr-2" />}
-                <span className="hidden md:inline">Back to Dashboard</span>
+                {navigatingAction === 'back' ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <>
+                    <ArrowLeft className="w-5 h-5 md:mr-2" />
+                    <span className="hidden md:inline">Back to Dashboard</span>
+                  </>
+                )}
               </Button>
             </Link>
           </div>

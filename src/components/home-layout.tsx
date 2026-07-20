@@ -52,9 +52,8 @@ export default function HomeLayout({ heroSection, teamSection, fbLink, igLink }:
           </div>
           
           <div className="hidden md:flex gap-4 items-center">
-            <Link href="/gallery" onClick={() => setNavigatingAction('gallery')} className={`text-sm font-medium hover:bg-slate-100 px-4 py-2 rounded-md transition-colors flex items-center justify-center ${navigatingAction === 'gallery' ? 'opacity-50 pointer-events-none' : ''}`}>
-              {navigatingAction === 'gallery' && <NavLoader />}
-              แกลลอรี่
+            <Link href="/gallery" onClick={() => setNavigatingAction('gallery')} className={`text-sm font-medium hover:bg-slate-100 px-4 py-2 rounded-md transition-colors flex items-center justify-center min-w-[90px] ${navigatingAction === 'gallery' ? 'opacity-50 pointer-events-none' : ''}`}>
+              {navigatingAction === 'gallery' ? <NavLoader className="w-5 h-5 animate-spin" /> : 'แกลลอรี่'}
             </Link>
             <Button 
               variant="ghost" 
@@ -63,13 +62,11 @@ export default function HomeLayout({ heroSection, teamSection, fbLink, igLink }:
             >
               ทีมงาน
             </Button>
-            <Link href="/schedule" onClick={() => setNavigatingAction('schedule')} className={`text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors flex items-center justify-center ${navigatingAction === 'schedule' ? 'opacity-50 pointer-events-none' : ''}`}>
-              {navigatingAction === 'schedule' && <NavLoader />}
-              ตารางงาน
+            <Link href="/schedule" onClick={() => setNavigatingAction('schedule')} className={`text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors flex items-center justify-center min-w-[90px] ${navigatingAction === 'schedule' ? 'opacity-50 pointer-events-none' : ''}`}>
+              {navigatingAction === 'schedule' ? <NavLoader className="w-5 h-5 animate-spin" /> : 'ตารางงาน'}
             </Link>
-            <Link href="/booking" onClick={() => setNavigatingAction('booking')} className={`text-sm font-medium bg-orange-500 text-white px-4 py-2 rounded-full hover:bg-orange-600 transition-all shadow-sm flex items-center justify-center ${navigatingAction === 'booking' ? 'opacity-70 pointer-events-none' : ''}`}>
-              {navigatingAction === 'booking' && <NavLoader className="w-4 h-4 mr-1.5 text-white animate-spin" />}
-              จองคิวถ่ายรูป
+            <Link href="/booking" onClick={() => setNavigatingAction('booking')} className={`text-sm font-medium bg-orange-500 text-white px-4 py-2 rounded-full hover:bg-orange-600 transition-all shadow-sm flex items-center justify-center min-w-[120px] ${navigatingAction === 'booking' ? 'opacity-70 pointer-events-none' : ''}`}>
+              {navigatingAction === 'booking' ? <NavLoader className="w-5 h-5 text-white animate-spin" /> : 'จองคิวถ่ายรูป'}
             </Link>
           </div>
         </div>
@@ -99,18 +96,30 @@ export default function HomeLayout({ heroSection, teamSection, fbLink, igLink }:
             <span className="text-[10px] font-medium">ทีมงาน</span>
           </button>
           <Link href="/gallery" onClick={() => setNavigatingAction('gallery_mobile')} className={`flex flex-col items-center justify-center w-full h-full space-y-1 text-slate-500 ${navigatingAction === 'gallery_mobile' ? 'opacity-50 pointer-events-none' : ''}`}>
-            {navigatingAction === 'gallery_mobile' ? <NavLoader className="w-5 h-5 animate-spin" /> : <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>}
-            <span className="text-[10px] font-medium">แกลลอรี่</span>
+            {navigatingAction === 'gallery_mobile' ? (
+              <NavLoader className="w-6 h-6 animate-spin" />
+            ) : (
+              <>
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+                <span className="text-[10px] font-medium">แกลลอรี่</span>
+              </>
+            )}
           </Link>
           <Link href="/schedule" onClick={() => setNavigatingAction('schedule_mobile')} className={`flex flex-col items-center justify-center w-full h-full space-y-1 text-slate-500 ${navigatingAction === 'schedule_mobile' ? 'opacity-50 pointer-events-none' : ''}`}>
-            {navigatingAction === 'schedule_mobile' ? <NavLoader className="w-5 h-5 animate-spin" /> : <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>}
-            <span className="text-[10px] font-medium">ตารางงาน</span>
+            {navigatingAction === 'schedule_mobile' ? (
+              <NavLoader className="w-6 h-6 animate-spin" />
+            ) : (
+              <>
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                <span className="text-[10px] font-medium">ตารางงาน</span>
+              </>
+            )}
           </Link>
           <Link href="/booking" onClick={() => setNavigatingAction('booking_mobile')} className={`flex flex-col items-center justify-center w-full h-full space-y-1 text-slate-500 ${navigatingAction === 'booking_mobile' ? 'pointer-events-none' : ''}`}>
             <div className="bg-orange-500 text-white p-2 rounded-full -mt-6 border-4 border-slate-100 shadow-md flex items-center justify-center min-w-[40px] min-h-[40px]">
               {navigatingAction === 'booking_mobile' ? <NavLoader className="w-5 h-5 animate-spin" /> : <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/></svg>}
             </div>
-            <span className="text-[10px] font-medium text-orange-500">จองคิว</span>
+            {navigatingAction !== 'booking_mobile' && <span className="text-[10px] font-medium text-orange-500">จองคิว</span>}
           </Link>
         </div>
         </div>

@@ -124,8 +124,14 @@ export default function GalleryManagerClient() {
             onClick={() => setNavigatingAction('back')}
             className={`flex items-center justify-center px-4 py-2 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-lg font-medium transition-colors ${navigatingAction === 'back' ? 'opacity-50 pointer-events-none' : ''}`}
           >
-            {navigatingAction === 'back' ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <ArrowLeft className="w-4 h-4 mr-2" />}
-            Back to Dashboard
+            {navigatingAction === 'back' ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <>
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Dashboard
+              </>
+            )}
           </Link>
         </div>
 

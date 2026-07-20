@@ -164,9 +164,8 @@ export default function SettingsClient() {
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <nav className="bg-white border-b shadow-sm sticky top-0 z-40 mb-4 md:mb-8">
         <div className="max-w-6xl mx-auto px-4 md:px-8 h-16 flex items-center justify-between">
-          <Link href="/admin/dashboard" onClick={() => setNavigatingAction('back')} className={`font-bold text-lg md:text-xl hover:opacity-80 flex items-center gap-2 ${navigatingAction === 'back' ? 'opacity-50 pointer-events-none' : ''}`}>
-            {navigatingAction === 'back' ? <Loader2 className="w-5 h-5 mr-1 shrink-0 animate-spin" /> : <ArrowLeft className="w-5 h-5 mr-1 shrink-0" />}
-            <span className="text-orange-500 truncate">Back to Dashboard</span>
+          <Link href="/admin/dashboard" onClick={() => setNavigatingAction('back')} className={`font-bold text-lg md:text-xl hover:opacity-80 flex items-center justify-center gap-2 min-w-[150px] ${navigatingAction === 'back' ? 'opacity-50 pointer-events-none' : ''}`}>
+            {navigatingAction === 'back' ? <NavLoader className="w-5 h-5 animate-spin text-orange-500" /> : <><ArrowLeft className="w-5 h-5 mr-1 shrink-0" /><span className="text-orange-500 truncate">Back to Dashboard</span></>}
           </Link>
         </div>
       </nav>
