@@ -113,10 +113,43 @@ function FlipCard({ src, index, total, phase, scatterPos, containerSize, morphPr
     const rotate = useTransform(transformValues, (t: any) => t.rotation);
     const scale = useTransform(transformValues, (t: any) => t.scale);
     const opacity = useTransform(transformValues, (t: any) => t.opacity);
-    const zIndex = useTransform(scale, (s: any) => Math.round(s * 100));
+    const zIndex = useTransform(scale, (s: any) => Math.round(s * 100000));
 
     const [isLoaded, setIsLoaded] = useState(false);
     const [hasReportedLoad, setHasReportedLoad] = useState(false);
+    
+    // Double-buffering state for rock-solid crossfades without unmounting
+    const [imgA, setImgA] = useState(currentSrc);
+    const [imgB, setImgB] = useState(currentSrc);
+    const [showA, setShowA] = useState(true);
+
+    useEffect(() => {
+        if (currentSrc !== imgA && currentSrc !== imgB) {
+            if (showA) {
+                setImgB(currentSrc);
+            } else {
+                setImgA(currentSrc);
+            }
+        }
+    }, [currentSrc, imgA, imgB, showA]);
+
+    const handleLoadA = () => {
+        setIsLoaded(true);
+        if (!hasReportedLoad) {
+            setHasReportedLoad(true);
+            onImageLoad?.();
+        }
+        if (imgA === currentSrc) setShowA(true);
+    };
+
+    const handleLoadB = () => {
+        setIsLoaded(true);
+        if (!hasReportedLoad) {
+            setHasReportedLoad(true);
+            onImageLoad?.();
+        }
+        if (imgB === currentSrc) setShowA(false);
+    };
 
     return (
         <motion.div
@@ -130,17 +163,8 @@ function FlipCard({ src, index, total, phase, scatterPos, containerSize, morphPr
             className="cursor-pointer group"
             onClick={() => setSpin(spin + 360)}
         >
-            {/* Preload next image to ensure smooth swapping during rewind */}
-            {nextSrc && (
-                <img 
-                    src={nextSrc} 
-                    alt="preload" 
-                    referrerPolicy="no-referrer"
-                    style={{ position: 'absolute', width: 1, height: 1, opacity: 0, pointerEvents: 'none' }} 
-                />
-            )}
             <motion.div
-                className="relative h-full w-full rounded-xl overflow-hidden shadow-lg border-2 border-transparent group-hover:border-white transition-colors bg-slate-200/50"
+                className={`relative h-full w-full rounded-xl overflow-hidden shadow-lg border-2 border-transparent group-hover:border-white transition-colors ${isLoaded ? 'bg-transparent' : 'bg-slate-200/50'}`}
                 animate={{ rotateY: spin }}
                 transition={{ duration: 0.6, type: "spring", stiffness: 260, damping: 20 }}
             >
@@ -148,18 +172,25 @@ function FlipCard({ src, index, total, phase, scatterPos, containerSize, morphPr
                 {!isLoaded && (
                     <div className="absolute inset-0 bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200 animate-[pulse_1.5s_ease-in-out_infinite]" />
                 )}
+                
+                {/* Buffer A */}
                 <img
-                    src={currentSrc}
-                    alt={`hero-${index}`}
+                    src={imgA}
+                    alt={`hero-${index}-a`}
                     referrerPolicy="no-referrer"
-                    onLoad={() => {
-                        setIsLoaded(true);
-                        if (!hasReportedLoad) {
-                            setHasReportedLoad(true);
-                            onImageLoad?.();
-                        }
-                    }}
-                    className={`h-full w-full object-cover transition-transform duration-700 group-hover:scale-105 will-change-transform ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
+                    onLoad={handleLoadA}
+                    className={`absolute inset-0 h-full w-full object-cover transition-all duration-1000 group-hover:scale-105 will-change-transform ${showA ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
+                    style={{ WebkitBackfaceVisibility: "hidden", backfaceVisibility: "hidden" }}
+                />
+
+                {/* Buffer B */}
+                <img
+                    src={imgB}
+                    alt={`hero-${index}-b`}
+                    referrerPolicy="no-referrer"
+                    onLoad={handleLoadB}
+                    className={`absolute inset-0 h-full w-full object-cover transition-all duration-1000 group-hover:scale-105 will-change-transform ${!showA ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
+                    style={{ WebkitBackfaceVisibility: "hidden", backfaceVisibility: "hidden" }}
                 />
             </motion.div>
         </motion.div>
@@ -217,23 +248,49 @@ export default function IntroAnimation({ images = [] }: { images?: any[] }) {
     let displayImages = images.length > 0 ? images.map(img => img.thumbnailLink?.replace('=s220', '=s300') || "") : IMAGES;
     
     const isMobileView = containerSize.width > 0 && containerSize.width < 768;
-    const isLargeView = containerSize.width >= 1280;
+    const isTabletView = containerSize.width >= 768 && containerSize.width < 1024;
+    const isLaptopView = containerSize.width >= 1024 && containerSize.width < 1280;
+    const isMacAirView = containerSize.width >= 1280 && containerSize.width < 1600;
     const isExtraLargeView = containerSize.width >= 1600;
     
     let currentTotal = 18;
     if (isMobileView) currentTotal = 7;
-    else if (isExtraLargeView) currentTotal = 24;
-    else if (isLargeView) currentTotal = 20;
+    else if (isTabletView) currentTotal = 11; 
+    else if (isLaptopView) currentTotal = 14;
+    else if (isMacAirView) currentTotal = 16; // Perfectly spaced for 1280x800 Mac Air
+    else if (isExtraLargeView) currentTotal = 20;
 
-    // The arc math is designed for currentTotal images. If we have fewer, repeat them to fill the arc!
-    if (displayImages.length > 0 && displayImages.length < currentTotal) {
-        const original = [...displayImages];
-        while (displayImages.length < currentTotal) {
-            displayImages = [...displayImages, ...original];
-        }
-    }
+    // The arc math is designed for currentTotal images.
+    // To create an infinite-feeling carousel where images actually change on every lap,
+    // we create a huge array of shuffled batches.
+    const [infiniteImages, setInfiniteImages] = useState<string[]>([]);
     
-    const activeImages = displayImages.slice(0, currentTotal);
+    useEffect(() => {
+        if (displayImages.length === 0) return;
+        
+        let pool: string[] = [];
+        // Create 20 batches of shuffled images (enough for 20 laps before repeating the exact pattern)
+        for (let i = 0; i < 20; i++) {
+            // First batch should be unshuffled (or minimally shuffled) if we want initial load to match
+            // But shuffling all batches ensures random distribution.
+            const shuffled = [...displayImages].sort(() => Math.random() - 0.5);
+            
+            // If displayImages is less than currentTotal, we need to pad the batch 
+            // so each lap has exactly currentTotal distinct slots.
+            let batch = [...shuffled];
+            while (batch.length < currentTotal) {
+                batch = [...batch, ...shuffled.sort(() => Math.random() - 0.5)];
+            }
+            
+            // Ensure each batch perfectly aligns with the currentTotal boundary
+            pool.push(...batch.slice(0, Math.max(currentTotal, displayImages.length)));
+        }
+        setInfiniteImages(pool);
+    }, [images, currentTotal]);
+
+    // Use infiniteImages if ready, else fallback to a minimally valid array
+    const allImages = infiniteImages.length > 0 ? infiniteImages : displayImages;
+    const activeImages = allImages.slice(0, currentTotal);
     const isFullyLoaded = loadedCount >= activeImages.length;
 
     useEffect(() => {
@@ -388,14 +445,14 @@ export default function IntroAnimation({ images = [] }: { images?: any[] }) {
                         transition={{ duration: 1.5, delay: 1, ease: "easeOut" }}
                         className="absolute pointer-events-none drop-shadow-2xl"
                         style={{ 
-                            zIndex: 130, // Midway between back cards (90) and front cards (170)
+                            zIndex: isMobileView ? 90000 : 130000, // Matches the center line of the arc based on new zIndex precision
                             y: -40,       // Matches the carousel center yPos (moved up)
                         }}
                     >
                         <img 
                             src="/PCC%20Photo%20Club.webp" 
                             alt="PCC Photo Club Logo" 
-                            className="w-56 md:w-96 h-auto"
+                            className="w-48 md:w-72 lg:w-80 h-auto"
                         />
                     </motion.div>
 
@@ -410,7 +467,7 @@ export default function IntroAnimation({ images = [] }: { images?: any[] }) {
                             containerSize={containerSize}
                             morphProgress={morphProgress}
                             scrollRotate={scrollRotate}
-                            allImages={displayImages}
+                            allImages={allImages}
                             onImageLoad={() => setLoadedCount(c => c + 1)}
                         />
                     ))}
