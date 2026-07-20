@@ -46,8 +46,14 @@ export default function HomeLayout({ heroSection, teamSection, fbLink, igLink }:
     <main className="h-[100svh] w-full bg-slate-100 text-slate-900 overflow-hidden relative">
       <MainNav 
         activeOverride={activeSection === "hero" ? "/" : "team"} 
-        onHomeClick={() => setActiveSection("hero")}
-        onTeamClick={() => setActiveSection("team")}
+        onHomeClick={() => {
+          setActiveSection("hero");
+          window.history.pushState(null, "", "/");
+        }}
+        onTeamClick={() => {
+          setActiveSection("team");
+          window.history.pushState(null, "", "/#team");
+        }}
         fbLink={fbLink}
         igLink={igLink}
       />
