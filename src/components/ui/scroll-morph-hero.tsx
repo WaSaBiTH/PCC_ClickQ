@@ -244,6 +244,7 @@ export default function IntroAnimation({ images = [] }: { images?: any[] }) {
     const [captionIndex, setCaptionIndex] = useState(0);
     const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
     const [loadedCount, setLoadedCount] = useState(0);
+    const [isFullyLoaded, setIsFullyLoaded] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
     let displayImages = images.length > 0 ? images.map(img => img.thumbnailLink?.replace('=s220', '=s300') || "") : IMAGES;
     
@@ -269,20 +270,17 @@ export default function IntroAnimation({ images = [] }: { images?: any[] }) {
         if (displayImages.length === 0) return;
         
         let pool: string[] = [];
-        // Create 20 batches of shuffled images (enough for 20 laps before repeating the exact pattern)
         for (let i = 0; i < 20; i++) {
-            // First batch should be unshuffled (or minimally shuffled) if we want initial load to match
-            // But shuffling all batches ensures random distribution.
-            const shuffled = [...displayImages].sort(() => Math.random() - 0.5);
+            // First batch MUST perfectly match the initial displayImages to avoid crossfade on mount
+            const shuffled = i === 0 
+                ? [...displayImages] 
+                : [...displayImages].sort(() => Math.random() - 0.5);
             
-            // If displayImages is less than currentTotal, we need to pad the batch 
-            // so each lap has exactly currentTotal distinct slots.
             let batch = [...shuffled];
             while (batch.length < currentTotal) {
-                batch = [...batch, ...shuffled.sort(() => Math.random() - 0.5)];
+                batch = [...batch, ...[...displayImages].sort(() => Math.random() - 0.5)];
             }
             
-            // Ensure each batch perfectly aligns with the currentTotal boundary
             pool.push(...batch.slice(0, Math.max(currentTotal, displayImages.length)));
         }
         setInfiniteImages(pool);
@@ -291,7 +289,13 @@ export default function IntroAnimation({ images = [] }: { images?: any[] }) {
     // Use infiniteImages if ready, else fallback to a minimally valid array
     const allImages = infiniteImages.length > 0 ? infiniteImages : displayImages;
     const activeImages = allImages.slice(0, currentTotal);
-    const isFullyLoaded = loadedCount >= activeImages.length;
+
+    useEffect(() => {
+        if (loadedCount >= activeImages.length && !isFullyLoaded && activeImages.length > 0) {
+            const timer = setTimeout(() => setIsFullyLoaded(true), 1000);
+            return () => clearTimeout(timer);
+        }
+    }, [loadedCount, activeImages.length, isFullyLoaded]);
 
     useEffect(() => {
         if (!containerRef.current) return;
@@ -334,33 +338,37 @@ export default function IntroAnimation({ images = [] }: { images?: any[] }) {
     useEffect(() => {
         setMounted(true);
         let isCancelled = false;
+        let timer3: NodeJS.Timeout;
 
         const runAnimationSequence = async () => {
             let currentRot = 0;
             while (!isCancelled) {
-                // 1. Forward Spin: 120 deg over 20 seconds (maintaining 6 deg/sec speed).
+                // 1. Forward Spin: 120 deg over 20 seconds
                 await animate(scrollRotate, currentRot + 120, { duration: 20, ease: "linear" });
                 if (isCancelled) break;
                 currentRot += 120;
                 
-                // 2. Fast Rewind: -360 deg over 2.5 seconds. (Trigger image swap on all cards)
+                // 2. Fast Rewind: -360 deg over 2.5 seconds
                 await animate(scrollRotate, currentRot - 360, { duration: 2.5, ease: "easeInOut" });
                 if (isCancelled) break;
                 currentRot -= 360;
             }
         };
 
-        const timer3 = setTimeout(() => {
-            setIntroPhase("arc");
-            animate(morphProgress, 1, { duration: 1.5, ease: "easeInOut" });
-            runAnimationSequence();
-        }, 1000);
+        if (isFullyLoaded) {
+            timer3 = setTimeout(() => {
+                if (isCancelled) return;
+                setIntroPhase("arc");
+                animate(morphProgress, 1, { duration: 1.5, ease: "easeInOut" });
+                runAnimationSequence();
+            }, 800);
+        }
 
         return () => { 
-            clearTimeout(timer3); 
+            if (timer3) clearTimeout(timer3); 
             isCancelled = true;
         };
-    }, [morphProgress, scrollRotate]);
+    }, [morphProgress, scrollRotate, isFullyLoaded]);
 
     // Caption Rotation
     useEffect(() => {
@@ -408,12 +416,12 @@ export default function IntroAnimation({ images = [] }: { images?: any[] }) {
                         initial={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.8 }}
-                        className="absolute inset-0 z-[200] bg-slate-100/90"
+                        className="absolute inset-0 z-[200] bg-slate-50/80 backdrop-blur-2xl pointer-events-none"
                     />
                 )}
             </AnimatePresence>
             
-            <div className={`flex h-full w-full flex-col items-center justify-center perspective-1000 transition-all duration-1000 ${isFullyLoaded ? 'scale-100 opacity-100' : 'scale-105 opacity-0'}`}>
+            <div className={`flex h-full w-full flex-col items-center justify-center perspective-1000 transition-all duration-1000 ${isFullyLoaded ? 'scale-100 opacity-100' : 'scale-105 opacity-50'}`}>
 
                 <motion.div
                     style={{ opacity: contentOpacity, y: contentY }}
