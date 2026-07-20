@@ -123,15 +123,26 @@ function FlipCard({ src, index, total, phase, scatterPos, containerSize, morphPr
     const [imgB, setImgB] = useState(currentSrc);
     const [showA, setShowA] = useState(true);
 
+    const imgARef = useRef<HTMLImageElement>(null);
+    const imgBRef = useRef<HTMLImageElement>(null);
+
+    // 1. Preload nextSrc into the inactive buffer immediately
     useEffect(() => {
-        if (currentSrc !== imgA && currentSrc !== imgB) {
-            if (showA) {
-                setImgB(currentSrc);
-            } else {
-                setImgA(currentSrc);
-            }
+        if (showA && imgB !== nextSrc) {
+            setImgB(nextSrc);
+        } else if (!showA && imgA !== nextSrc) {
+            setImgA(nextSrc);
         }
-    }, [currentSrc, imgA, imgB, showA]);
+    }, [nextSrc, showA, imgA, imgB]);
+
+    // 2. Swap to the inactive buffer if it matches currentSrc and is already fully loaded
+    useEffect(() => {
+        if (showA && currentSrc === imgB && imgBRef.current?.complete) {
+            setShowA(false);
+        } else if (!showA && currentSrc === imgA && imgARef.current?.complete) {
+            setShowA(true);
+        }
+    }, [currentSrc, showA, imgA, imgB]);
 
     const handleLoadA = () => {
         setIsLoaded(true);
@@ -139,7 +150,7 @@ function FlipCard({ src, index, total, phase, scatterPos, containerSize, morphPr
             setHasReportedLoad(true);
             onImageLoad?.();
         }
-        if (imgA === currentSrc) setShowA(true);
+        if (imgA === currentSrc && !showA) setShowA(true);
     };
 
     const handleLoadB = () => {
@@ -148,7 +159,7 @@ function FlipCard({ src, index, total, phase, scatterPos, containerSize, morphPr
             setHasReportedLoad(true);
             onImageLoad?.();
         }
-        if (imgB === currentSrc) setShowA(false);
+        if (imgB === currentSrc && showA) setShowA(false);
     };
 
     return (
@@ -175,6 +186,7 @@ function FlipCard({ src, index, total, phase, scatterPos, containerSize, morphPr
                 
                 {/* Buffer A */}
                 <img
+                    ref={imgARef}
                     src={imgA}
                     alt={`hero-${index}-a`}
                     referrerPolicy="no-referrer"
@@ -185,6 +197,7 @@ function FlipCard({ src, index, total, phase, scatterPos, containerSize, morphPr
 
                 {/* Buffer B */}
                 <img
+                    ref={imgBRef}
                     src={imgB}
                     alt={`hero-${index}-b`}
                     referrerPolicy="no-referrer"
@@ -348,8 +361,8 @@ export default function IntroAnimation({ images = [] }: { images?: any[] }) {
                 if (isCancelled) break;
                 currentRot += 120;
                 
-                // 2. Fast Rewind: -360 deg over 2.5 seconds
-                await animate(scrollRotate, currentRot - 360, { duration: 2.5, ease: "easeInOut" });
+                // 2. Fast Rewind: -360 deg over 1.5 seconds
+                await animate(scrollRotate, currentRot - 360, { duration: 1.5, ease: "easeInOut" });
                 if (isCancelled) break;
                 currentRot -= 360;
             }
@@ -421,7 +434,7 @@ export default function IntroAnimation({ images = [] }: { images?: any[] }) {
                 )}
             </AnimatePresence>
             
-            <div className={`flex h-full w-full flex-col items-center justify-center perspective-1000 transition-all duration-1000 ${isFullyLoaded ? 'scale-100 opacity-100' : 'scale-105 opacity-0'}`}>
+            <div className={`flex h-full w-full flex-col items-center justify-center perspective-1000 transition-all duration-1000 ${isFullyLoaded ? 'scale-100 opacity-100' : 'scale-105 opacity-50'}`}>
 
                 <motion.div
                     style={{ opacity: contentOpacity, y: contentY }}

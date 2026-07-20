@@ -327,9 +327,9 @@ export default function RangePickerBooking() {
       <div className="lg:col-span-8 xl:col-span-8 bg-white p-4 md:p-6 lg:p-8 rounded-[2rem] shadow-xl border border-slate-200 flex flex-col lg:flex-row gap-6 xl:gap-8">
         
         {/* Calendar Column */}
-        <div className="flex-1 flex flex-col">
-        <h2 className="text-2xl font-extrabold text-slate-800 mb-1 flex-none">จัดคิวงานที่ต้องการ</h2>
-        <p className="text-slate-500 text-sm mb-3 flex-none">เลือกวันที่ เวลา และประเภทงาน จากนั้นกด "เพิ่มลงคิว"</p>
+        <div className="lg:w-2/3 flex flex-col h-full bg-white lg:bg-transparent overflow-hidden border-b lg:border-none relative z-10 p-4 lg:p-0 shrink-0 lg:shrink">
+        <h2 className="text-2xl font-extrabold text-slate-800 mb-1 flex-none">จองคิวงานที่ต้องการ</h2>
+        <p className="text-sm text-slate-500 mb-6 flex-none">เลือกวันที่ เวลา และประเภทงาน จากนั้นกด "เพิ่มลงคิว"</p>
         
         <div className="bg-slate-50 rounded-2xl p-3 border border-slate-200 flex flex-col items-center flex-1 min-h-0">
           <div className="w-full flex justify-center bg-white rounded-xl p-2 shadow-sm border border-slate-100 mb-3 flex-none">

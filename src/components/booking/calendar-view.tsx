@@ -12,6 +12,8 @@ import {
   isSameMonth,
   isSameDay,
   addDays,
+  isBefore,
+  startOfDay,
 } from "date-fns";
 import { th } from "date-fns/locale";
 import { ChevronLeft, ChevronRight, X, ExternalLink, Image as ImageIcon, FileText, Clock } from "lucide-react";
@@ -265,8 +267,10 @@ export default function CalendarView({ initialBookings }: CalendarViewProps) {
 
           <div className="flex-1 grid grid-cols-7 bg-slate-200 auto-rows-fr">
             {monthDays.map((dayItem, idx) => {
+              const today = startOfDay(new Date());
               const isCurrentMonth = isSameMonth(dayItem, monthStart);
-              const isToday = isSameDay(dayItem, new Date());
+              const isToday = isSameDay(dayItem, today);
+              const isPast = isBefore(startOfDay(dayItem), today);
               const statusPriority = { pending: 1, accepted: 2, completed: 3, rejected: 4 };
               const dayBookings = bookings
                 .filter((b) => isSameDay(b.date, dayItem))
@@ -278,14 +282,14 @@ export default function CalendarView({ initialBookings }: CalendarViewProps) {
                   key={idx}
                   onClick={() => onDateClick(dayItem, dayBookings)}
                   className={`
-                    bg-white p-1 md:p-2 border-r border-b border-slate-100 transition-colors flex flex-col gap-0.5 md:gap-1
-                    ${!isCurrentMonth ? "bg-slate-50/50 text-slate-400" : ""}
-                    ${isToday ? "bg-blue-50/30" : ""}
+                    p-1 md:p-2 border-r border-b border-slate-200 transition-colors flex flex-col gap-0.5 md:gap-1
+                    ${!isCurrentMonth ? "bg-slate-50 text-slate-300" : isPast ? "bg-slate-100 text-slate-800" : "bg-white text-slate-800"}
+                    ${isToday ? "bg-orange-50/30" : ""}
                     ${hasBookings ? "cursor-pointer hover:bg-slate-50" : "cursor-default"}
                   `}
                 >
                   <div className="flex justify-between items-start md:items-center mb-0.5 md:mb-1">
-                    <span className={`text-xs md:text-sm font-semibold w-6 h-6 md:w-7 md:h-7 flex items-center justify-center rounded-full ${isToday ? "bg-blue-600 text-white" : "text-slate-700"}`}>
+                    <span className={`text-xs md:text-sm font-semibold w-6 h-6 md:w-7 md:h-7 flex items-center justify-center rounded-full ${isToday ? "bg-orange-500 text-white" : ""}`}>
                       {format(dayItem, "d")}
                     </span>
                     {hasBookings && (
@@ -330,6 +334,7 @@ export default function CalendarView({ initialBookings }: CalendarViewProps) {
           <div className="grid grid-cols-7 bg-white border-b border-slate-200 shadow-sm z-10 shrink-0">
              {weekDaysDates.map((dayItem, idx) => {
                 const isToday = isSameDay(dayItem, new Date());
+                const isPast = isBefore(startOfDay(dayItem), startOfDay(new Date()));
                 const isSelected = isSameDay(dayItem, currentDate);
                 const dayBookings = bookings.filter((b) => isSameDay(b.date, dayItem));
                 
@@ -339,8 +344,10 @@ export default function CalendarView({ initialBookings }: CalendarViewProps) {
                     onClick={() => { setViewMode("day"); setCurrentDate(dayItem); }}
                     className={`py-3 flex flex-col items-center justify-center gap-1 cursor-pointer transition-colors hover:bg-slate-50 border-b-2 ${isSelected ? "border-blue-500 bg-blue-50/30" : "border-transparent"}`}
                   >
-                    <div className={`text-[10px] md:text-xs font-medium uppercase ${isToday ? "text-blue-600" : "text-slate-500"}`}>{weekDays[idx]}</div>
-                    <div className={`text-base md:text-xl font-bold w-7 h-7 md:w-9 md:h-9 flex items-center justify-center rounded-full ${isToday ? "bg-blue-600 text-white" : "text-slate-800"}`}>{format(dayItem, "d")}</div>
+                    <div className="flex flex-col items-center justify-center mb-1 md:mb-2 space-y-0.5 md:space-y-1">
+                      <div className={`text-[10px] md:text-xs font-medium uppercase ${isToday ? "text-orange-500" : "text-slate-500"}`}>{weekDays[idx]}</div>
+                      <div className={`text-base md:text-xl font-bold w-7 h-7 md:w-9 md:h-9 flex items-center justify-center rounded-full ${isToday ? "bg-orange-500 text-white" : "text-slate-800"}`}>{format(dayItem, "d")}</div>
+                    </div>
                     <div className="flex gap-1 h-2 mt-1">
                       {dayBookings.slice(0,3).map(b => (
                         <div key={b.id} className={`w-2 h-2 rounded-full shadow-sm ${statusDotColors[b.status]}`} />
