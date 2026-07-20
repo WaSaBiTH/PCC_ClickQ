@@ -213,14 +213,6 @@ export default function MainNav({ activeOverride, onHomeClick, onTeamClick, fbLi
         </div>
       </nav>
 
-      {/* Hidden Management Login Button */}
-      <Link 
-        href="/admin/dashboard" 
-        className="fixed top-0 right-0 w-16 h-16 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center bg-black/10 z-[100] text-xs font-bold text-slate-800"
-        title="Management Queue"
-      >
-        Admin
-      </Link>
     </>
   );
 }

@@ -310,6 +310,8 @@ export default function IntroAnimation({ images = [] }: { images?: any[] }) {
         }
     }, [loadedCount, activeImages.length, isFullyLoaded]);
 
+    const uniqueImages = useMemo(() => Array.from(new Set(allImages)), [allImages]);
+
     useEffect(() => {
         if (!containerRef.current) return;
         const handleResize = (entries: ResizeObserverEntry[]) => {
@@ -433,6 +435,15 @@ export default function IntroAnimation({ images = [] }: { images?: any[] }) {
                     />
                 )}
             </AnimatePresence>
+
+            {/* Aggressive Preload: Force Safari/Mobile to download all images into cache immediately */}
+            {mounted && uniqueImages.length > 0 && (
+                <div style={{ position: "absolute", top: -9999, left: -9999, opacity: 0.01, pointerEvents: "none" }}>
+                    {uniqueImages.map((src, i) => (
+                        <img key={`preload-${i}`} src={src} width="10" height="10" alt="" />
+                    ))}
+                </div>
+            )}
             
             <div className={`flex h-full w-full flex-col items-center justify-center perspective-1000 transition-all duration-1000 ${isFullyLoaded ? 'scale-100 opacity-100' : 'scale-105 opacity-50'}`}>
 
