@@ -50,6 +50,25 @@ export async function appendToSheet(sheetName: string, values: string[]) {
   });
 }
 
+/**
+ * Updates a specific cell in the sheet
+ */
+export async function updateSheetCell(sheetName: string, cell: string, value: string) {
+  const client = await getAuthClient();
+  const sheets = google.sheets({ version: "v4", auth: client as any });
+
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: SPREADSHEET_ID,
+    range: `${sheetName}!${cell}`,
+    valueInputOption: "USER_ENTERED",
+    requestBody: {
+      values: [[value]],
+    },
+  });
+  
+  delete sheetCache[`${sheetName}!A:Z`];
+}
+
 let sheetCache: Record<string, { data: string[][]; timestamp: number }> = {};
 const CACHE_TTL = 30000; // 30 seconds cache
 
@@ -220,4 +239,95 @@ export async function pruneData() {
     console.error("Error pruning data:", error);
     throw error;
   }
+}
+
+/**
+ * Automatically clean up old rejected bookings (older than 3 days)
+ * Deletes associated reference files from Google Drive, and removes the rows.
+ */
+export async function cleanOldRejectedBookings() {
+  const client = await getAuthClient();
+  const sheets = google.sheets({ version: "v4", auth: client as any });
+  const drive = google.drive({ version: "v3", auth: client as any });
+
+  // 1. Get bookings sheet data
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: SPREADSHEET_ID,
+    range: "Bookings!A:Z",
+  });
+  const rows = res.data.values;
+  if (!rows || rows.length <= 1) return { deletedRows: 0, deletedFiles: 0 };
+
+  const rowsToDelete: number[] = [];
+  const filesToDelete: string[] = [];
+
+  // Iterate backwards so row indices aren't affected when deleting
+  for (let i = rows.length - 1; i >= 1; i--) {
+    const row = rows[i];
+    if (!row[0] || String(row[0]).trim() === "") continue;
+    const status = row[7];
+    const dateStr = row[10] || row[3]; // Use RejectedAt date if available, else fallback to booking date
+    
+    if (status === "Rejected" && dateStr) {
+      const referenceDate = new Date(dateStr);
+      if (!isNaN(referenceDate.getTime())) {
+        const diffDays = (new Date().getTime() - referenceDate.getTime()) / (1000 * 3600 * 24);
+        if (diffDays > 3) {
+          rowsToDelete.push(i);
+          
+          // Extract drive links (Reference Files are usually in row[6])
+          const linksStr = row[6];
+          if (linksStr) {
+            const links = String(linksStr).split(',');
+            for (const link of links) {
+              const match = link.match(/[-\w]{25,}/);
+              if (match && match[0]) {
+                filesToDelete.push(match[0]);
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // 2. Delete files
+  let deletedFilesCount = 0;
+  for (const fileId of filesToDelete) {
+    try {
+      await drive.files.delete({ fileId });
+      deletedFilesCount++;
+    } catch (e) {
+      console.error(`Failed to delete file ${fileId}`, e);
+    }
+  }
+
+  // 3. Delete rows
+  if (rowsToDelete.length > 0) {
+    const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId: SPREADSHEET_ID });
+    const sheetId = spreadsheet.data.sheets?.find(s => s.properties?.title === "Bookings")?.properties?.sheetId;
+    
+    if (sheetId !== undefined) {
+      const requests = rowsToDelete.map(rowIndex => ({
+        deleteDimension: {
+          range: {
+            sheetId: sheetId,
+            dimension: "ROWS",
+            startIndex: rowIndex, 
+            endIndex: rowIndex + 1
+          }
+        }
+      }));
+      
+      await sheets.spreadsheets.batchUpdate({
+        spreadsheetId: SPREADSHEET_ID,
+        requestBody: { requests }
+      });
+    }
+    
+    // clear cache
+    delete sheetCache["Bookings!A:Z"];
+  }
+
+  return { deletedRows: rowsToDelete.length, deletedFiles: deletedFilesCount };
 }

@@ -14,6 +14,16 @@ export async function POST(request: Request) {
 
     await updateBookingStatus(rowIndex, status, googlePhotosLink);
 
+    // If rejected, save the rejection timestamp to column K (index 10)
+    if (status === "Rejected") {
+      try {
+        const { updateSheetCell } = await import("@/lib/google-sheets-api");
+        await updateSheetCell("Bookings", `K${rowIndex}`, new Date().toISOString());
+      } catch (e) {
+        console.error("Failed to save rejection date:", e);
+      }
+    }
+
     // If status is Completed, add it to the Gallery sheet
     if (status === "Completed" && bookingDetails) {
       const { name, serviceType, date } = bookingDetails;

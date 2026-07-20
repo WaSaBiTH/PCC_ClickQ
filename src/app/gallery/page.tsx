@@ -130,7 +130,7 @@ export default async function GalleryPage() {
             <p className="text-slate-400 text-sm mt-2">ผลงานที่ถูกส่งมอบแล้วจะแสดงที่นี่โดยอัตโนมัติ</p>
           </div>
         ) : (
-          <div className="grid max-[400px]:grid-cols-1 grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-8">
             {validItems.map((item, idx) => (
               <div key={idx} className={`group flex flex-col bg-white rounded-3xl shadow-sm border ${item.isOld ? 'border-red-200' : 'border-slate-100'} overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1`}>
                 <a 

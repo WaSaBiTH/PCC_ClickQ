@@ -184,6 +184,9 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
   const [loadingQueueStatus, setLoadingQueueStatus] = useState<boolean>(true);
 
   useEffect(() => {
+    // Silently trigger cleanup of old rejected bookings in the background
+    fetch("/api/admin/clean-rejected", { method: "POST" }).catch(e => console.error("Auto-cleanup failed:", e));
+
     fetch(`/api/admin/settings?key=booking_status&t=${Date.now()}`)
       .then(res => res.json())
       .then(data => {
@@ -508,9 +511,9 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
 
                   // Auto-hide (delete) rejected bookings older than 3 days
                   if (row[7] === "Rejected") {
-                    const bookingDate = new Date(row[3]);
+                    const referenceDate = new Date(row[10] || row[3]);
                     const today = new Date();
-                    const diffTime = today.getTime() - bookingDate.getTime();
+                    const diffTime = today.getTime() - referenceDate.getTime();
                     const diffDays = diffTime / (1000 * 3600 * 24);
                     if (diffDays > 3) return null;
                   }
@@ -622,6 +625,16 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
                                 Submit Work
                               </Button>
                             )}
+                            {row[7] === "Rejected" && (() => {
+                              const diffDays = (new Date().getTime() - new Date(row[10] || row[3]).getTime()) / (1000 * 3600 * 24);
+                              const daysLeft = Math.max(0, Math.ceil(3 - diffDays));
+                              return (
+                                <div className="flex items-center text-xs font-medium text-slate-500 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200" title="This row will be deleted from the sheet automatically">
+                                  <Loader2 className="w-4 h-4 mr-2 text-slate-400" style={{ animation: 'spin 3s linear infinite reverse' }} />
+                                  ลบอัตโนมัติใน {daysLeft} วัน
+                                </div>
+                              );
+                            })()}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -809,6 +822,16 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
                         Submit Work
                       </button>
                     )}
+                    {row[7] === "Rejected" && (() => {
+                      const diffDays = (new Date().getTime() - new Date(row[10] || row[3]).getTime()) / (1000 * 3600 * 24);
+                      const daysLeft = Math.max(0, Math.ceil(3 - diffDays));
+                      return (
+                        <div className="w-full h-12 flex items-center justify-center font-medium text-slate-500 bg-slate-50/50 text-sm">
+                          <Loader2 className="w-4 h-4 mr-2 text-slate-400" style={{ animation: 'spin 3s linear infinite reverse' }} />
+                          ลบอัตโนมัติจากชีตในอีก {daysLeft} วัน
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
               );
