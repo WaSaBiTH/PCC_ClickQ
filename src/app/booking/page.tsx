@@ -21,7 +21,7 @@ export default function BookingPage() {
       </header>
 
       {/* Main Content */}
-      <main className="w-full flex-1 flex flex-col overflow-y-auto lg:overflow-hidden h-[calc(100dvh-4rem)]">
+      <main className="w-full flex-1 flex flex-col min-h-[calc(100dvh-4rem)]">
         <RangePickerBooking />
       </main>
 

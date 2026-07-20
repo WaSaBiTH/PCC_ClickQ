@@ -83,7 +83,7 @@ function FlipCard({ src, index, total, phase, scatterPos, containerSize, morphPr
             };
 
             const radiusX = isMobile ? containerSize.width * 0.4 : containerSize.width * 0.32;
-            const radiusY = isMobile ? 60 : 130;
+            const radiusY = isMobile ? 60 : Math.min(containerSize.height * 0.15, 130);
             const rad = (currentAngle * Math.PI) / 180;
             
             const xPos = Math.sin(rad) * radiusX;
@@ -92,7 +92,7 @@ function FlipCard({ src, index, total, phase, scatterPos, containerSize, morphPr
             
             const arcPos = {
                 x: xPos,
-                y: yPos + (isMobile ? 50 : 100), 
+                y: yPos + (isMobile ? 50 : Math.min(containerSize.height * 0.12, 100)), 
                 rotation: xPos * 0.05,
                 scale: (isMobile ? 0.9 : 1.3) + (zPos * (isMobile ? 0.3 : 0.4)),
             };
@@ -216,16 +216,23 @@ export default function IntroAnimation({ images = [] }: { images?: any[] }) {
     const containerRef = useRef<HTMLDivElement>(null);
     let displayImages = images.length > 0 ? images.map(img => img.thumbnailLink?.replace('=s220', '=s300') || "") : IMAGES;
     
-    // The arc math is designed for exactly 20 images. If we have fewer, repeat them to fill the arc!
-    if (displayImages.length > 0 && displayImages.length < 20) {
+    const isMobileView = containerSize.width > 0 && containerSize.width < 768;
+    const isLargeView = containerSize.width >= 1280;
+    const isExtraLargeView = containerSize.width >= 1600;
+    
+    let currentTotal = 18;
+    if (isMobileView) currentTotal = 7;
+    else if (isExtraLargeView) currentTotal = 24;
+    else if (isLargeView) currentTotal = 20;
+
+    // The arc math is designed for currentTotal images. If we have fewer, repeat them to fill the arc!
+    if (displayImages.length > 0 && displayImages.length < currentTotal) {
         const original = [...displayImages];
-        while (displayImages.length < 20) {
+        while (displayImages.length < currentTotal) {
             displayImages = [...displayImages, ...original];
         }
     }
     
-    const isMobileView = containerSize.width > 0 && containerSize.width < 768;
-    const currentTotal = isMobileView ? 7 : 20;
     const activeImages = displayImages.slice(0, currentTotal);
     const isFullyLoaded = loadedCount >= activeImages.length;
 
@@ -274,12 +281,12 @@ export default function IntroAnimation({ images = [] }: { images?: any[] }) {
         const runAnimationSequence = async () => {
             let currentRot = 0;
             while (!isCancelled) {
-                // 1. Forward Spin: 1 loop (360 deg) over 60 seconds. (Images do not swap)
-                await animate(scrollRotate, currentRot + 360, { duration: 60, ease: "linear" });
+                // 1. Forward Spin: 120 deg over 20 seconds (maintaining 6 deg/sec speed).
+                await animate(scrollRotate, currentRot + 120, { duration: 20, ease: "linear" });
                 if (isCancelled) break;
-                currentRot += 360;
+                currentRot += 120;
                 
-                // 2. Fast Rewind: -360 deg over 2.5 seconds. (Images swap at the back of the wheel)
+                // 2. Fast Rewind: -360 deg over 2.5 seconds. (Trigger image swap on all cards)
                 await animate(scrollRotate, currentRot - 360, { duration: 2.5, ease: "easeInOut" });
                 if (isCancelled) break;
                 currentRot -= 360;

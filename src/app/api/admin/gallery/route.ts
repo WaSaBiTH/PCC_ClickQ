@@ -96,3 +96,35 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
+export async function PUT(request: Request) {
+  try {
+    const cookieStore = await cookies();
+    const adminToken = cookieStore.get("admin_auth")?.value;
+    
+    if (adminToken !== "authenticated") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { rowIndex, link } = await request.json();
+    if (!rowIndex) return NextResponse.json({ error: "Missing rowIndex" }, { status: 400 });
+    
+    const sheets = await getSheetsClient();
+    
+    // Update the link column (column D, index 3)
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `Gallery!D${rowIndex}`,
+      valueInputOption: "USER_ENTERED",
+      requestBody: {
+        values: [[link || ""]],
+      },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    console.error("PUT gallery item error:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+

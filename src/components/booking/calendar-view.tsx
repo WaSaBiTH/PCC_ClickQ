@@ -188,7 +188,7 @@ export default function CalendarView({ initialBookings }: CalendarViewProps) {
   );
 
   return (
-    <div className="w-full h-full flex flex-col bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden">
+    <div className="w-full flex-1 min-h-[600px] h-full flex flex-col bg-white rounded-xl shadow-xl border border-slate-200">
       
       {/* Header Controls */}
       <div className="flex items-center justify-between p-4 md:p-6 md:pb-4 border-b border-slate-100 gap-2">
@@ -256,7 +256,7 @@ export default function CalendarView({ initialBookings }: CalendarViewProps) {
             ))}
           </div>
 
-          <div className="flex-1 grid grid-cols-7 bg-slate-200 overflow-hidden auto-rows-fr">
+          <div className="flex-1 grid grid-cols-7 bg-slate-200 auto-rows-fr">
             {monthDays.map((dayItem, idx) => {
               const isCurrentMonth = isSameMonth(dayItem, monthStart);
               const isToday = isSameDay(dayItem, new Date());
@@ -271,7 +271,7 @@ export default function CalendarView({ initialBookings }: CalendarViewProps) {
                   key={idx}
                   onClick={() => onDateClick(dayItem, dayBookings)}
                   className={`
-                    bg-white p-1 md:p-2 border-r border-b border-slate-100 transition-colors flex flex-col gap-0.5 md:gap-1 overflow-hidden
+                    bg-white p-1 md:p-2 border-r border-b border-slate-100 transition-colors flex flex-col gap-0.5 md:gap-1
                     ${!isCurrentMonth ? "bg-slate-50/50 text-slate-400" : ""}
                     ${isToday ? "bg-blue-50/30" : ""}
                     ${hasBookings ? "cursor-pointer hover:bg-slate-50" : "cursor-default"}

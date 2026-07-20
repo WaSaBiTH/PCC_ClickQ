@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Loader2, Users, Settings, LogOut, Image as ImageIcon } from "lucide-react";
+import { Loader2, Users, Settings, LogOut, Image as ImageIcon, Search } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
@@ -30,6 +30,12 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
   
   // State for expanded row details
   const [expandedRow, setExpandedRow] = useState<number | null>(null);
+  
+  // State for navigation loading
+  const [navigatingAction, setNavigatingAction] = useState<string | null>(null);
+
+  // State for search query
+  const [searchQuery, setSearchQuery] = useState("");
 
   const handleStatusUpdate = async (rowIndex: number, status: string, googlePhotosLink?: string) => {
     setUpdatingAction({ rowIndex, action: status });
@@ -139,7 +145,17 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
           if (diffDays > 3) return false;
         }
 
-        return status === activeTab;
+        if (status !== activeTab) return false;
+        
+        if (searchQuery.trim() !== "") {
+          const query = searchQuery.toLowerCase();
+          const matchName = String(row[0] || "").toLowerCase().includes(query);
+          const matchPhone = String(row[1] || "").toLowerCase().includes(query);
+          const matchService = String(row[5] || "").toLowerCase().includes(query);
+          if (!matchName && !matchPhone && !matchService) return false;
+        }
+        
+        return true;
       })
       .map(({ rowIndex }) => rowIndex);
       
@@ -232,29 +248,32 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
             <span className="text-slate-500 text-sm font-normal truncate">| Admin</span>
           </a>
           <div className="flex items-center gap-1 md:gap-4 shrink-0">
-            <Link href="/admin/gallery">
-              <Button variant="ghost" size="icon" className="md:w-auto md:px-4 text-slate-600 hover:text-slate-900" title="Manage Gallery">
-                <ImageIcon className="w-5 h-5 md:hidden" />
-                <span className="hidden md:inline">Gallery</span>
+            <Link href="/admin/gallery" onClick={() => setNavigatingAction('gallery')}>
+              <Button variant="ghost" size="icon" className="md:w-auto md:px-4 text-slate-600 hover:text-slate-900" title="Manage Gallery" disabled={navigatingAction === 'gallery'}>
+                {navigatingAction === 'gallery' ? <Loader2 className="w-5 h-5 md:hidden animate-spin" /> : <ImageIcon className="w-5 h-5 md:hidden" />}
+                <span className="hidden md:inline">
+                  {navigatingAction === 'gallery' ? <Loader2 className="w-5 h-5 mr-2 animate-spin inline" /> : null}Gallery
+                </span>
               </Button>
             </Link>
-            <Link href="/admin/team">
-              <Button variant="ghost" size="icon" className="md:w-auto md:px-4 text-slate-600 hover:text-slate-900" title="Manage Team">
-                <Users className="w-5 h-5 md:mr-2" />
+            <Link href="/admin/team" onClick={() => setNavigatingAction('team')}>
+              <Button variant="ghost" size="icon" className="md:w-auto md:px-4 text-slate-600 hover:text-slate-900" title="Manage Team" disabled={navigatingAction === 'team'}>
+                {navigatingAction === 'team' ? <Loader2 className="w-5 h-5 md:mr-2 animate-spin" /> : <Users className="w-5 h-5 md:mr-2" />}
                 <span className="hidden md:inline">Team</span>
               </Button>
             </Link>
-            <Link href="/admin/settings">
-              <Button variant="ghost" size="icon" className="md:w-auto md:px-4 text-slate-600 hover:text-slate-900" title="Settings">
-                <Settings className="w-5 h-5 md:mr-2" />
+            <Link href="/admin/settings" onClick={() => setNavigatingAction('settings')}>
+              <Button variant="ghost" size="icon" className="md:w-auto md:px-4 text-slate-600 hover:text-slate-900" title="Settings" disabled={navigatingAction === 'settings'}>
+                {navigatingAction === 'settings' ? <Loader2 className="w-5 h-5 md:mr-2 animate-spin" /> : <Settings className="w-5 h-5 md:mr-2" />}
                 <span className="hidden md:inline">Settings</span>
               </Button>
             </Link>
-            <Button variant="ghost" size="icon" className="md:w-auto md:px-4 text-red-600 hover:text-red-700 hover:bg-red-50" title="ออกจากระบบ" onClick={async () => {
+            <Button variant="ghost" size="icon" className="md:w-auto md:px-4 text-red-600 hover:text-red-700 hover:bg-red-50" title="ออกจากระบบ" disabled={navigatingAction === 'logout'} onClick={async () => {
+              setNavigatingAction('logout');
               await fetch('/api/admin/logout', { method: 'POST' });
               window.location.href = '/';
             }}>
-              <LogOut className="w-5 h-5 md:mr-2" />
+              {navigatingAction === 'logout' ? <Loader2 className="w-5 h-5 md:mr-2 animate-spin" /> : <LogOut className="w-5 h-5 md:mr-2" />}
               <span className="hidden md:inline">ออกจากระบบ</span>
             </Button>
           </div>
@@ -397,6 +416,20 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
           </div>
         )}
 
+        {/* Search Bar */}
+        <div className="mb-6 relative w-full">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <Search className="h-5 w-5 text-slate-400" />
+          </div>
+          <input
+            type="text"
+            className="block w-full pl-10 pr-3 py-2 border border-slate-200 rounded-xl leading-5 bg-white placeholder-slate-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-shadow"
+            placeholder="ค้นหาด้วยชื่อ, เบอร์โทร, หรืองาน..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+
         <div className="bg-transparent md:bg-white rounded-none md:rounded-lg md:shadow overflow-hidden md:overflow-x-auto">
           {/* Desktop Table View */}
           <div className="hidden md:block">
@@ -413,20 +446,44 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
                           if (!row[0] || String(row[0]).trim() === "") return false;
                           const status = row[7] || "Pending";
                           if (status === "Rejected" && (new Date().getTime() - new Date(row[3]).getTime()) / (1000 * 3600 * 24) > 3) return false;
-                          return status === activeTab;
+                          if (status !== activeTab) return false;
+                          if (searchQuery.trim() !== "") {
+                            const query = searchQuery.toLowerCase();
+                            const matchName = String(row[0] || "").toLowerCase().includes(query);
+                            const matchPhone = String(row[1] || "").toLowerCase().includes(query);
+                            const matchService = String(row[5] || "").toLowerCase().includes(query);
+                            if (!matchName && !matchPhone && !matchService) return false;
+                          }
+                          return true;
                         }).length > 0 &&
                         bookings.slice(1).filter(row => {
                           if (!row[0] || String(row[0]).trim() === "") return false;
                           const status = row[7] || "Pending";
                           if (status === "Rejected" && (new Date().getTime() - new Date(row[3]).getTime()) / (1000 * 3600 * 24) > 3) return false;
-                          return status === activeTab;
+                          if (status !== activeTab) return false;
+                          if (searchQuery.trim() !== "") {
+                            const query = searchQuery.toLowerCase();
+                            const matchName = String(row[0] || "").toLowerCase().includes(query);
+                            const matchPhone = String(row[1] || "").toLowerCase().includes(query);
+                            const matchService = String(row[5] || "").toLowerCase().includes(query);
+                            if (!matchName && !matchPhone && !matchService) return false;
+                          }
+                          return true;
                         }).every((_, idx) => {
                           // Find the real index in the original bookings array
                           const realIndex = bookings.findIndex((r, i) => i > 0 && r === bookings.slice(1).filter(row => {
                               if (!row[0] || String(row[0]).trim() === "") return false;
                               const status = row[7] || "Pending";
                               if (status === "Rejected" && (new Date().getTime() - new Date(row[3]).getTime()) / (1000 * 3600 * 24) > 3) return false;
-                              return status === activeTab;
+                              if (status !== activeTab) return false;
+                              if (searchQuery.trim() !== "") {
+                                const query = searchQuery.toLowerCase();
+                                const matchName = String(row[0] || "").toLowerCase().includes(query);
+                                const matchPhone = String(row[1] || "").toLowerCase().includes(query);
+                                const matchService = String(row[5] || "").toLowerCase().includes(query);
+                                if (!matchName && !matchPhone && !matchService) return false;
+                              }
+                              return true;
                             })[idx]);
                           return selectedRows.includes(realIndex);
                         })
@@ -461,6 +518,15 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
                   // Filter by active tab
                   const status = row[7] || "Pending";
                   if (status !== activeTab) return null;
+
+                  // Filter by search query
+                  if (searchQuery.trim() !== "") {
+                    const query = searchQuery.toLowerCase();
+                    const matchName = String(row[0] || "").toLowerCase().includes(query);
+                    const matchPhone = String(row[1] || "").toLowerCase().includes(query);
+                    const matchService = String(row[5] || "").toLowerCase().includes(query);
+                    if (!matchName && !matchPhone && !matchService) return null;
+                  }
 
                   return (
                     <React.Fragment key={i}>
@@ -617,6 +683,15 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
 
               const status = row[7] || "Pending";
               if (status !== activeTab) return null;
+
+              // Filter by search query
+              if (searchQuery.trim() !== "") {
+                const query = searchQuery.toLowerCase();
+                const matchName = String(row[0] || "").toLowerCase().includes(query);
+                const matchPhone = String(row[1] || "").toLowerCase().includes(query);
+                const matchService = String(row[5] || "").toLowerCase().includes(query);
+                if (!matchName && !matchPhone && !matchService) return null;
+              }
 
               const isExpanded = expandedRow === rowIndex;
               const isSelected = selectedRows.includes(rowIndex);

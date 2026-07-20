@@ -1,5 +1,5 @@
 import CalendarView from "@/components/booking/calendar-view";
-import Link from "next/link";
+import { ClientLink } from "@/components/ClientLink";
 import { ChevronLeft } from "lucide-react";
 import { getBookings } from "@/lib/google-sheets";
 
@@ -55,15 +55,15 @@ export default async function SchedulePage() {
     });
 
   return (
-    <div className="h-[100dvh] overflow-hidden bg-slate-100 text-slate-900 font-sans selection:bg-orange-500/30 flex flex-col">
+    <div className="min-h-[100dvh] bg-slate-100 text-slate-900 font-sans selection:bg-orange-500/30 flex flex-col">
       
       {/* Navbar/Header */}
       <header className="flex-none sticky top-0 z-50 w-full border-b border-slate-200 bg-white/80 backdrop-blur-md shadow-sm">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between max-w-7xl">
-          <Link href="/" className="flex items-center gap-2 text-slate-500 hover:text-slate-900 transition-colors">
+          <ClientLink href="/" className="flex items-center gap-2 text-slate-500 hover:text-slate-900 transition-colors">
             <ChevronLeft className="w-5 h-5" />
             <span className="font-medium text-sm md:text-base">กลับหน้าแรก</span>
-          </Link>
+          </ClientLink>
       
           <h1 className="font-bold text-lg text-slate-800 absolute left-1/2 -translate-x-1/2">ตารางกิจกรรม</h1>
 
@@ -72,7 +72,7 @@ export default async function SchedulePage() {
       </header>
 
       {/* Main Content */}
-      <main className="w-full px-4 py-4 flex-1 flex flex-col min-h-0">
+      <main className="w-full px-4 py-4 flex-1 flex flex-col min-h-[calc(100dvh-4rem)]">
         <CalendarView initialBookings={bookings} />
       </main>
 

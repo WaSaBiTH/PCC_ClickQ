@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Trash2, AlertCircle, Loader2, ArrowLeft } from "lucide-react";
+import { Trash2, AlertCircle, Loader2, ArrowLeft, Pencil } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
+import { th } from "date-fns/locale";
 
 type GalleryItem = {
   rowIndex: number;
@@ -18,6 +19,9 @@ export default function GalleryManagerClient() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState<number | null>(null);
+  const [isEditingLink, setIsEditingLink] = useState<number | null>(null);
+  const [navigatingAction, setNavigatingAction] = useState<string | null>(null);
+  const [editModal, setEditModal] = useState<{ show: boolean, item: GalleryItem | null, newLink: string }>({ show: false, item: null, newLink: '' });
 
   // Custom Toast Notification State
   const [toast, setToast] = useState<{ show: boolean, type: 'success' | 'error', message: string }>({ show: false, type: 'success', message: '' });
@@ -74,6 +78,37 @@ export default function GalleryManagerClient() {
     }
   };
 
+  const openEditModal = (item: GalleryItem) => {
+    setEditModal({ show: true, item, newLink: item.link });
+  };
+
+  const saveEditedLink = async () => {
+    if (!editModal.item) return;
+    const { item, newLink } = editModal;
+    
+    setIsEditingLink(item.rowIndex);
+    setEditModal({ show: false, item: null, newLink: '' });
+    
+    try {
+      const res = await fetch("/api/admin/gallery", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rowIndex: item.rowIndex, link: newLink.trim() }),
+      });
+      if (res.ok) {
+        setItems(prev => prev.map(i => i.rowIndex === item.rowIndex ? { ...i, link: newLink.trim() } : i));
+        showToast("Link updated successfully.");
+      } else {
+        const data = await res.json();
+        showToast(`Failed to update link: ${data.error}`, 'error');
+      }
+    } catch (err: any) {
+      showToast(`Error connecting to server`, 'error');
+    } finally {
+      setIsEditingLink(null);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 font-sans p-4 sm:p-8">
       <div className="max-w-6xl mx-auto space-y-6">
@@ -86,9 +121,10 @@ export default function GalleryManagerClient() {
           </div>
           <Link 
             href="/admin/dashboard" 
-            className="flex items-center justify-center px-4 py-2 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-lg font-medium transition-colors"
+            onClick={() => setNavigatingAction('back')}
+            className={`flex items-center justify-center px-4 py-2 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-lg font-medium transition-colors ${navigatingAction === 'back' ? 'opacity-50 pointer-events-none' : ''}`}
           >
-            <ArrowLeft className="w-4 h-4 mr-2" />
+            {navigatingAction === 'back' ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <ArrowLeft className="w-4 h-4 mr-2" />}
             Back to Dashboard
           </Link>
         </div>
@@ -145,7 +181,7 @@ export default function GalleryManagerClient() {
                         </td>
                         <td className="px-6 py-4 text-slate-600 text-sm">
                           {item.dateStr && !isNaN(new Date(item.dateStr).getTime()) 
-                            ? format(new Date(item.dateStr), 'dd MMM yyyy') 
+                            ? `${format(new Date(item.dateStr), 'dd MMM ', { locale: th })}${new Date(item.dateStr).getFullYear() + 543}`
                             : item.dateStr || "Unknown Date"}
                         </td>
                         <td className="px-6 py-4">
@@ -160,18 +196,32 @@ export default function GalleryManagerClient() {
                           </a>
                         </td>
                         <td className="px-6 py-4 text-right">
-                          <button
-                            onClick={() => handleDelete(item.rowIndex)}
-                            disabled={isDeleting === item.rowIndex}
-                            className={`inline-flex items-center justify-center p-2 rounded-lg transition-colors ${
-                              isDeleting === item.rowIndex 
-                                ? 'bg-slate-100 text-slate-400 cursor-not-allowed' 
-                                : 'text-red-500 hover:bg-red-50'
-                            }`}
-                            title="Delete Album"
-                          >
-                            {isDeleting === item.rowIndex ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                          </button>
+                          <div className="flex justify-end gap-2">
+                            <button
+                              onClick={() => openEditModal(item)}
+                              disabled={isEditingLink === item.rowIndex || isDeleting === item.rowIndex}
+                              className={`inline-flex items-center justify-center p-2 rounded-lg transition-colors ${
+                                isEditingLink === item.rowIndex
+                                  ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                                  : 'text-blue-500 hover:bg-blue-50'
+                              }`}
+                              title="Edit Link"
+                            >
+                              {isEditingLink === item.rowIndex ? <Loader2 className="w-4 h-4 animate-spin" /> : <Pencil className="w-4 h-4" />}
+                            </button>
+                            <button
+                              onClick={() => handleDelete(item.rowIndex)}
+                              disabled={isDeleting === item.rowIndex || isEditingLink === item.rowIndex}
+                              className={`inline-flex items-center justify-center p-2 rounded-lg transition-colors ${
+                                isDeleting === item.rowIndex 
+                                  ? 'bg-slate-100 text-slate-400 cursor-not-allowed' 
+                                  : 'text-red-500 hover:bg-red-50'
+                              }`}
+                              title="Delete Album"
+                            >
+                              {isDeleting === item.rowIndex ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -200,6 +250,51 @@ export default function GalleryManagerClient() {
                 )}
               </div>
               <p className="font-semibold">{toast.message}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Edit Link Modal */}
+        {editModal.show && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-white rounded-2xl shadow-xl border border-slate-100 w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+              <div className="p-6 border-b border-slate-100">
+                <h3 className="text-lg font-bold text-slate-900">Edit Link</h3>
+                <p className="text-sm text-slate-500 mt-1">Update the public gallery link for <span className="font-semibold text-slate-700">{editModal.item?.name}</span></p>
+              </div>
+              <div className="p-6">
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Google Photos URL</label>
+                    <input
+                      type="url"
+                      value={editModal.newLink}
+                      onChange={(e) => setEditModal(prev => ({ ...prev, newLink: e.target.value }))}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') saveEditedLink();
+                        if (e.key === 'Escape') setEditModal({ show: false, item: null, newLink: '' });
+                      }}
+                      placeholder="https://photos.app.goo.gl/..."
+                      className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-shadow text-slate-900 placeholder:text-slate-400"
+                      autoFocus
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
+                <button
+                  onClick={() => setEditModal({ show: false, item: null, newLink: '' })}
+                  className="px-5 py-2.5 text-slate-600 font-medium hover:bg-slate-200 bg-slate-100 rounded-xl transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={saveEditedLink}
+                  className="px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-medium rounded-xl shadow-sm transition-colors flex items-center justify-center"
+                >
+                  Save Changes
+                </button>
+              </div>
             </div>
           </div>
         )}
