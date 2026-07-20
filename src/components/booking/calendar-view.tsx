@@ -56,6 +56,13 @@ const statusText: Record<BookingStatus, string> = {
   rejected: "ปฏิเสธรับงาน",
 };
 
+const statusDotColors: Record<BookingStatus, string> = {
+  pending: "bg-yellow-400",
+  accepted: "bg-blue-500",
+  completed: "bg-green-500",
+  rejected: "bg-red-500",
+};
+
 export interface CalendarViewProps {
   initialBookings?: {
     id: string;
@@ -282,7 +289,7 @@ export default function CalendarView({ initialBookings }: CalendarViewProps) {
                       {format(dayItem, "d")}
                     </span>
                     {hasBookings && (
-                      <span className="hidden md:inline-block text-[10px] font-medium text-slate-500">{dayBookings.length} คิว</span>
+                      <span className="text-[9px] md:text-[10px] font-bold text-blue-500 md:text-slate-500 bg-blue-50 md:bg-transparent px-1 md:px-0 rounded">{dayBookings.length} คิว</span>
                     )}
                   </div>
 
@@ -300,11 +307,16 @@ export default function CalendarView({ initialBookings }: CalendarViewProps) {
                   </div>
                   
                   {/* Mobile Dots */}
-                  <div className="flex md:hidden flex-wrap gap-1 mt-0.5">
+                  <div className="flex md:hidden flex-wrap gap-1 mt-0.5 justify-center md:justify-start">
                     {dayBookings.map((booking) => (
-                      <div key={booking.id} className={`w-1.5 h-1.5 rounded-full ${statusColors[booking.status].split(' ')[0]}`} />
+                      <div key={booking.id} className={`w-2 h-2 rounded-full shadow-sm ${statusDotColors[booking.status]}`} />
                     ))}
                   </div>
+                  
+                  {/* Hint for mobile to tap */}
+                  {hasBookings && (
+                    <div className="md:hidden text-[8px] text-center text-slate-400 mt-0.5 font-medium">กดเพื่อดู</div>
+                  )}
                 </div>
               );
             })}
@@ -329,11 +341,11 @@ export default function CalendarView({ initialBookings }: CalendarViewProps) {
                   >
                     <div className={`text-[10px] md:text-xs font-medium uppercase ${isToday ? "text-blue-600" : "text-slate-500"}`}>{weekDays[idx]}</div>
                     <div className={`text-base md:text-xl font-bold w-7 h-7 md:w-9 md:h-9 flex items-center justify-center rounded-full ${isToday ? "bg-blue-600 text-white" : "text-slate-800"}`}>{format(dayItem, "d")}</div>
-                    <div className="flex gap-0.5 h-1.5 mt-0.5">
+                    <div className="flex gap-1 h-2 mt-1">
                       {dayBookings.slice(0,3).map(b => (
-                        <div key={b.id} className={`w-1.5 h-1.5 rounded-full ${statusColors[b.status].split(' ')[0]}`} />
+                        <div key={b.id} className={`w-2 h-2 rounded-full shadow-sm ${statusDotColors[b.status]}`} />
                       ))}
-                      {dayBookings.length > 3 && <div className="w-1.5 h-1.5 rounded-full bg-slate-300" />}
+                      {dayBookings.length > 3 && <div className="w-2 h-2 rounded-full bg-slate-400 shadow-sm" />}
                     </div>
                   </div>
                 );
