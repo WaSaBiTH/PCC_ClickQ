@@ -421,7 +421,7 @@ export default function IntroAnimation({ images = [] }: { images?: any[] }) {
                 )}
             </AnimatePresence>
             
-            <div className={`flex h-full w-full flex-col items-center justify-center perspective-1000 transition-all duration-1000 ${isFullyLoaded ? 'scale-100 opacity-100' : 'scale-105 opacity-50'}`}>
+            <div className={`flex h-full w-full flex-col items-center justify-center perspective-1000 transition-all duration-1000 ${isFullyLoaded ? 'scale-100 opacity-100' : 'scale-105 opacity-0'}`}>
 
                 <motion.div
                     style={{ opacity: contentOpacity, y: contentY }}
@@ -449,8 +449,8 @@ export default function IntroAnimation({ images = [] }: { images?: any[] }) {
                     {/* Center Logo with 3D depth effect (cards will pass in front and behind it) */}
                     <motion.div
                         initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 1.5, delay: 1, ease: "easeOut" }}
+                        animate={isFullyLoaded ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.8 }}
+                        transition={{ duration: 1.5, delay: 1.2, ease: "easeOut" }}
                         className="absolute pointer-events-none drop-shadow-2xl"
                         style={{ 
                             zIndex: isMobileView ? 90000 : 130000, // Matches the center line of the arc based on new zIndex precision
