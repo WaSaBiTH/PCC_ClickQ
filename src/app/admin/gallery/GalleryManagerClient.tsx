@@ -1,4 +1,5 @@
 "use client";
+import AdminNav from "@/components/admin/admin-nav";
 
 import { useState, useEffect } from "react";
 import { Trash2, AlertCircle, Loader2, ArrowLeft, Pencil } from "lucide-react";
@@ -110,8 +111,9 @@ export default function GalleryManagerClient() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans p-4 sm:p-8">
-      <div className="max-w-6xl mx-auto space-y-6">
+    <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
+      <AdminNav activePage="gallery" />
+      <div className="p-4 sm:p-8 pt-0 max-w-6xl mx-auto space-y-6 w-full flex-1 min-w-0">
         
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
@@ -119,20 +121,6 @@ export default function GalleryManagerClient() {
             <h1 className="text-2xl font-bold text-slate-900">Manage Gallery</h1>
             <p className="text-slate-500 mt-1">Remove old or broken albums from the public gallery</p>
           </div>
-          <Link 
-            href="/admin/dashboard" 
-            onClick={() => setNavigatingAction('back')}
-            className={`flex items-center justify-center px-4 py-2 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-lg font-medium transition-colors ${navigatingAction === 'back' ? 'opacity-50 pointer-events-none' : ''}`}
-          >
-            {navigatingAction === 'back' ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            ) : (
-              <>
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Dashboard
-              </>
-            )}
-          </Link>
         </div>
 
         {/* Content */}
@@ -152,15 +140,15 @@ export default function GalleryManagerClient() {
               <p>No albums found in the Gallery sheet.</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
+            <div className="overflow-x-auto custom-scrollbar pb-1 w-full">
+              <table className="w-full text-left border-collapse whitespace-nowrap">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-100">
-                    <th className="px-6 py-4 font-semibold text-slate-700">Name</th>
-                    <th className="px-6 py-4 font-semibold text-slate-700">Type</th>
-                    <th className="px-6 py-4 font-semibold text-slate-700">Date</th>
-                    <th className="px-6 py-4 font-semibold text-slate-700">Link</th>
-                    <th className="px-6 py-4 font-semibold text-slate-700 text-right">Actions</th>
+                    <th className="px-4 sm:px-6 py-4 font-semibold text-slate-700">Name</th>
+                    <th className="px-4 sm:px-6 py-4 font-semibold text-slate-700">Type</th>
+                    <th className="px-4 sm:px-6 py-4 font-semibold text-slate-700">Date</th>
+                    <th className="px-4 sm:px-6 py-4 font-semibold text-slate-700">Link</th>
+                    <th className="px-4 sm:px-6 py-4 font-semibold text-slate-700 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -170,7 +158,7 @@ export default function GalleryManagerClient() {
                     
                     return (
                       <tr key={item.rowIndex} className="hover:bg-slate-50/50 transition-colors">
-                        <td className="px-6 py-4">
+                        <td className="px-4 sm:px-6 py-4">
                           <div className="font-medium text-slate-900 flex items-center gap-2">
                             {item.name}
                             {isOld && (
@@ -180,28 +168,28 @@ export default function GalleryManagerClient() {
                             )}
                           </div>
                         </td>
-                        <td className="px-6 py-4">
-                          <span className="text-xs font-bold px-2.5 py-1 bg-orange-100 text-orange-700 rounded-full tracking-wider uppercase">
+                        <td className="px-4 sm:px-6 py-4">
+                          <span className="text-xs font-bold px-2.5 py-1 bg-orange-100 text-orange-700 rounded-full tracking-wider uppercase inline-block">
                             {item.serviceType || "N/A"}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-slate-600 text-sm">
+                        <td className="px-4 sm:px-6 py-4 text-slate-600 text-sm">
                           {item.dateStr && !isNaN(new Date(item.dateStr).getTime()) 
                             ? `${format(new Date(item.dateStr), 'dd MMM ', { locale: th })}${new Date(item.dateStr).getFullYear() + 543}`
                             : item.dateStr || "Unknown Date"}
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-4 sm:px-6 py-4">
                           <a 
                             href={item.link} 
                             target="_blank" 
                             rel="noreferrer"
-                            className="text-orange-600 hover:text-orange-700 hover:underline text-sm truncate block max-w-[200px]"
+                            className="text-orange-600 hover:text-orange-700 hover:underline text-sm truncate block max-w-[150px] sm:max-w-[200px]"
                             title={item.link}
                           >
                             {item.link || "No Link"}
                           </a>
                         </td>
-                        <td className="px-6 py-4 text-right">
+                        <td className="px-4 sm:px-6 py-4 text-right">
                           <div className="flex justify-end gap-2">
                             <button
                               onClick={() => openEditModal(item)}

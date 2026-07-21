@@ -1,4 +1,5 @@
 "use client";
+import AdminNav from "@/components/admin/admin-nav";
 
 import React, { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
@@ -186,29 +187,7 @@ export default function TeamClient() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <nav className="bg-white border-b shadow-sm sticky top-0 z-40 mb-4 md:mb-8">
-        <div className="max-w-6xl mx-auto px-4 md:px-8 h-16 flex items-center justify-between">
-          <Link href="/admin/dashboard" onClick={() => setNavigatingAction('back')} className={`font-bold text-lg md:text-xl hover:opacity-80 flex items-center gap-1 md:gap-2 truncate ${navigatingAction === 'back' ? 'opacity-50 pointer-events-none' : ''}`}>
-            <span className="hidden sm:inline text-orange-500">PhotoClubClickQ</span>
-            <span className="sm:hidden text-orange-500">PCC</span>
-            <span className="text-slate-500 text-sm font-normal truncate">| Team</span>
-          </Link>
-          <div className="flex items-center gap-2 md:gap-4 shrink-0">
-            <Link href="/admin/dashboard" onClick={() => setNavigatingAction('back')}>
-              <Button variant="ghost" size="sm" className="text-slate-600 hover:text-slate-900 md:px-4" disabled={navigatingAction === 'back'}>
-                {navigatingAction === 'back' ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <>
-                    <ArrowLeft className="w-5 h-5 md:mr-2" />
-                    <span className="hidden md:inline">Back to Dashboard</span>
-                  </>
-                )}
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </nav>
+      <AdminNav activePage="team" />
 
       <div className="p-4 md:p-8 max-w-5xl mx-auto pt-0 w-full flex-1">
         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 md:p-8">

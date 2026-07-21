@@ -1,4 +1,5 @@
 "use client";
+import AdminNav from "@/components/admin/admin-nav";
 
 import React, { useState, useEffect } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -243,45 +244,7 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <nav className="bg-white border-b shadow-sm sticky top-0 z-40 mb-4 md:mb-8">
-        <div className="max-w-6xl mx-auto px-4 md:px-8 h-16 flex items-center justify-between">
-          <a href="/" className="font-bold text-lg md:text-xl hover:opacity-80 flex items-center gap-1 md:gap-2 truncate">
-            <span className="hidden sm:inline text-orange-500">PhotoClubClickQ</span>
-            <span className="sm:hidden text-orange-500">PCC</span>
-            <span className="text-slate-500 text-sm font-normal truncate">| Admin</span>
-          </a>
-          <div className="flex items-center gap-1 md:gap-4 shrink-0">
-            <Link href="/admin/gallery" onClick={() => setNavigatingAction('gallery')}>
-              <Button variant="ghost" size="icon" className="md:w-auto md:px-4 text-slate-600 hover:text-slate-900" title="Manage Gallery" disabled={navigatingAction === 'gallery'}>
-                {navigatingAction === 'gallery' ? <Loader2 className="w-5 h-5 md:hidden animate-spin" /> : <ImageIcon className="w-5 h-5 md:hidden" />}
-                <span className="hidden md:inline">
-                  {navigatingAction === 'gallery' ? <Loader2 className="w-5 h-5 mr-2 animate-spin inline" /> : null}Gallery
-                </span>
-              </Button>
-            </Link>
-            <Link href="/admin/team" onClick={() => setNavigatingAction('team')}>
-              <Button variant="ghost" size="icon" className="md:w-auto md:px-4 text-slate-600 hover:text-slate-900" title="Manage Team" disabled={navigatingAction === 'team'}>
-                {navigatingAction === 'team' ? <Loader2 className="w-5 h-5 md:mr-2 animate-spin" /> : <Users className="w-5 h-5 md:mr-2" />}
-                <span className="hidden md:inline">Team</span>
-              </Button>
-            </Link>
-            <Link href="/admin/settings" onClick={() => setNavigatingAction('settings')}>
-              <Button variant="ghost" size="icon" className="md:w-auto md:px-4 text-slate-600 hover:text-slate-900" title="Settings" disabled={navigatingAction === 'settings'}>
-                {navigatingAction === 'settings' ? <Loader2 className="w-5 h-5 md:mr-2 animate-spin" /> : <Settings className="w-5 h-5 md:mr-2" />}
-                <span className="hidden md:inline">Settings</span>
-              </Button>
-            </Link>
-            <Button variant="ghost" size="icon" className="md:w-auto md:px-4 text-red-600 hover:text-red-700 hover:bg-red-50" title="ออกจากระบบ" disabled={navigatingAction === 'logout'} onClick={async () => {
-              setNavigatingAction('logout');
-              await fetch('/api/admin/logout', { method: 'POST' });
-              window.location.href = '/';
-            }}>
-              {navigatingAction === 'logout' ? <Loader2 className="w-5 h-5 md:mr-2 animate-spin" /> : <LogOut className="w-5 h-5 md:mr-2" />}
-              <span className="hidden md:inline">ออกจากระบบ</span>
-            </Button>
-          </div>
-        </div>
-      </nav>
+      <AdminNav activePage="dashboard" />
       <div className="p-4 md:p-8 max-w-6xl mx-auto pt-0 w-full flex-1">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 md:mb-8 gap-4">
           <div className="flex items-center gap-2 sm:gap-4 justify-between w-full sm:w-auto">
