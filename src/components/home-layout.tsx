@@ -61,13 +61,15 @@ export default function HomeLayout({ heroSection, teamSection, fbLink, igLink }:
 
 
       {/* Hidden Management Login Button */}
-      <Link 
-        href="/admin/dashboard" 
-        className="fixed top-0 right-0 w-16 h-16 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center bg-black/10 z-[100] text-xs font-bold text-slate-800"
-        title="Management Queue"
-      >
-        Admin
-      </Link>
+      {activeSection === "hero" && (
+        <Link 
+          href="/admin/dashboard" 
+          className="fixed top-0 right-0 w-16 h-16 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center bg-black/10 z-[100] text-xs font-bold text-slate-800"
+          title="Management Queue"
+        >
+          Admin
+        </Link>
+      )}
 
       {/* Sliding Wrapper - Handles the locked full-page transitions */}
       <div 

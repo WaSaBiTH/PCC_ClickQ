@@ -38,12 +38,6 @@ function getResponsiveMultiplier(width: number) {
   return 1.0;
 }
 
-/**
- * Returns a multiplier (0..1] that scales y-offsets and entry animation
- * distances when the viewport is too short for the ideal layout height.
- */
-// removed getHeightMultiplier
-
 function getSlotConfig(totalCards: number, slot: number) {
   if (totalCards >= MAX_VISIBLE) return FAN_POSITIONS[slot];
   const center = totalCards >> 1;
@@ -56,6 +50,76 @@ function getSlotConfig(totalCards: number, slot: number) {
     y: absDistance * absDistance * 7.3,
     zIndex: 10 - Math.abs(slot - center),
   };
+}
+
+function FanCardImage({ card, index }: { card: CardItem; index: number }) {
+  const [isLoaded, setIsLoaded] = useState(false);
+  const imgRef = useRef<HTMLImageElement>(null);
+
+  useEffect(() => {
+    if (imgRef.current?.complete) {
+      setIsLoaded(true);
+    }
+  }, []);
+
+  return (
+    <div className="relative w-full h-full overflow-hidden rounded-[32px] shadow-2xl group bg-slate-200">
+      {/* Soft overlay to make image feel 'softer' */}
+      <div className="absolute inset-0 bg-white/5 mix-blend-overlay z-15 pointer-events-none" />
+      
+      {/* Skeleton / Blur placeholder */}
+      <div className={`absolute inset-0 z-0 bg-slate-200 transition-opacity duration-700 ${isLoaded ? 'opacity-0' : 'opacity-100'}`}>
+        <div className="absolute inset-0 bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200 animate-[pulse_1.5s_ease-in-out_infinite]" />
+      </div>
+
+      <img 
+        ref={imgRef}
+        src={card.imgUrl} 
+        loading="lazy" 
+        alt={card.alt || `Card ${index}`} 
+        onLoad={() => setIsLoaded(true)}
+        onError={(e) => { e.currentTarget.src = "/PCC%20Photo%20Club.webp"; setIsLoaded(true); }}
+        className={`absolute inset-0 w-full h-full object-cover z-10 transition-all duration-700 group-hover:scale-105 contrast-[0.95] brightness-[1.05] saturate-[1.1] ${isLoaded ? 'opacity-100 blur-0' : 'opacity-0 blur-md'}`} 
+        referrerPolicy="no-referrer"
+      />
+      
+      <div className="absolute inset-x-0 top-0 p-4 md:p-6 z-20 flex justify-end items-start gap-2 bg-gradient-to-b from-black/80 via-black/30 to-transparent pb-16 pointer-events-none">
+        {card.status === "Alumni" && (
+          <span className="px-3 py-1 bg-red-500/80 backdrop-blur-md rounded-full text-white text-[10px] md:text-sm font-semibold border border-red-400/50 shadow-sm">
+            ศิษย์เก่า
+          </span>
+        )}
+        {card.description && (
+          <span className="px-3 py-1 bg-slate-700/70 backdrop-blur-md rounded-full text-white/95 text-[10px] md:text-sm font-semibold border border-slate-500/50 shadow-sm truncate max-w-[40%]">
+            {card.description}
+          </span>
+        )}
+      </div>
+      
+      {/* Bottom Overlay: Name & Team Tags */}
+      <div className="absolute inset-x-0 bottom-0 p-4 md:p-6 z-20 flex flex-col justify-end items-start bg-gradient-to-t from-black/90 via-black/40 to-transparent pt-32 pointer-events-none">
+        {card.title && (
+          <span className="text-white font-bold text-lg md:text-2xl drop-shadow-md truncate w-full mb-3">{card.title}</span>
+        )}
+        {card.tags && card.tags.length > 0 && (
+          <div className="flex flex-wrap gap-2 items-end justify-start w-full">
+            {card.tags.map((tag, i) => {
+            let tagColor = "bg-white/20 border-white/30 text-white";
+            if (tag.includes("วิดีโอ") || tag.toLowerCase().includes("video")) tagColor = "bg-blue-500/80 border-blue-400 text-white";
+            if (tag.includes("ถ่ายรูป") || tag.toLowerCase().includes("photo")) tagColor = "bg-orange-500/80 border-orange-400 text-white";
+            if (tag.includes("ไลฟ์") || tag.toLowerCase().includes("live")) tagColor = "bg-red-500/80 border-red-400 text-white";
+
+            return (
+              <span key={i} className={`px-3 py-1 backdrop-blur-md rounded-full text-[10px] md:text-sm font-semibold border shadow-sm ${tagColor}`}>
+                {tag}
+              </span>
+            );
+          })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
 
 const ARROW_CLASSES =
@@ -154,12 +218,18 @@ export default function SocialCards({ cards }: SocialCardsProps) {
           rotation: rot,
           scale,
           opacity: 1,
-          zIndex,
         };
 
+        // Set zIndex immediately so cards never overlap incorrectly during animation
+        gsap.set(card, { zIndex });
+
         if (isFirstMount) {
+          const centerSlot = Math.floor(slotCount / 2);
+          const distFromCenter = Math.abs(slot - centerSlot);
+          const delay = 0.2 + distFromCenter * 0.15;
+
           gsap.set(card, { x: 0, y: `${12 * hMult}rem`, rotation: 0, scale: 0.5, opacity: 0 });
-          gsap.to(card, { ...target, duration: 1.2, ease: "elastic.out(1.05,.78)", delay: 0.2 + slot * 0.06, onComplete: onCardDone });
+          gsap.to(card, { ...target, duration: 1.2, ease: "elastic.out(1.05,.78)", delay, onComplete: onCardDone });
         } else if (!wasVisible) {
           const enterX = direction === "right" ? 40 : -40;
           gsap.set(card, { x: `${enterX}rem`, y: `${y * hMult}rem`, rotation: direction === "right" ? 30 : -30, scale: 0.5, opacity: 0 });
@@ -169,7 +239,7 @@ export default function SocialCards({ cards }: SocialCardsProps) {
         }
       } else if (wasVisible) {
         const exitX = direction === "right" ? -40 : 40;
-        gsap.to(card, { x: `${exitX}rem`, opacity: 0, scale: 0.5, rotation: direction === "right" ? -30 : 30, duration: 0.4, ease: "power2.in", zIndex: 0 });
+        gsap.to(card, { x: `${exitX}rem`, opacity: 0, scale: 0.5, rotation: direction === "right" ? -30 : 30, duration: 0.4, ease: "power2.in", onComplete: () => gsap.set(card, { zIndex: 0 }) });
       } else if (isFirstMount) {
         gsap.set(card, { opacity: 0, scale: 0.3, x: 0, y: 0, zIndex: 0 });
       }
@@ -278,56 +348,7 @@ export default function SocialCards({ cards }: SocialCardsProps) {
       <div className="flex items-center justify-center w-full h-full max-w-[90rem]">
         <div ref={containerRef} className="fan-layout flex relative justify-center items-center w-full max-w-[80rem] h-full min-h-[380px]">
           {cards.map((card, index) => {
-            const image = (
-              <div className="relative w-full h-full overflow-hidden rounded-[32px] shadow-2xl group bg-white">
-                {/* Soft overlay to make image feel 'softer' */}
-                <div className="absolute inset-0 bg-white/5 mix-blend-overlay z-15 pointer-events-none" />
-                <img 
-                  src={card.imgUrl} 
-                  loading="lazy" 
-                  alt={card.alt || `Card ${index}`} 
-                  onError={(e) => { e.currentTarget.src = "/PCC%20Photo%20Club.webp"; }}
-                  className="absolute inset-0 w-full h-full object-cover z-10 transition-transform duration-700 group-hover:scale-105 contrast-[0.95] brightness-[1.05] saturate-[1.1]" 
-                  referrerPolicy="no-referrer"
-                />
-                
-                <div className="absolute inset-x-0 top-0 p-4 md:p-6 z-20 flex justify-end items-start gap-2 bg-gradient-to-b from-black/80 via-black/30 to-transparent pb-16 pointer-events-none">
-                  {card.status === "Alumni" && (
-                    <span className="px-3 py-1 bg-red-500/80 backdrop-blur-md rounded-full text-white text-[10px] md:text-sm font-semibold border border-red-400/50 shadow-sm">
-                      ศิษย์เก่า
-                    </span>
-                  )}
-                  {card.description && (
-                    <span className="px-3 py-1 bg-slate-700/70 backdrop-blur-md rounded-full text-white/95 text-[10px] md:text-sm font-semibold border border-slate-500/50 shadow-sm truncate max-w-[40%]">
-                      {card.description}
-                    </span>
-                  )}
-                </div>
-                
-                {/* Bottom Overlay: Name & Team Tags */}
-                <div className="absolute inset-x-0 bottom-0 p-4 md:p-6 z-20 flex flex-col justify-end items-start bg-gradient-to-t from-black/90 via-black/40 to-transparent pt-32 pointer-events-none">
-                  {card.title && (
-                    <span className="text-white font-bold text-lg md:text-2xl drop-shadow-md truncate w-full mb-3">{card.title}</span>
-                  )}
-                  {card.tags && card.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-2 items-end justify-start w-full">
-                      {card.tags.map((tag, i) => {
-                      let tagColor = "bg-white/20 border-white/30 text-white";
-                      if (tag.includes("วิดีโอ") || tag.toLowerCase().includes("video")) tagColor = "bg-blue-500/80 border-blue-400 text-white";
-                      if (tag.includes("ถ่ายรูป") || tag.toLowerCase().includes("photo")) tagColor = "bg-orange-500/80 border-orange-400 text-white";
-                      if (tag.includes("ไลฟ์") || tag.toLowerCase().includes("live")) tagColor = "bg-red-500/80 border-red-400 text-white";
-
-                      return (
-                        <span key={i} className={`px-3 py-1 backdrop-blur-md rounded-full text-[10px] md:text-sm font-semibold border shadow-sm ${tagColor}`}>
-                          {tag}
-                        </span>
-                      );
-                    })}
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
+            const image = <FanCardImage card={card} index={index} />;
             return card.linkUrl ? (
               <a key={index} href={card.linkUrl} onClick={(e) => handleCardClick(e, index)} target={card.linkUrl.startsWith("http") ? "_blank" : "_self"} rel="noopener noreferrer" className="fan-card block cursor-pointer h-[50vh] md:h-[60vh] lg:h-[65vh] xl:h-[70vh] max-h-[600px] aspect-[44/60] absolute">{image}</a>
             ) : (
