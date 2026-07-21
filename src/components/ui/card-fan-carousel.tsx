@@ -282,9 +282,9 @@ export default function SocialCards({ cards }: SocialCardsProps) {
   );
 
   return (
-    <section className="flex flex-col items-center w-full py-2 lg:py-4 px-4 md:px-8 relative z-20 overflow-visible">
-      <div className="flex items-center justify-center w-full max-w-[90rem]">
-        <div ref={containerRef} className="fan-layout flex relative justify-center items-center w-full max-w-[80rem] h-[380px] md:h-[550px] lg:h-[650px] xl:h-[700px]">
+    <section className="flex flex-col items-center w-full flex-1 relative z-20 overflow-visible min-h-0">
+      <div className="flex items-center justify-center w-full h-full max-w-[90rem]">
+        <div ref={containerRef} className="fan-layout flex relative justify-center items-center w-full max-w-[80rem] h-full min-h-[380px]">
           {cards.map((card, index) => {
             const image = (
               <div className="relative w-full h-full overflow-hidden rounded-[32px] shadow-2xl group bg-white">
