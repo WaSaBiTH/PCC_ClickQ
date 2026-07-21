@@ -6,7 +6,7 @@ const SCOPES = [
   "https://www.googleapis.com/auth/drive"
 ];
 const KEYFILE_PATH = path.join(process.cwd(), "pccclickq-8b26393bf8f0.json");
-const SPREADSHEET_ID = process.env.SPREADSHEET_ID || "1lx5S3UquU5SqChAfADeUyDN2yd0jd6dlsmXeuZ-m6d4";
+const SPREADSHEET_ID = process.env.SPREADSHEET_ID as string;
 const PRUNE_DRIVE_FOLDER_ID = process.env.PRUNE_DRIVE_FOLDER_ID || "1qkakow5riHrQB6C0LVgPaZ2HlFrkwYvY";
 
 let auth: any = null;

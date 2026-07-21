@@ -23,17 +23,15 @@ export async function getGoogleDriveClient() {
       },
       scopes: SCOPES,
     });
-    // Fallback to local keyfile only if we are in development or if the file exists
-    // (To prevent Vercel builds from crashing if env vars are missing)
-    if (fs.existsSync(KEYFILE_PATH)) {
-      auth = new google.auth.GoogleAuth({
-        keyFile: KEYFILE_PATH,
-        scopes: SCOPES,
-      });
-    } else {
-      console.warn("No Google Drive credentials found! Returning null client.");
-      return null;
-    }
+  } else if (fs.existsSync(KEYFILE_PATH)) {
+    // Fallback to local keyfile only if we are in development and the file exists
+    auth = new google.auth.GoogleAuth({
+      keyFile: KEYFILE_PATH,
+      scopes: SCOPES,
+    });
+  } else {
+    console.warn("No Google Drive credentials found! Returning null client.");
+    return null;
   }
 
   if (!auth) return null;

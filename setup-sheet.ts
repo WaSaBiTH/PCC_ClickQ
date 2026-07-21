@@ -3,7 +3,7 @@ import path from "path";
 
 const SCOPES = ["https://www.googleapis.com/auth/spreadsheets"];
 const KEYFILE_PATH = path.join(process.cwd(), "pccclickq-8b26393bf8f0.json");
-const SPREADSHEET_ID = "1lx5S3UquU5SqChAfADeUyDN2yd0jd6dlsmXeuZ-m6d4";
+const SPREADSHEET_ID = process.env.SPREADSHEET_ID as string;
 
 async function setupSheet() {
   try {

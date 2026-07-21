@@ -5,13 +5,24 @@ import path from "path";
 
 const SCOPES = ["https://www.googleapis.com/auth/spreadsheets"];
 const KEYFILE_PATH = path.join(process.cwd(), "pccclickq-8b26393bf8f0.json");
-const SPREADSHEET_ID = "1lx5S3UquU5SqChAfADeUyDN2yd0jd6dlsmXeuZ-m6d4";
+const SPREADSHEET_ID = process.env.SPREADSHEET_ID as string;
 
 async function getSheetsClient() {
-  const auth = new google.auth.GoogleAuth({
-    keyFile: KEYFILE_PATH,
-    scopes: SCOPES,
-  });
+  let auth;
+  if (process.env.GOOGLE_CLIENT_EMAIL && process.env.GOOGLE_PRIVATE_KEY) {
+    auth = new google.auth.GoogleAuth({
+      credentials: {
+        client_email: process.env.GOOGLE_CLIENT_EMAIL,
+        private_key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+      },
+      scopes: SCOPES,
+    });
+  } else {
+    auth = new google.auth.GoogleAuth({
+      keyFile: KEYFILE_PATH,
+      scopes: SCOPES,
+    });
+  }
   const client = await auth.getClient();
   return google.sheets({ version: "v4", auth: client as any });
 }
