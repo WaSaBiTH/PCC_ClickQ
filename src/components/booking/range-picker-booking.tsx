@@ -347,15 +347,14 @@ export default function RangePickerBooking() {
           </div>
           
           <div className="w-full space-y-3 flex flex-col flex-1 min-h-0">
-            <div className="bg-white p-3 md:p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col sm:flex-row items-center gap-3 justify-between flex-none">
-              <span className="font-semibold text-slate-700 whitespace-nowrap text-sm">เวลาทำงาน</span>
-              <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto justify-center sm:justify-end">
+            <div className="bg-white p-3 md:p-4 rounded-xl border border-slate-100 shadow-sm flex flex-wrap items-center gap-3 justify-center 2xl:justify-between flex-none">
+              <span className="font-semibold text-slate-700 whitespace-nowrap text-sm w-full text-center 2xl:w-auto 2xl:text-left">เวลาทำงาน</span>
+              <div className="flex flex-wrap items-center gap-2 justify-center">
                 <TimePicker
                   value={tempTime.start}
                   onChange={(val) => setTempTime({ ...tempTime, start: val })}
                   label="เริ่ม"
                 />
-                <span className="text-slate-400 font-medium hidden sm:block">-</span>
                 <TimePicker
                   value={tempTime.end}
                   onChange={(val) => setTempTime({ ...tempTime, end: val })}

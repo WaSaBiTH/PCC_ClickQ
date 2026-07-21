@@ -23,7 +23,7 @@ export function TimePicker({ value, onChange, className, label }: TimePickerProp
   return (
     <div className={cn("inline-flex items-center gap-1 bg-white border border-slate-300 rounded-xl px-3 py-1 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 transition-all cursor-text hover:border-blue-400", className)}>
       <Clock className="w-4 h-4 text-blue-500 shrink-0" />
-      {label && <span className="text-sm font-bold text-slate-700 ml-1 mr-1">{label}</span>}
+      {label && <span className="text-sm font-bold text-slate-700 ml-1 mr-1 w-8 text-left inline-block">{label}</span>}
       <select 
         value={hours} 
         onChange={handleHourChange}
