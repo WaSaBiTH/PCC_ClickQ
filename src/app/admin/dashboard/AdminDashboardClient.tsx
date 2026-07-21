@@ -27,7 +27,7 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
   const [activeTab, setActiveTab] = useState<string>("Pending");
   
   // State for the Google Photos/Drive Link prompt
-  const [promptLink, setPromptLink] = useState<{ rowIndices: number[], link: string } | null>(null);
+  const [promptLink, setPromptLink] = useState<{ rowIndices: number[], link: string, facebookLink: string, igLink: string } | null>(null);
   
   // State for expanded row details
   const [expandedRow, setExpandedRow] = useState<number | null>(null);
@@ -38,7 +38,7 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
   // State for search query
   const [searchQuery, setSearchQuery] = useState("");
 
-  const handleStatusUpdate = async (rowIndex: number, status: string, googlePhotosLink?: string) => {
+  const handleStatusUpdate = async (rowIndex: number, status: string, googlePhotosLink?: string, facebookLink?: string, igLink?: string) => {
     setUpdatingAction({ rowIndex, action: status });
     try {
       // Extract details for the Gallery sheet if it's Completed
@@ -52,7 +52,7 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
       const res = await fetch("/api/admin/bookings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rowIndex, status, googlePhotosLink, bookingDetails }),
+        body: JSON.stringify({ rowIndex, status, googlePhotosLink, facebookLink, igLink, bookingDetails }),
       });
       
       if (res.ok) {
@@ -75,7 +75,7 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
     }
   };
 
-  const handleBulkStatusUpdate = async (status: string, googlePhotosLink?: string) => {
+  const handleBulkStatusUpdate = async (status: string, googlePhotosLink?: string, facebookLink?: string, igLink?: string) => {
     if (selectedRows.length === 0) return;
     
     setIsBulkUpdating(true);
@@ -98,7 +98,7 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
         const res = await fetch("/api/admin/bookings", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ rowIndex, status, googlePhotosLink, bookingDetails }),
+          body: JSON.stringify({ rowIndex, status, googlePhotosLink, facebookLink, igLink, bookingDetails }),
         });
         
         if (res.ok) {
@@ -295,7 +295,7 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div className="bg-white p-6 rounded-lg shadow-lg w-[400px]">
               <h3 className="text-lg font-bold mb-4">Submit Work</h3>
-              <p className="text-sm text-slate-600 mb-2">Please enter the Google Drive / Google Photos link for this job:</p>
+              <p className="text-sm text-slate-600 mb-2">Google Drive / Google Photos link (Required):</p>
               <input 
                 type="text" 
                 value={promptLink.link}
@@ -303,16 +303,32 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
                 className="w-full border p-2 rounded mb-4"
                 placeholder="https://drive.google.com/..."
               />
+              <p className="text-sm text-slate-600 mb-2">Facebook Post link (Optional):</p>
+              <input 
+                type="text" 
+                value={promptLink.facebookLink}
+                onChange={(e) => setPromptLink({ ...promptLink, facebookLink: e.target.value })}
+                className="w-full border p-2 rounded mb-4"
+                placeholder="https://facebook.com/..."
+              />
+              <p className="text-sm text-slate-600 mb-2">Instagram Post link (Optional):</p>
+              <input 
+                type="text" 
+                value={promptLink.igLink}
+                onChange={(e) => setPromptLink({ ...promptLink, igLink: e.target.value })}
+                className="w-full border p-2 rounded mb-4"
+                placeholder="https://instagram.com/..."
+              />
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={() => setPromptLink(null)}>Cancel</Button>
                 <Button 
                   onClick={() => {
                     if (promptLink.rowIndices.length === 1) {
                       const rowIndex = promptLink.rowIndices[0];
-                      handleStatusUpdate(rowIndex, "Completed", promptLink.link);
+                      handleStatusUpdate(rowIndex, "Completed", promptLink.link, promptLink.facebookLink, promptLink.igLink);
                       setPromptLink(null);
                     } else {
-                      handleBulkStatusUpdate("Completed", promptLink.link);
+                      handleBulkStatusUpdate("Completed", promptLink.link, promptLink.facebookLink, promptLink.igLink);
                     }
                   }}
                   disabled={updatingAction !== null || isBulkUpdating}
@@ -364,7 +380,7 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
                   onClick={() => {
                     // Only submit links for items that are actually accepted
                     const acceptedRows = selectedRows.filter(idx => bookings[idx][7] === "Accepted");
-                    setPromptLink({ rowIndices: acceptedRows, link: "" });
+                    setPromptLink({ rowIndices: acceptedRows, link: "", facebookLink: "", igLink: "" });
                   }}
                   disabled={isBulkUpdating}
                 >
@@ -581,7 +597,7 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
                                 className="text-green-600 border-green-600 hover:bg-green-50 bg-white flex items-center"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  setPromptLink({ rowIndices: [rowIndex], link: "" });
+                                  setPromptLink({ rowIndices: [rowIndex], link: "", facebookLink: "", igLink: "" });
                                 }}
                                 disabled={updatingAction !== null}
                               >
@@ -778,7 +794,7 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
                         className="w-full h-12 flex items-center justify-center font-bold text-blue-600 bg-white hover:bg-blue-50 active:bg-blue-100 transition-colors disabled:opacity-50"
                         onClick={(e) => {
                           e.stopPropagation();
-                          setPromptLink({ rowIndices: [rowIndex], link: "" });
+                          setPromptLink({ rowIndices: [rowIndex], link: "", facebookLink: "", igLink: "" });
                         }}
                         disabled={updatingAction !== null}
                       >

@@ -34,6 +34,8 @@ export async function GET() {
       serviceType: row[1] || "",
       dateStr: row[2] || "",
       link: row[3] || "",
+      facebookLink: row[4] || "",
+      igLink: row[5] || "",
     }));
     return NextResponse.json({ success: true, items });
   } catch (error: any) {
@@ -106,18 +108,18 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { rowIndex, link } = await request.json();
+    const { rowIndex, link, facebookLink, igLink } = await request.json();
     if (!rowIndex) return NextResponse.json({ error: "Missing rowIndex" }, { status: 400 });
     
     const sheets = await getSheetsClient();
     
-    // Update the link column (column D, index 3)
+    // Update the link column (column D) and social links (columns E and F)
     await sheets.spreadsheets.values.update({
       spreadsheetId: SPREADSHEET_ID,
-      range: `Gallery!D${rowIndex}`,
+      range: `Gallery!D${rowIndex}:F${rowIndex}`,
       valueInputOption: "USER_ENTERED",
       requestBody: {
-        values: [[link || ""]],
+        values: [[link || "", facebookLink || "", igLink || ""]],
       },
     });
 

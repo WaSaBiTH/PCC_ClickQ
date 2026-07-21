@@ -29,7 +29,7 @@ export default function AdminNav({ activePage }: AdminNavProps) {
           <Link href="/admin/dashboard" onClick={() => { if (activePage !== 'dashboard') setNavigatingAction('dashboard'); }}>
             <Button variant="ghost" size="icon" className={getButtonClass('dashboard')} title="Dashboard" disabled={navigatingAction === 'dashboard'}>
               {navigatingAction === 'dashboard' ? <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 md:mr-2 animate-spin" /> : <LayoutDashboard className="w-4 h-4 sm:w-5 sm:h-5 md:mr-2" />}
-              <span className="hidden md:inline">Dashboard</span>
+              <span className="hidden md:inline">Queue</span>
             </Button>
           </Link>
           <Link href="/admin/gallery" onClick={() => { if (activePage !== 'gallery') setNavigatingAction('gallery'); }}>

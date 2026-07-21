@@ -3,7 +3,8 @@ import { scrapeSingleAlbum } from "@/lib/google-photos-scraper";
 import Image from "next/image";
 import { ClientLink } from "@/components/ClientLink";
 import { format } from "date-fns";
-import { AlertCircle } from "lucide-react";
+import { th } from "date-fns/locale";
+import { AlertCircle, ExternalLink, Share2 } from "lucide-react";
 import MainNav from "@/components/main-nav";
 
 export const revalidate = 60; // Cache for 60 seconds
@@ -19,6 +20,8 @@ export default async function GalleryPage() {
     const serviceType = row[1];
     const dateStr = row[2];
     const link = row[3];
+    const facebookLink = row[4] || "";
+    const igLink = row[5] || "";
 
     let coverImage = "";
     let photoCount = 0;
@@ -47,6 +50,8 @@ export default async function GalleryPage() {
       serviceType,
       dateStr,
       link,
+      facebookLink,
+      igLink,
       coverImage,
       photoCount,
       isDeadLink,
@@ -125,13 +130,42 @@ export default async function GalleryPage() {
                     </span>
                     <span className={`text-xs font-medium ${item.isOld ? 'text-red-400' : 'text-slate-400'}`}>
                       {item.dateStr && !isNaN(new Date(item.dateStr).getTime()) 
-                        ? format(new Date(item.dateStr), 'dd MMM yyyy') 
+                        ? `${format(new Date(item.dateStr), 'dd MMM ', { locale: th })}${new Date(item.dateStr).getFullYear() + 543}` 
                         : item.dateStr || ""}
                     </span>
                   </div>
                   <h3 className="text-lg font-bold text-slate-900 line-clamp-2 leading-tight pr-6">
                     {item.name}
                   </h3>
+                  
+                  {(item.facebookLink || item.igLink) && (
+                    <div className="mt-3 flex flex-wrap gap-3">
+                      {item.facebookLink && (
+                        <a 
+                          href={item.facebookLink} 
+                          target="_blank" 
+                          rel="noreferrer"
+                          className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 font-medium w-fit transition-colors"
+                          title="ดูโพสต์ Facebook"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                          <span>Facebook</span>
+                        </a>
+                      )}
+                      {item.igLink && (
+                        <a 
+                          href={item.igLink} 
+                          target="_blank" 
+                          rel="noreferrer"
+                          className="flex items-center gap-1.5 text-sm text-pink-600 hover:text-pink-700 font-medium w-fit transition-colors"
+                          title="ดูโพสต์ Instagram"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                          <span>Instagram</span>
+                        </a>
+                      )}
+                    </div>
+                  )}
                   
                   {item.isOld && (
                     <div 

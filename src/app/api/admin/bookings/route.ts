@@ -6,7 +6,7 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     
-    const { rowIndex, status, googlePhotosLink, bookingDetails } = body;
+    const { rowIndex, status, googlePhotosLink, facebookLink, igLink, bookingDetails } = body;
     
     if (rowIndex === undefined || !status) {
       return NextResponse.json({ error: "Missing required fields (rowIndex, status)" }, { status: 400 });
@@ -31,7 +31,9 @@ export async function POST(request: Request) {
         name || "",
         serviceType || "",
         date || "",
-        googlePhotosLink || ""
+        googlePhotosLink || "",
+        facebookLink || "",
+        igLink || ""
       ]);
     }
 

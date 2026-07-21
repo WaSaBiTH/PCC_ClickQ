@@ -13,6 +13,8 @@ type GalleryItem = {
   serviceType: string;
   dateStr: string;
   link: string;
+  facebookLink: string;
+  igLink: string;
 };
 
 export default function GalleryManagerClient() {
@@ -22,7 +24,7 @@ export default function GalleryManagerClient() {
   const [isDeleting, setIsDeleting] = useState<number | null>(null);
   const [isEditingLink, setIsEditingLink] = useState<number | null>(null);
   const [navigatingAction, setNavigatingAction] = useState<string | null>(null);
-  const [editModal, setEditModal] = useState<{ show: boolean, item: GalleryItem | null, newLink: string }>({ show: false, item: null, newLink: '' });
+  const [editModal, setEditModal] = useState<{ show: boolean, item: GalleryItem | null, newLink: string, newFacebookLink: string, newIgLink: string }>({ show: false, item: null, newLink: '', newFacebookLink: '', newIgLink: '' });
 
   // Custom Toast Notification State
   const [toast, setToast] = useState<{ show: boolean, type: 'success' | 'error', message: string }>({ show: false, type: 'success', message: '' });
@@ -80,24 +82,24 @@ export default function GalleryManagerClient() {
   };
 
   const openEditModal = (item: GalleryItem) => {
-    setEditModal({ show: true, item, newLink: item.link });
+    setEditModal({ show: true, item, newLink: item.link, newFacebookLink: item.facebookLink || '', newIgLink: item.igLink || '' });
   };
 
   const saveEditedLink = async () => {
     if (!editModal.item) return;
-    const { item, newLink } = editModal;
+    const { item, newLink, newFacebookLink, newIgLink } = editModal;
     
     setIsEditingLink(item.rowIndex);
-    setEditModal({ show: false, item: null, newLink: '' });
+    setEditModal({ show: false, item: null, newLink: '', newFacebookLink: '', newIgLink: '' });
     
     try {
       const res = await fetch("/api/admin/gallery", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rowIndex: item.rowIndex, link: newLink.trim() }),
+        body: JSON.stringify({ rowIndex: item.rowIndex, link: newLink.trim(), facebookLink: newFacebookLink.trim(), igLink: newIgLink.trim() }),
       });
       if (res.ok) {
-        setItems(prev => prev.map(i => i.rowIndex === item.rowIndex ? { ...i, link: newLink.trim() } : i));
+        setItems(prev => prev.map(i => i.rowIndex === item.rowIndex ? { ...i, link: newLink.trim(), facebookLink: newFacebookLink.trim(), igLink: newIgLink.trim() } : i));
         showToast("Link updated successfully.");
       } else {
         const data = await res.json();
@@ -113,7 +115,7 @@ export default function GalleryManagerClient() {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
       <AdminNav activePage="gallery" />
-      <div className="p-4 sm:p-8 pt-0 max-w-6xl mx-auto space-y-6 w-full flex-1 min-w-0">
+      <div className="p-4 sm:p-8 pt-0 max-w-[1400px] mx-auto space-y-6 w-full flex-1 min-w-0">
         
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
@@ -148,6 +150,8 @@ export default function GalleryManagerClient() {
                     <th className="px-4 sm:px-6 py-4 font-semibold text-slate-700">Type</th>
                     <th className="px-4 sm:px-6 py-4 font-semibold text-slate-700">Date</th>
                     <th className="px-4 sm:px-6 py-4 font-semibold text-slate-700">Link</th>
+                    <th className="px-4 sm:px-6 py-4 font-semibold text-slate-700">Facebook</th>
+                    <th className="px-4 sm:px-6 py-4 font-semibold text-slate-700">Instagram</th>
                     <th className="px-4 sm:px-6 py-4 font-semibold text-slate-700 text-right">Actions</th>
                   </tr>
                 </thead>
@@ -187,6 +191,28 @@ export default function GalleryManagerClient() {
                             title={item.link}
                           >
                             {item.link || "No Link"}
+                          </a>
+                        </td>
+                        <td className="px-4 sm:px-6 py-4">
+                          <a 
+                            href={item.facebookLink} 
+                            target="_blank" 
+                            rel="noreferrer"
+                            className="text-blue-600 hover:text-blue-700 hover:underline text-sm truncate block max-w-[150px] sm:max-w-[200px]"
+                            title={item.facebookLink}
+                          >
+                            {item.facebookLink || "-"}
+                          </a>
+                        </td>
+                        <td className="px-4 sm:px-6 py-4">
+                          <a 
+                            href={item.igLink} 
+                            target="_blank" 
+                            rel="noreferrer"
+                            className="text-pink-600 hover:text-pink-700 hover:underline text-sm truncate block max-w-[150px] sm:max-w-[200px]"
+                            title={item.igLink}
+                          >
+                            {item.igLink || "-"}
                           </a>
                         </td>
                         <td className="px-4 sm:px-6 py-4 text-right">
@@ -266,18 +292,45 @@ export default function GalleryManagerClient() {
                       onChange={(e) => setEditModal(prev => ({ ...prev, newLink: e.target.value }))}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') saveEditedLink();
-                        if (e.key === 'Escape') setEditModal({ show: false, item: null, newLink: '' });
+                        if (e.key === 'Escape') setEditModal({ show: false, item: null, newLink: '', newFacebookLink: '', newIgLink: '' });
                       }}
                       placeholder="https://photos.app.goo.gl/..."
                       className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-shadow text-slate-900 placeholder:text-slate-400"
-                      autoFocus
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Facebook Post URL</label>
+                    <input
+                      type="url"
+                      value={editModal.newFacebookLink}
+                      onChange={(e) => setEditModal(prev => ({ ...prev, newFacebookLink: e.target.value }))}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') saveEditedLink();
+                        if (e.key === 'Escape') setEditModal({ show: false, item: null, newLink: '', newFacebookLink: '', newIgLink: '' });
+                      }}
+                      placeholder="https://facebook.com/..."
+                      className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-shadow text-slate-900 placeholder:text-slate-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Instagram Post URL</label>
+                    <input
+                      type="url"
+                      value={editModal.newIgLink}
+                      onChange={(e) => setEditModal(prev => ({ ...prev, newIgLink: e.target.value }))}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') saveEditedLink();
+                        if (e.key === 'Escape') setEditModal({ show: false, item: null, newLink: '', newFacebookLink: '', newIgLink: '' });
+                      }}
+                      placeholder="https://instagram.com/..."
+                      className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-shadow text-slate-900 placeholder:text-slate-400"
                     />
                   </div>
                 </div>
               </div>
               <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
                 <button
-                  onClick={() => setEditModal({ show: false, item: null, newLink: '' })}
+                  onClick={() => setEditModal({ show: false, item: null, newLink: '', newFacebookLink: '', newIgLink: '' })}
                   className="px-5 py-2.5 text-slate-600 font-medium hover:bg-slate-200 bg-slate-100 rounded-xl transition-colors"
                 >
                   Cancel
