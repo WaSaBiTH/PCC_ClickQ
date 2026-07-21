@@ -33,6 +33,13 @@ async function getAuthClient() {
   return await auth.getClient();
 }
 
+let sheetCache: Record<string, { data: string[][]; timestamp: number }> = {};
+const CACHE_TTL = 30000; // 30 seconds cache
+
+export function clearSheetCache(sheetName: string, range: string = "A:Z") {
+  delete sheetCache[`${sheetName}!${range}`];
+}
+
 /**
  * Appends a row to the specified sheet
  */
@@ -48,6 +55,8 @@ export async function appendToSheet(sheetName: string, values: string[]) {
       values: [values],
     },
   });
+  
+  clearSheetCache(sheetName);
 }
 
 /**
@@ -66,11 +75,8 @@ export async function updateSheetCell(sheetName: string, cell: string, value: st
     },
   });
   
-  delete sheetCache[`${sheetName}!A:Z`];
+  clearSheetCache(sheetName);
 }
-
-let sheetCache: Record<string, { data: string[][]; timestamp: number }> = {};
-const CACHE_TTL = 30000; // 30 seconds cache
 
 /**
  * Fetches all rows from the specified sheet with in-memory caching

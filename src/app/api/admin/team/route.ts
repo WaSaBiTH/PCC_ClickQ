@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSheetData, appendToSheet } from "@/lib/google-sheets-api";
+import { getSheetData, appendToSheet, clearSheetCache } from "@/lib/google-sheets-api";
 import { google } from "googleapis";
 import path from "path";
 
@@ -94,6 +94,7 @@ export async function PUT(request: Request) {
       },
     });
 
+    clearSheetCache("Team_Members");
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error("PUT team member error:", error);
@@ -138,6 +139,7 @@ export async function DELETE(request: Request) {
       }
     });
 
+    clearSheetCache("Team_Members");
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error("DELETE team member error:", error);

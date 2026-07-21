@@ -23,6 +23,9 @@ export default function TeamClient() {
   const [isLoading, setIsLoading] = useState(true);
   const [navigatingAction, setNavigatingAction] = useState<string | null>(null);
   
+  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; rowIndex: number | null }>({ isOpen: false, rowIndex: null });
+  const [deleteCountdown, setDeleteCountdown] = useState(10);
+  
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<Partial<TeamMember>>({});
   const [isSaving, setIsSaving] = useState(false);
@@ -37,6 +40,14 @@ export default function TeamClient() {
   useEffect(() => {
     fetchMembers();
   }, []);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (deleteModal.isOpen && deleteCountdown > 0) {
+      timer = setTimeout(() => setDeleteCountdown(c => c - 1), 1000);
+    }
+    return () => clearTimeout(timer);
+  }, [deleteModal.isOpen, deleteCountdown]);
 
   const fetchMembers = async () => {
     setIsLoading(true);
@@ -175,13 +186,24 @@ export default function TeamClient() {
     }
   };
 
-  const handleDelete = async (rowIndex: number) => {
-    if (!confirm("Are you sure you want to delete this member?")) return;
+  const openDeleteModal = (rowIndex: number) => {
+    setDeleteCountdown(10);
+    setDeleteModal({ isOpen: true, rowIndex });
+  };
+
+  const confirmDelete = async () => {
+    if (deleteModal.rowIndex === null) return;
     try {
-      const res = await fetch(`/api/admin/team?rowIndex=${rowIndex}`, { method: "DELETE" });
-      if (res.ok) fetchMembers();
+      setIsSaving(true);
+      const res = await fetch(`/api/admin/team?rowIndex=${deleteModal.rowIndex}`, { method: "DELETE" });
+      if (res.ok) {
+        fetchMembers();
+      }
     } catch (e) {
       console.error(e);
+    } finally {
+      setIsSaving(false);
+      setDeleteModal({ isOpen: false, rowIndex: null });
     }
   };
 
@@ -401,7 +423,7 @@ export default function TeamClient() {
                           <Button variant="ghost" size="icon" className="h-9 w-9 bg-slate-50 hover:bg-slate-200 rounded-full" onClick={() => { setFormData(m); setIsEditing(true); setImageSrc(null); }}>
                             <Pencil className="w-4 h-4 text-slate-700" />
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-9 w-9 bg-red-50 hover:bg-red-100 hover:text-red-700 rounded-full text-red-500" onClick={() => handleDelete(m.rowIndex)}>
+                          <Button variant="ghost" size="icon" className="h-9 w-9 bg-red-50 hover:bg-red-100 hover:text-red-700 rounded-full text-red-500" onClick={() => openDeleteModal(m.rowIndex)}>
                             <Trash2 className="w-4 h-4" />
                           </Button>
                         </div>
@@ -414,6 +436,35 @@ export default function TeamClient() {
           )}
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {deleteModal.isOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 animate-in zoom-in-95 duration-200">
+            <h3 className="text-xl font-bold text-slate-900 mb-2">ยืนยันการลบสมาชิก</h3>
+            <p className="text-slate-500 mb-6 text-sm">
+              คุณแน่ใจหรือไม่ว่าต้องการลบสมาชิกคนนี้? ข้อมูลที่ถูกลบจะไม่สามารถกู้คืนได้
+            </p>
+            <div className="flex justify-end gap-3">
+              <Button 
+                variant="outline" 
+                onClick={() => setDeleteModal({ isOpen: false, rowIndex: null })}
+                disabled={isSaving}
+              >
+                ยกเลิก
+              </Button>
+              <Button 
+                variant="destructive" 
+                className="min-w-[120px] bg-red-500 hover:bg-red-600 text-white"
+                onClick={confirmDelete} 
+                disabled={deleteCountdown > 0 || isSaving}
+              >
+                {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : deleteCountdown > 0 ? `ยืนยันลบ (${deleteCountdown})` : "ยืนยันลบ"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
