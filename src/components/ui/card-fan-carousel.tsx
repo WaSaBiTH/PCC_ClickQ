@@ -42,19 +42,7 @@ function getResponsiveMultiplier(width: number) {
  * Returns a multiplier (0..1] that scales y-offsets and entry animation
  * distances when the viewport is too short for the ideal layout height.
  */
-function getHeightMultiplier(width: number) {
-  // Ideal layout heights (in px at 16px root) matching the CSS breakpoints
-  let idealPx: number;
-  if (width < 480) idealPx = 22 * 16;       // 352px
-  else if (width < 640) idealPx = 26 * 16;  // 416px
-  else if (width < 768) idealPx = 28 * 16;  // 448px
-  else if (width < 1024) idealPx = 34 * 16; // 544px
-  else idealPx = 38 * 16;                    // 608px
-
-  const available = window.innerHeight * 0.7; // 70vh budget
-  if (available >= idealPx) return 1;
-  return available / idealPx;
-}
+// removed getHeightMultiplier
 
 function getSlotConfig(totalCards: number, slot: number) {
   if (totalCards >= MAX_VISIBLE) return FAN_POSITIONS[slot];
@@ -137,7 +125,9 @@ export default function SocialCards({ cards }: SocialCardsProps) {
     const direction = directionRef.current;
     const isFirstMount = !hasEntered.current;
     const multiplier = getResponsiveMultiplier(window.innerWidth);
-    const hMult = getHeightMultiplier(window.innerWidth);
+    const sampleCard = document.querySelector('.fan-card') as HTMLElement;
+    const actualCardHeight = sampleCard ? sampleCard.clientHeight : 600;
+    const hMult = Math.min(1, actualCardHeight / 600);
     const slotCount = Math.min(MAX_VISIBLE, totalCards);
     const config = (slot: number) => getSlotConfig(slotCount, slot);
 
@@ -159,7 +149,7 @@ export default function SocialCards({ cards }: SocialCardsProps) {
       if (slot !== undefined) {
         const { x, y, rot, scale, zIndex } = config(slot);
         const target = {
-          x: `${x * multiplier}rem`,
+          x: `${x * multiplier * hMult}rem`,
           y: `${y * hMult}rem`,
           rotation: rot,
           scale,
@@ -201,11 +191,13 @@ export default function SocialCards({ cards }: SocialCardsProps) {
 
     const updateHoverLayout = (hoveredSlot: number | null) => {
       const mult = getResponsiveMultiplier(window.innerWidth);
-      const hM = getHeightMultiplier(window.innerWidth);
+      const sampleCard = document.querySelector('.fan-card') as HTMLElement;
+      const actualCardHeight = sampleCard ? sampleCard.clientHeight : 600;
+      const hM = Math.min(1, actualCardHeight / 600);
 
       visibleEntries.forEach(({ el, slot }) => {
         const base = config(slot);
-        let targetX = base.x * mult;
+        let targetX = base.x * mult * hM;
         let targetY = base.y * hM;
         let targetRot = base.rot;
         let targetScale = base.scale;
@@ -337,9 +329,9 @@ export default function SocialCards({ cards }: SocialCardsProps) {
               </div>
             );
             return card.linkUrl ? (
-              <a key={index} href={card.linkUrl} onClick={(e) => handleCardClick(e, index)} target={card.linkUrl.startsWith("http") ? "_blank" : "_self"} rel="noopener noreferrer" className="fan-card block cursor-pointer w-[240px] h-[340px] md:w-[340px] md:h-[480px] lg:w-[400px] lg:h-[560px] xl:w-[440px] xl:h-[600px] absolute">{image}</a>
+              <a key={index} href={card.linkUrl} onClick={(e) => handleCardClick(e, index)} target={card.linkUrl.startsWith("http") ? "_blank" : "_self"} rel="noopener noreferrer" className="fan-card block cursor-pointer h-[50vh] md:h-[60vh] lg:h-[65vh] xl:h-[70vh] max-h-[600px] aspect-[44/60] absolute">{image}</a>
             ) : (
-              <div key={index} onClick={(e) => handleCardClick(e, index)} className="fan-card block cursor-pointer w-[240px] h-[340px] md:w-[340px] md:h-[480px] lg:w-[400px] lg:h-[560px] xl:w-[440px] xl:h-[600px] absolute">{image}</div>
+              <div key={index} onClick={(e) => handleCardClick(e, index)} className="fan-card block cursor-pointer h-[50vh] md:h-[60vh] lg:h-[65vh] xl:h-[70vh] max-h-[600px] aspect-[44/60] absolute">{image}</div>
             );
           })}
         </div>
