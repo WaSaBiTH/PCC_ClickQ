@@ -83,7 +83,7 @@ export default function HomeLayout({ heroSection, teamSection, fbLink, igLink }:
 
         {/* Section 2: Team */}
         <div 
-          className="h-[100svh] w-full bg-slate-100 text-slate-900 pt-20 md:pt-24 pb-0 flex flex-col justify-start relative overflow-y-auto overflow-x-hidden"
+          className="h-[100svh] w-full bg-slate-100 text-slate-900 pt-20 md:pt-24 pb-0 flex flex-col justify-start relative overflow-y-auto overflow-x-hidden max-w-[100vw]"
           style={{ WebkitOverflowScrolling: 'touch' }}
         >
           {teamSection}

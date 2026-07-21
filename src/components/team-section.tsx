@@ -74,7 +74,7 @@ export default function TeamSection({ teamMembers }: TeamSectionProps) {
   const displayCards = getFilteredMembers();
 
   return (
-    <div className="w-full flex flex-col items-center h-full justify-start pt-4 pb-4 md:pb-8">
+    <div className="w-full flex flex-col items-center h-full justify-start pt-4 pb-24 md:pb-8 overflow-visible">
       <div className="container mx-auto px-4 mb-2 md:mb-4 text-center">
         <h2 className="text-3xl md:text-4xl font-bold mb-2 tracking-tight text-slate-800">ทำความรู้จักกับทีมงานของเรา</h2>
         <p className="text-slate-500 text-sm md:text-base max-w-2xl mx-auto mb-6">

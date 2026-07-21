@@ -17,8 +17,7 @@ interface SocialCardsProps {
   cards: CardItem[];
 }
 
-const MAX_VISIBLE = 7;
-const HALF = 3;
+
 
 const FAN_POSITIONS = [
   { rot: -21, scale: 0.7756, x: -30, y: 7.3, zIndex: 1 },
@@ -38,18 +37,17 @@ function getResponsiveMultiplier(width: number) {
   return 1.0;
 }
 
-function getSlotConfig(totalCards: number, slot: number) {
-  if (totalCards >= MAX_VISIBLE) return FAN_POSITIONS[slot];
-  const center = totalCards >> 1;
-  const distance = totalCards > 1 ? (slot - center) / center : 0;
-  const absDistance = Math.abs(distance);
-  return {
-    rot: distance * 21,
-    scale: 1.0 - 0.2244 * absDistance * absDistance,
-    x: distance * 30,
-    y: absDistance * absDistance * 7.3,
-    zIndex: 10 - Math.abs(slot - center),
-  };
+function getResponsiveMaxVisible(width: number) {
+  if (width < 640) return 3;
+  if (width < 1024) return 5;
+  return 7;
+}
+
+function getSlotConfig(slotCount: number, slot: number) {
+  const count = Math.min(slotCount, 7);
+  // Center the slots in the 7-item array
+  const offset = Math.floor((7 - count) / 2);
+  return FAN_POSITIONS[slot + offset];
 }
 
 function FanCardImage({ card, index }: { card: CardItem; index: number }) {
@@ -135,6 +133,14 @@ export default function SocialCards({ cards }: SocialCardsProps) {
   const totalCards = cards.length;
   const needsPagination = totalCards > 1; // Show arrows and allow click if more than 1 card
   const [centerIndex, setCenterIndex] = useState(0);
+  const [maxVisible, setMaxVisible] = useState(7);
+
+  useEffect(() => {
+    const onResize = () => setMaxVisible(getResponsiveMaxVisible(window.innerWidth));
+    onResize();
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   const getVisibleMap = useCallback((center: number) => {
     const map = new Map<number, number>();
@@ -142,13 +148,13 @@ export default function SocialCards({ cards }: SocialCardsProps) {
       cards.forEach((_, i) => map.set(i, i));
       return map;
     }
-    const slotCount = Math.min(MAX_VISIBLE, totalCards);
+    const slotCount = Math.min(maxVisible, totalCards);
     const half = Math.floor(slotCount / 2);
     for (let slot = 0; slot < slotCount; slot++) {
       map.set(((center + slot - half) % totalCards + totalCards) % totalCards, slot);
     }
     return map;
-  }, [totalCards, cards]);
+  }, [totalCards, cards, maxVisible]);
 
   const cycle = useCallback((direction: "left" | "right") => {
     if (isAnimating.current || !needsPagination) return;
@@ -192,7 +198,7 @@ export default function SocialCards({ cards }: SocialCardsProps) {
     const sampleCard = document.querySelector('.fan-card') as HTMLElement;
     const actualCardHeight = sampleCard ? sampleCard.clientHeight : 600;
     const hMult = Math.min(1, actualCardHeight / 600);
-    const slotCount = Math.min(MAX_VISIBLE, totalCards);
+    const slotCount = Math.min(maxVisible, totalCards);
     const config = (slot: number) => getSlotConfig(slotCount, slot);
 
     if (isFirstMount) isAnimating.current = true;
@@ -345,22 +351,20 @@ export default function SocialCards({ cards }: SocialCardsProps) {
 
   return (
     <section className="flex flex-col items-center w-full flex-1 relative z-20 overflow-visible min-h-0">
-      <div className="flex items-center justify-center w-full h-full max-w-[90rem]">
-        <div ref={containerRef} className="fan-layout flex relative justify-center items-center w-full max-w-[80rem] h-full min-h-[380px]">
+      <div ref={containerRef} className="fan-layout flex-1 flex relative justify-center items-center w-full max-w-[90rem] min-h-[380px] py-4">
           {cards.map((card, index) => {
             const image = <FanCardImage card={card} index={index} />;
             return card.linkUrl ? (
-              <a key={index} href={card.linkUrl} onClick={(e) => handleCardClick(e, index)} target={card.linkUrl.startsWith("http") ? "_blank" : "_self"} rel="noopener noreferrer" className="fan-card block cursor-pointer h-[50vh] md:h-[60vh] lg:h-[65vh] xl:h-[70vh] max-h-[600px] aspect-[44/60] absolute">{image}</a>
+              <a key={index} href={card.linkUrl} onClick={(e) => handleCardClick(e, index)} target={card.linkUrl.startsWith("http") ? "_blank" : "_self"} rel="noopener noreferrer" className="fan-card block cursor-pointer h-[65vh] md:h-[60vh] lg:h-[65vh] xl:h-[70vh] max-h-[85%] aspect-[44/60] absolute">{image}</a>
             ) : (
-              <div key={index} onClick={(e) => handleCardClick(e, index)} className="fan-card block cursor-pointer h-[50vh] md:h-[60vh] lg:h-[65vh] xl:h-[70vh] max-h-[600px] aspect-[44/60] absolute">{image}</div>
+              <div key={index} onClick={(e) => handleCardClick(e, index)} className="fan-card block cursor-pointer h-[65vh] md:h-[60vh] lg:h-[65vh] xl:h-[70vh] max-h-[85%] aspect-[44/60] absolute">{image}</div>
             );
           })}
         </div>
-      </div>
 
       {needsPagination && (
         <div className="flex items-center justify-center gap-4 mt-2 md:mt-4 z-30">
-          <button className={`${ARROW_CLASSES} w-10 h-10 md:w-12 md:h-12`} onClick={() => cycle("left")} aria-label="Previous">
+          <button type="button" className={`${ARROW_CLASSES} w-10 h-10 md:w-12 md:h-12`} onClick={() => cycle("left")} aria-label="Previous">
             {chevron("left")}
           </button>
           <div className="flex items-center gap-2 mx-4">
@@ -368,7 +372,7 @@ export default function SocialCards({ cards }: SocialCardsProps) {
               <span key={i} className={`w-2 h-2 rounded-full transition-all duration-300 ${i === centerIndex ? "bg-slate-800 scale-[1.3]" : "bg-slate-300"}`} />
             ))}
           </div>
-          <button className={`${ARROW_CLASSES} w-10 h-10 md:w-12 md:h-12`} onClick={() => cycle("right")} aria-label="Next">
+          <button type="button" className={`${ARROW_CLASSES} w-10 h-10 md:w-12 md:h-12`} onClick={() => cycle("right")} aria-label="Next">
             {chevron("right")}
           </button>
         </div>
