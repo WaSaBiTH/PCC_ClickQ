@@ -94,6 +94,14 @@ export default function RangePickerBooking() {
       showAlert("กรุณาเลือกประเภทงานอย่างน้อย 1 อย่าง");
       return;
     }
+
+    const [startH, startM] = tempTime.start.split(':').map(Number);
+    const [endH, endM] = tempTime.end.split(':').map(Number);
+    if (startH * 60 + startM >= endH * 60 + endM) {
+      showAlert("กรุณาระบุเวลาให้ถูกต้อง");
+      return;
+    }
+
     const newSlot: BookingSlot = {
       id: Math.random().toString(36).substring(2, 9),
       from: date.from,
@@ -352,12 +360,30 @@ export default function RangePickerBooking() {
               <div className="flex flex-wrap items-center gap-2 justify-center">
                 <TimePicker
                   value={tempTime.start}
-                  onChange={(val) => setTempTime({ ...tempTime, start: val })}
+                  onChange={(val) => {
+                    const [h1, m1] = val.split(':').map(Number);
+                    const [h2, m2] = tempTime.end.split(':').map(Number);
+                    if (h1 * 60 + m1 >= h2 * 60 + m2) {
+                      const newEndH = Math.min(23, h1 + 1);
+                      setTempTime({ start: val, end: `${String(newEndH).padStart(2, '0')}:${val.split(':')[1]}` });
+                    } else {
+                      setTempTime({ ...tempTime, start: val });
+                    }
+                  }}
                   label="เริ่ม"
                 />
                 <TimePicker
                   value={tempTime.end}
-                  onChange={(val) => setTempTime({ ...tempTime, end: val })}
+                  onChange={(val) => {
+                    const [h1, m1] = tempTime.start.split(':').map(Number);
+                    const [h2, m2] = val.split(':').map(Number);
+                    if (h2 * 60 + m2 <= h1 * 60 + m1) {
+                      const newStartH = Math.max(0, h2 - 1);
+                      setTempTime({ start: `${String(newStartH).padStart(2, '0')}:${val.split(':')[1]}`, end: val });
+                    } else {
+                      setTempTime({ ...tempTime, end: val });
+                    }
+                  }}
                   label="จบ"
                 />
               </div>

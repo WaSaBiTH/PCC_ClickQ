@@ -42,52 +42,42 @@ export async function scrapeGooglePhotosAlbum(): Promise<any[]> {
   // 1. Try fetching from approved booking links first
   try {
     const approvedData = await getApprovedGooglePhotosData();
-    const now = new Date();
     
-    const recentLinks: string[] = [];
-    const oldLinks: string[] = [];
-    
-    for (const data of approvedData) {
-      let isRecent = false;
-      if (data.date) {
-        // Try parsing the date. For standard formats like YYYY-MM-DD or MM/DD/YYYY
-        // If DD/MM/YYYY, it might be NaN or incorrect, but we try best effort.
-        let d = new Date(data.date);
-        if (isNaN(d.getTime()) && data.date.includes('/')) {
-            // try swapping DD and MM just in case
-            const parts = data.date.split('/');
+    if (approvedData.length > 0) {
+      const latestAlbum = approvedData[0];
+      let isLatestRecent = true;
+      
+      if (latestAlbum.date) {
+        const now = new Date();
+        let d = new Date(latestAlbum.date);
+        if (isNaN(d.getTime()) && latestAlbum.date.includes('/')) {
+            const parts = latestAlbum.date.split('/');
             if (parts.length === 3) {
-                d = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`); // YYYY-MM-DD
+                d = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`); 
             }
         }
-        
         if (!isNaN(d.getTime())) {
-          const diffDays = Math.abs(now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24);
-          if (diffDays <= 7) {
-            isRecent = true;
+          const diffDays = (now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24);
+          if (diffDays > 3) {
+            isLatestRecent = false;
           }
         }
       }
-      
-      if (isRecent) {
-        recentLinks.push(data.link);
-      } else {
-        oldLinks.push(data.link);
-      }
-    }
 
-    if (recentLinks.length > 0) {
-      const urlsToScrape = recentLinks.slice(0, 5); // Limit to 5
-      for (const url of urlsToScrape) {
-        const images = await scrapeSingleAlbum(url);
+      if (isLatestRecent) {
+        const images = await scrapeSingleAlbum(latestAlbum.link);
         allImages.push(...images);
-      }
-    } else if (oldLinks.length > 0) {
-      // If no recent album, prioritize old submitted albums before fallback
-      const urlsToScrape = oldLinks.slice(0, 5);
-      for (const url of urlsToScrape) {
-        const images = await scrapeSingleAlbum(url);
-        allImages.push(...images);
+      } else {
+        const oldLinks = approvedData.map(d => d.link);
+        for (let i = oldLinks.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [oldLinks[i], oldLinks[j]] = [oldLinks[j], oldLinks[i]];
+        }
+        const urlsToScrape = oldLinks.slice(0, 5);
+        for (const url of urlsToScrape) {
+          const images = await scrapeSingleAlbum(url);
+          allImages.push(...images);
+        }
       }
     }
   } catch (err) {
