@@ -281,11 +281,40 @@ export default function RangePickerBooking() {
         setIsSuccessSpinning(true);
         setTimeout(() => {
           setIsSuccessSpinning(false);
-          showAlert(`การจองคิวสำเร็จ!\nชื่อ: ${formData.bookerName}\nคิวงานทั้งหมด:\n${slotsStr}`, 'success');
+          const successMessage = (
+            <div className="flex flex-col gap-3 text-left w-full mt-2">
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                <span className="text-xs text-slate-500 font-medium">ชื่อผู้จอง/งาน:</span>
+                <p className="font-semibold text-slate-800">{formData.bookerName} - {formData.eventName}</p>
+              </div>
+              <div className="bg-blue-50/50 p-3 rounded-xl border border-blue-100">
+                <span className="text-xs text-blue-500 font-medium mb-2 block">คิวงานที่จองไว้:</span>
+                <ul className="space-y-2">
+                  {bookingSlots.map((slot, idx) => {
+                    const dateText = slot.to 
+                      ? `${format(slot.from, "dd MMM", { locale: th })} - ${format(slot.to, "dd MMM", { locale: th })}`
+                      : format(slot.from, "dd MMM yyyy", { locale: th });
+                    return (
+                      <li key={idx} className="text-sm text-slate-700 bg-white p-2 rounded-lg shadow-sm border border-slate-100 flex flex-col">
+                        <span className="font-bold text-slate-800">{dateText}</span>
+                        <span className="text-xs text-slate-500 mt-0.5">เวลา: {slot.start} น. - {slot.end} น.</span>
+                        <div className="flex flex-wrap gap-1 mt-1.5">
+                          {slot.services.map(s => (
+                            <span key={s} className="bg-blue-100 text-blue-700 text-[10px] px-1.5 py-0.5 rounded font-medium">{s}</span>
+                          ))}
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            </div>
+          );
+          showAlert(successMessage, 'success', 'การจองคิวสำเร็จ!');
           setFormData({ bookerName: "", eventName: "", phone: "", contact: "", email: "", notes: "" });
           setBookingSlots([]);
           setFiles([]);
-        }, 5000);
+        }, 15000);
       } else {
         showAlert("เกิดข้อผิดพลาดในการจองคิว โปรดลองอีกครั้ง", "error");
       }
