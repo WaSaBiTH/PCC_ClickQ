@@ -53,7 +53,7 @@ export default function MainNav({ activeOverride, onHomeClick, onTeamClick, fbLi
               }}
               className="font-bold text-xl cursor-pointer hover:opacity-80 transition-opacity text-slate-900"
             >
-              PhotoClubClickQ
+              <span className="max-[400px]:hidden">PhotoClub</span>ClickQ
             </Link>
             
             <div className="flex items-center gap-3">

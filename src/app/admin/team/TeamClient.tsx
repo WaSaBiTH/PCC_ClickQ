@@ -16,6 +16,7 @@ interface TeamMember {
   imageUrl: string;
   contactLink: string;
   status: string;
+  email?: string;
 }
 
 export default function TeamClient() {
@@ -269,9 +270,14 @@ export default function TeamClient() {
                   </div>
                 </div>
 
-                <div className="md:col-span-2">
+                <div className="md:col-span-1">
                   <label className="block text-sm font-semibold mb-1.5 text-slate-700">Contact Link (IG/FB)</label>
                   <input type="text" className="w-full border border-slate-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 p-2.5 rounded-lg outline-none transition-all text-slate-900 shadow-sm" value={formData.contactLink || ""} onChange={(e) => setFormData({...formData, contactLink: e.target.value})} placeholder="ลิ้งค์ IG,Facebook" />
+                </div>
+                
+                <div className="md:col-span-1">
+                  <label className="block text-sm font-semibold mb-1.5 text-slate-700">Email (สำหรับรับ Calendar Invite)</label>
+                  <input type="email" className="w-full border border-slate-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 p-2.5 rounded-lg outline-none transition-all text-slate-900 shadow-sm" value={formData.email || ""} onChange={(e) => setFormData({...formData, email: e.target.value})} placeholder="example@gmail.com" />
                 </div>
               </div>
 

@@ -13,7 +13,7 @@ export async function POST(request: Request) {
     }
 
     const dates = body.date.split(",").map((d: string) => d.trim()).filter(Boolean);
-    const bookingRef = `[Ref: BKG-${Math.random().toString(36).substring(2, 6).toUpperCase()}]`;
+    const bookingRef = `[Ref: PCQ-${Math.random().toString(36).substring(2, 6).toUpperCase()}]`;
     const notesWithRef = `${bookingRef}\n${body.notes || ""}`;
 
     const results = [];
@@ -23,11 +23,14 @@ export async function POST(request: Request) {
         body.phone,
         body.contact,
         dateStr,
-        "", // TimeSlot
+        body.timeSlot || "", // TimeSlot
         body.serviceType,
         body.driveLink || "",
         "Pending",
-        notesWithRef
+        notesWithRef,
+        "", // googlePhotosLink (Index 9)
+        "", // rejectionDate (Index 10)
+        body.email || "" // email (Index 11)
       ];
 
       const response = await fetch(GAS_URL, {

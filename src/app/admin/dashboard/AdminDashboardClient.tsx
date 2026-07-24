@@ -38,15 +38,26 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
   // State for search query
   const [searchQuery, setSearchQuery] = useState("");
 
-  const handleStatusUpdate = async (rowIndex: number, status: string, googlePhotosLink?: string, facebookLink?: string, igLink?: string) => {
+  // State for Edit Before Accept Modal
+  const [acceptModalData, setAcceptModalData] = useState<{
+    rowIndex: number;
+    name: string;
+    date: string;
+    timeSlot: string;
+    serviceType: string;
+    email: string;
+  } | null>(null);
+
+  const handleStatusUpdate = async (rowIndex: number, status: string, googlePhotosLink?: string, facebookLink?: string, igLink?: string, editedData?: any) => {
     setUpdatingAction({ rowIndex, action: status });
     try {
-      // Extract details for the Gallery sheet if it's Completed
-      const rowData = bookings[rowIndex]; // rowIndex is 1-indexed for bookings array (0 is header, 1 is first row)
-      const bookingDetails = {
+      const rowData = bookings[rowIndex]; 
+      const bookingDetails = editedData || {
         name: rowData[0],
         serviceType: rowData[5],
-        date: rowData[3]
+        date: rowData[3],
+        timeSlot: rowData[4],
+        email: rowData[11]
       };
 
       const res = await fetch("/api/admin/bookings", {
@@ -61,6 +72,13 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
         updatedBookings[rowIndex][7] = status;
         if (googlePhotosLink !== undefined) {
           updatedBookings[rowIndex][9] = googlePhotosLink;
+        }
+        if (editedData) {
+          updatedBookings[rowIndex][0] = editedData.name;
+          updatedBookings[rowIndex][3] = editedData.date;
+          updatedBookings[rowIndex][4] = editedData.timeSlot;
+          updatedBookings[rowIndex][5] = editedData.serviceType;
+          updatedBookings[rowIndex][11] = editedData.email;
         }
         setBookings(updatedBookings);
       } else {
@@ -91,7 +109,9 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
       const bookingDetails = {
         name: rowData[0],
         serviceType: rowData[5],
-        date: rowData[3]
+        date: rowData[3],
+        timeSlot: rowData[4],
+        email: rowData[11]
       };
 
       try {
@@ -342,6 +362,82 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
           </div>
         )}
 
+        {/* Accept Booking Modal */}
+        {acceptModalData && (
+          <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-lg border border-slate-100 animate-in zoom-in-95 duration-200">
+              <h3 className="text-xl font-bold text-slate-800 mb-2">ตรวจสอบและแก้ไขข้อมูลก่อนรับงาน</h3>
+              <p className="text-sm text-slate-500 mb-6">ข้อมูลนี้จะถูกบันทึกลงใน Google Sheets ทับของเดิม และใช้สำหรับสร้างปฏิทินส่งให้ทีมงาน</p>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">ชื่องาน (จะปรากฏในปฏิทิน)</label>
+                  <input 
+                    type="text" 
+                    value={acceptModalData.name}
+                    onChange={(e) => setAcceptModalData({ ...acceptModalData, name: e.target.value })}
+                    className="w-full border border-slate-200 p-2.5 rounded-xl bg-slate-50 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">ประเภทงาน (เช่น ถ่ายรูป, ไลฟ์สตรีม)</label>
+                  <input 
+                    type="text" 
+                    value={acceptModalData.serviceType}
+                    onChange={(e) => setAcceptModalData({ ...acceptModalData, serviceType: e.target.value })}
+                    className="w-full border border-slate-200 p-2.5 rounded-xl bg-slate-50 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">วันที่ (YYYY-MM-DD)</label>
+                    <input 
+                      type="text" 
+                      value={acceptModalData.date}
+                      onChange={(e) => setAcceptModalData({ ...acceptModalData, date: e.target.value })}
+                      className="w-full border border-slate-200 p-2.5 rounded-xl bg-slate-50 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">เวลา (เช่น 09:00-17:00)</label>
+                    <input 
+                      type="text" 
+                      value={acceptModalData.timeSlot}
+                      onChange={(e) => setAcceptModalData({ ...acceptModalData, timeSlot: e.target.value })}
+                      className="w-full border border-slate-200 p-2.5 rounded-xl bg-slate-50 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">อีเมลผู้จอง</label>
+                  <input 
+                    type="email" 
+                    value={acceptModalData.email}
+                    onChange={(e) => setAcceptModalData({ ...acceptModalData, email: e.target.value })}
+                    className="w-full border border-slate-200 p-2.5 rounded-xl bg-slate-50 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                    placeholder="ปล่อยว่างได้หากไม่มี"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 mt-8">
+                <Button variant="outline" className="rounded-xl" onClick={() => setAcceptModalData(null)}>ยกเลิก</Button>
+                <Button 
+                  onClick={() => {
+                    handleStatusUpdate(acceptModalData.rowIndex, "Accepted", undefined, undefined, undefined, acceptModalData);
+                    setAcceptModalData(null);
+                  }}
+                  disabled={updatingAction !== null}
+                  className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-md flex items-center"
+                >
+                  {updatingAction !== null && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                  {updatingAction !== null ? "กำลังบันทึก..." : "ยืนยันรับงาน & สร้าง Calendar"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Bulk Action Toolbar */}
         {selectedRows.length > 0 && (
           <div className="bg-white p-4 rounded-xl shadow-md border border-blue-100 mb-6 flex flex-col sm:flex-row items-center justify-between gap-4 animate-in slide-in-from-top-4">
@@ -572,7 +668,19 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
                                   size="sm" 
                                   variant="outline" 
                                   className="text-blue-600 border-blue-600 hover:bg-blue-50 bg-white flex items-center"
-                                  onClick={() => handleStatusUpdate(rowIndex, "Accepted")}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const d = new Date(row[3]);
+                                    const formattedDate = !isNaN(d.getTime()) ? format(d, "yyyy-MM-dd") : (row[3] || "");
+                                    setAcceptModalData({
+                                      rowIndex: rowIndex,
+                                      name: row[0] || "",
+                                      date: formattedDate,
+                                      timeSlot: row[4] || "",
+                                      serviceType: row[5] || "",
+                                      email: row[11] || ""
+                                    });
+                                  }}
                                   disabled={updatingAction !== null}
                                 >
                                   {updatingAction?.rowIndex === rowIndex && updatingAction?.action === "Accepted" && <Loader2 className="w-3 h-3 mr-1 animate-spin" />}
@@ -773,7 +881,19 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
                       <>
                         <button 
                           className="w-1/2 h-12 flex items-center justify-center font-bold text-green-600 bg-white hover:bg-green-50 active:bg-green-100 transition-colors disabled:opacity-50"
-                          onClick={() => handleStatusUpdate(rowIndex, "Accepted")}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const d = new Date(row[3]);
+                            const formattedDate = !isNaN(d.getTime()) ? format(d, "yyyy-MM-dd") : (row[3] || "");
+                            setAcceptModalData({
+                              rowIndex: rowIndex,
+                              name: row[0] || "",
+                              date: formattedDate,
+                              timeSlot: row[4] || "",
+                              serviceType: row[5] || "",
+                              email: row[11] || ""
+                            });
+                          }}
                           disabled={updatingAction !== null}
                         >
                           {updatingAction?.rowIndex === rowIndex && updatingAction?.action === "Accepted" && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}

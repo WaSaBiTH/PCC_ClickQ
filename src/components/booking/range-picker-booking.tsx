@@ -61,6 +61,7 @@ export default function RangePickerBooking() {
     eventName: "",
     phone: "",
     contact: "",
+    email: "",
     notes: "",
   });
 
@@ -254,12 +255,17 @@ export default function RangePickerBooking() {
       const allServices = new Set<string>();
       bookingSlots.forEach(s => s.services.forEach(srv => allServices.add(srv)));
 
-      // API expects name, phone, contact, date, serviceType, notes, driveLink
+      const firstSlot = bookingSlots[0];
+      const timeSlotStr = firstSlot ? `${firstSlot.start}-${firstSlot.end}` : "";
+
+      // API expects name, phone, contact, date, timeSlot, serviceType, notes, driveLink, email
       const payload = {
         name: `${formData.bookerName} - ${formData.eventName}`,
         phone: formData.phone || "-", // Provide default if empty
         contact: formData.contact,
+        email: formData.email,
         date: datesString,
+        timeSlot: timeSlotStr,
         serviceType: Array.from(allServices).join(", "),
         notes: `คิวงานทั้งหมด:\n${slotsStr}\n\nรายละเอียดเพิ่มเติม:\n${formData.notes}`,
         driveLink: driveLinks,
@@ -276,7 +282,7 @@ export default function RangePickerBooking() {
         setTimeout(() => {
           setIsSuccessSpinning(false);
           showAlert(`การจองคิวสำเร็จ!\nชื่อ: ${formData.bookerName}\nคิวงานทั้งหมด:\n${slotsStr}`, 'success');
-          setFormData({ bookerName: "", eventName: "", phone: "", contact: "", notes: "" });
+          setFormData({ bookerName: "", eventName: "", phone: "", contact: "", email: "", notes: "" });
           setBookingSlots([]);
           setFiles([]);
         }, 5000);
@@ -513,6 +519,18 @@ export default function RangePickerBooking() {
                 onChange={(e) => setFormData({ ...formData, eventName: e.target.value })}
                 className="bg-slate-50 border-slate-200 text-sm h-10 rounded-xl"
                 placeholder="เช่น กิจกรรมรับน้อง, งานปัจฉิมนิเทศ"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-slate-700 mb-1">อีเมลผู้จอง <span className="text-red-500">*</span></label>
+              <Input
+                required
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                className="bg-slate-50 border-slate-200 text-sm h-10 rounded-xl"
+                placeholder="example@email.com"
               />
             </div>
 

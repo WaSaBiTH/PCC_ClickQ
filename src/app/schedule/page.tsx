@@ -55,13 +55,13 @@ export default async function SchedulePage() {
     });
 
   return (
-    <div className="min-h-[100dvh] bg-slate-100 text-slate-900 font-sans selection:bg-orange-500/30 flex flex-col">
+    <div className="min-h-[100dvh] md:h-[100dvh] bg-slate-100 text-slate-900 font-sans selection:bg-orange-500/30 flex flex-col md:overflow-hidden">
       
       {/* Navbar/Header */}
       <MainNav />
 
       {/* Main Content */}
-      <main className="w-full px-4 pt-20 pb-4 flex-1 flex flex-col min-h-[calc(100dvh-4rem)]">
+      <main className="w-full px-4 pt-20 pb-4 flex-1 flex flex-col md:min-h-0">
         <CalendarView initialBookings={bookings} />
       </main>
 

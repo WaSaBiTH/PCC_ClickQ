@@ -10,8 +10,10 @@ export default function SettingsClient() {
   const [customUrls, setCustomUrls] = useState<string[]>([""]);
   const [fbLink, setFbLink] = useState("");
   const [igLink, setIgLink] = useState("");
+  const [enableCalendar, setEnableCalendar] = useState(false);
   const [activeLinkIndex, setActiveLinkIndex] = useState<number | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isSavingCalendar, setIsSavingCalendar] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [navigatingAction, setNavigatingAction] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
@@ -34,14 +36,17 @@ export default function SettingsClient() {
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const [resBg, resFb, resIg] = await Promise.all([
-          fetch("/api/admin/settings?key=custom_background_urls"),
-          fetch("/api/admin/settings?key=fb_link"),
-          fetch("/api/admin/settings?key=ig_link"),
+        const t = Date.now();
+        const [resBg, resFb, resIg, resCal] = await Promise.all([
+          fetch(`/api/admin/settings?key=custom_background_urls&t=${t}`),
+          fetch(`/api/admin/settings?key=fb_link&t=${t}`),
+          fetch(`/api/admin/settings?key=ig_link&t=${t}`),
+          fetch(`/api/admin/settings?key=enable_calendar_invites&t=${t}`),
         ]);
         const dataBg = await resBg.json();
         const dataFb = await resFb.json();
         const dataIg = await resIg.json();
+        const dataCal = await resCal.json();
 
         if (dataBg.value) {
           const urls = dataBg.value.split(",").map((u: string) => u.trim()).filter((u: string) => u);
@@ -51,6 +56,7 @@ export default function SettingsClient() {
         }
         if (dataFb.value) setFbLink(dataFb.value);
         if (dataIg.value) setIgLink(dataIg.value);
+        if (dataCal.value) setEnableCalendar(dataCal.value === "on");
       } catch (e) {
         console.error(e);
       } finally {
@@ -59,6 +65,27 @@ export default function SettingsClient() {
     };
     fetchSettings();
   }, []);
+
+  const handleToggleCalendar = async (checked: boolean) => {
+    setIsSavingCalendar(true);
+    try {
+      const res = await fetch("/api/admin/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: "enable_calendar_invites", value: checked ? "on" : "off" })
+      });
+      if (!res.ok) {
+        showToast("Failed to update calendar settings", "error");
+      } else {
+        setEnableCalendar(checked);
+        showToast(checked ? "เปิดใช้งาน Calendar Invites แล้ว" : "ปิดใช้งาน Calendar Invites แล้ว");
+      }
+    } catch (e) {
+      showToast("Error updating settings", "error");
+    } finally {
+      setIsSavingCalendar(false);
+    }
+  };
 
   const handleSaveSettings = async () => {
     setIsSaving(true);
@@ -286,6 +313,35 @@ export default function SettingsClient() {
               </div>
             </>
           )}
+        </div>
+
+        {/* Calendar Invites Box */}
+        <div className="bg-white rounded-lg shadow p-6 mb-6">
+          <h2 className="text-xl font-semibold mb-4">Calendar Invites</h2>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-blue-50 border border-blue-200 rounded-lg gap-4">
+            <div>
+              <h3 className="font-semibold text-blue-900">เปิด/ปิด การส่ง Calendar Invite อัตโนมัติ</h3>
+              <p className="text-sm text-blue-700 mt-1">หากเปิดใช้งาน ระบบจะส่งปฏิทินเชิญให้ลูกค้าและทีมงานอัตโนมัติทันทีที่กด "Accept (รับงาน)"</p>
+            </div>
+            
+            {isLoading || isSavingCalendar ? (
+              <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+            ) : (
+              <button
+                onClick={() => handleToggleCalendar(!enableCalendar)}
+                className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                  enableCalendar ? "bg-blue-600" : "bg-slate-300"
+                }`}
+              >
+                <span className="sr-only">Toggle Calendar</span>
+                <span
+                  className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
+                    enableCalendar ? "translate-x-6" : "translate-x-1"
+                  }`}
+                />
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Global Toast Notification */}

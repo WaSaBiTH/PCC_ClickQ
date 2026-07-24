@@ -39,6 +39,7 @@ export async function GET() {
       imageUrl: row[3] || "",
       contactLink: row[4] || "",
       status: row[5] || "Active",
+      email: row[6] || "",
     }));
     return NextResponse.json({ success: true, members });
   } catch (error: any) {
@@ -50,7 +51,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { teamType, memberName, role, imageUrl, contactLink, status } = body;
+    const { teamType, memberName, role, imageUrl, contactLink, status, email } = body;
     
     await appendToSheet("Team_Members", [
       teamType || "",
@@ -58,7 +59,8 @@ export async function POST(request: Request) {
       role || "",
       imageUrl || "",
       contactLink || "",
-      status || "Active"
+      status || "Active",
+      email || ""
     ]);
 
     return NextResponse.json({ success: true });
@@ -71,7 +73,7 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
   try {
     const body = await request.json();
-    const { rowIndex, teamType, memberName, role, imageUrl, contactLink, status } = body;
+    const { rowIndex, teamType, memberName, role, imageUrl, contactLink, status, email } = body;
 
     if (!rowIndex) {
       return NextResponse.json({ error: "Missing rowIndex" }, { status: 400 });
@@ -80,7 +82,7 @@ export async function PUT(request: Request) {
     const sheets = await getSheetsClient();
     await sheets.spreadsheets.values.update({
       spreadsheetId: SPREADSHEET_ID,
-      range: `Team_Members!A${rowIndex}:F${rowIndex}`,
+      range: `Team_Members!A${rowIndex}:G${rowIndex}`,
       valueInputOption: "USER_ENTERED",
       requestBody: {
         values: [[
@@ -89,7 +91,8 @@ export async function PUT(request: Request) {
           role || "",
           imageUrl || "",
           contactLink || "",
-          status || "Active"
+          status || "Active",
+          email || ""
         ]],
       },
     });

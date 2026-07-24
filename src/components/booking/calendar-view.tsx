@@ -265,7 +265,7 @@ export default function CalendarView({ initialBookings }: CalendarViewProps) {
             ))}
           </div>
 
-          <div className="flex-1 grid grid-cols-7 bg-slate-200 auto-rows-fr">
+          <div className="flex-1 grid grid-cols-7 bg-slate-200 auto-rows-fr min-h-0">
             {monthDays.map((dayItem, idx) => {
               const today = startOfDay(new Date());
               const isCurrentMonth = isSameMonth(dayItem, monthStart);
@@ -282,7 +282,7 @@ export default function CalendarView({ initialBookings }: CalendarViewProps) {
                   key={idx}
                   onClick={() => onDateClick(dayItem, dayBookings)}
                   className={`
-                    p-1 md:p-2 border-r border-b border-slate-200 transition-colors flex flex-col gap-0.5 md:gap-1
+                    min-h-0 p-1 md:p-2 border-r border-b border-slate-200 transition-colors flex flex-col gap-0.5 md:gap-1 overflow-hidden
                     ${!isCurrentMonth ? "bg-slate-50 text-slate-300" : isPast ? "bg-slate-100 text-slate-800" : "bg-white text-slate-800"}
                     ${isToday ? "bg-orange-50/30" : ""}
                     ${hasBookings ? "cursor-pointer hover:bg-slate-50" : "cursor-default"}
@@ -302,7 +302,7 @@ export default function CalendarView({ initialBookings }: CalendarViewProps) {
                     {dayBookings.map((booking) => (
                       <div
                         key={booking.id}
-                        className={`text-xs px-2 py-1.5 rounded-md border ${statusColors[booking.status]} truncate flex items-center justify-between font-medium`}
+                        className={`shrink-0 text-xs px-2 py-1.5 rounded-md border ${statusColors[booking.status]} truncate flex items-center justify-between font-medium`}
                         title={`${booking.time} - ${booking.clientName} (${booking.service})`}
                       >
                         <span className="truncate">{booking.clientName}</span>
@@ -311,9 +311,13 @@ export default function CalendarView({ initialBookings }: CalendarViewProps) {
                   </div>
                   
                   {/* Mobile Dots */}
-                  <div className="flex md:hidden flex-wrap gap-1 mt-0.5 justify-center md:justify-start">
-                    {dayBookings.map((booking) => (
-                      <div key={booking.id} className={`w-2 h-2 rounded-full shadow-sm ${statusDotColors[booking.status]}`} />
+                  <div className="flex md:hidden mt-0.5 justify-center md:justify-start -space-x-1 relative z-10">
+                    {Array.from(new Set(dayBookings.map(b => b.status))).map((status, i) => (
+                      <div 
+                        key={status} 
+                        className={`w-2.5 h-2.5 rounded-full shadow-sm ring-[1px] ring-white ${statusDotColors[status as BookingStatus]}`} 
+                        style={{ zIndex: 10 - i }} 
+                      />
                     ))}
                   </div>
                   
@@ -348,11 +352,14 @@ export default function CalendarView({ initialBookings }: CalendarViewProps) {
                       <div className={`text-[10px] md:text-xs font-medium uppercase ${isToday ? "text-orange-500" : "text-slate-500"}`}>{weekDays[idx]}</div>
                       <div className={`text-base md:text-xl font-bold w-7 h-7 md:w-9 md:h-9 flex items-center justify-center rounded-full ${isToday ? "bg-orange-500 text-white" : "text-slate-800"}`}>{format(dayItem, "d")}</div>
                     </div>
-                    <div className="flex gap-1 h-2 mt-1">
-                      {dayBookings.slice(0,3).map(b => (
-                        <div key={b.id} className={`w-2 h-2 rounded-full shadow-sm ${statusDotColors[b.status]}`} />
+                    <div className="flex justify-center -space-x-1 mt-1">
+                      {Array.from(new Set(dayBookings.map(b => b.status))).map((status, i) => (
+                        <div 
+                          key={status} 
+                          className={`w-2.5 h-2.5 rounded-full shadow-sm ring-[1px] ring-white ${statusDotColors[status as BookingStatus]}`} 
+                          style={{ zIndex: 10 - i }} 
+                        />
                       ))}
-                      {dayBookings.length > 3 && <div className="w-2 h-2 rounded-full bg-slate-400 shadow-sm" />}
                     </div>
                   </div>
                 );
