@@ -391,7 +391,7 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">วันที่ (YYYY-MM-DD)</label>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">วันที่ (เช่น DD-MM-YYYY)</label>
                     <input 
                       type="text" 
                       value={acceptModalData.date}
@@ -400,7 +400,7 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">เวลา (เช่น 09:00-17:00)</label>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">เวลา (เช่น HH:MM-HH:MM)</label>
                     <input 
                       type="text" 
                       value={acceptModalData.timeSlot}
@@ -692,11 +692,23 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
                                         formattedDate = format(d, "yyyy-MM-dd");
                                       }
                                     }
+                                    let timeSlot = row[4] || "";
+                                    if (timeSlot.includes(" - ")) {
+                                      const timeParts = timeSlot.split(" - ");
+                                      if (timeParts[0].trim() === timeParts[1].trim()) {
+                                        timeSlot = timeParts[0].trim();
+                                      }
+                                    } else if (timeSlot.length === 21 && timeSlot[10] === '-') {
+                                      const p1 = timeSlot.substring(0, 10);
+                                      const p2 = timeSlot.substring(11);
+                                      if (p1 === p2) timeSlot = p1;
+                                    }
+
                                     setAcceptModalData({
                                       rowIndex: rowIndex,
                                       name: row[0] || "",
                                       date: formattedDate,
-                                      timeSlot: row[4] || "",
+                                      timeSlot: timeSlot,
                                       serviceType: row[5] || "",
                                       email: row[11] || ""
                                     });
@@ -904,11 +916,23 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
                             e.stopPropagation();
                             const d = new Date(row[3]);
                             const formattedDate = !isNaN(d.getTime()) ? format(d, "yyyy-MM-dd") : (row[3] || "");
+                            let timeSlot = row[4] || "";
+                            if (timeSlot.includes(" - ")) {
+                              const timeParts = timeSlot.split(" - ");
+                              if (timeParts[0].trim() === timeParts[1].trim()) {
+                                timeSlot = timeParts[0].trim();
+                              }
+                            } else if (timeSlot.length === 21 && timeSlot[10] === '-') {
+                              const p1 = timeSlot.substring(0, 10);
+                              const p2 = timeSlot.substring(11);
+                              if (p1 === p2) timeSlot = p1;
+                            }
+
                             setAcceptModalData({
                               rowIndex: rowIndex,
                               name: row[0] || "",
                               date: formattedDate,
-                              timeSlot: row[4] || "",
+                              timeSlot: timeSlot,
                               serviceType: row[5] || "",
                               email: row[11] || ""
                             });

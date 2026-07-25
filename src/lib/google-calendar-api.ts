@@ -56,6 +56,27 @@ export async function createCalendarEvent(title: string, dateStr: string, timeSl
     }
 
     const parseToLocalIso = (dStr: string) => {
+      // Try to parse Thai date e.g. "28 ก.ค. 2026"
+      const partsThai = dStr.trim().split(" ");
+      if (partsThai.length === 3) {
+        const THAI_MONTHS: Record<string, string> = { "ม.ค.": "01", "ก.พ.": "02", "มี.ค.": "03", "เม.ย.": "04", "พ.ค.": "05", "มิ.ย.": "06", "ก.ค.": "07", "ส.ค.": "08", "ก.ย.": "09", "ต.ค.": "10", "พ.ย.": "11", "ธ.ค.": "12" };
+        const day = partsThai[0].padStart(2, '0');
+        const month = THAI_MONTHS[partsThai[1]];
+        const year = partsThai[2];
+        if (month && year) {
+          return `${year}-${month}-${day}`;
+        }
+      }
+      
+      // Try to parse DD-MM-YYYY
+      const partsHyphen = dStr.trim().split("-");
+      if (partsHyphen.length === 3 && partsHyphen[0].length === 2) {
+        const day = partsHyphen[0];
+        const month = partsHyphen[1];
+        const year = partsHyphen[2];
+        return `${year}-${month}-${day}`;
+      }
+
       let cleanStr = dStr.substring(0, 10);
       const d = new Date(dStr);
       if (!isNaN(d.getTime())) {
