@@ -8,7 +8,7 @@ import { Loader2, Users, Settings, LogOut, Image as ImageIcon, Search } from "lu
 import Link from "next/link";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
-import { getThaiNow, diffDaysThai } from "@/lib/date-utils";
+import { getThaiNow, formatThaiDate, diffDaysThai, parseThaiDateToIso } from "@/lib/date-utils";
 
 interface Props {
   initialBookings: any[];
@@ -425,7 +425,18 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
                 <Button variant="outline" className="rounded-xl" onClick={() => setAcceptModalData(null)}>ยกเลิก</Button>
                 <Button 
                   onClick={() => {
-                    handleStatusUpdate(acceptModalData.rowIndex, "Accepted", undefined, undefined, undefined, acceptModalData);
+                    let finalDate = acceptModalData.date;
+                    if (finalDate.includes(" - ")) {
+                      const parts = finalDate.split(" - ");
+                      finalDate = `${parseThaiDateToIso(parts[0])} - ${parseThaiDateToIso(parts[1])}`;
+                    } else {
+                      finalDate = parseThaiDateToIso(finalDate);
+                    }
+                    
+                    handleStatusUpdate(acceptModalData.rowIndex, "Accepted", undefined, undefined, undefined, {
+                      ...acceptModalData,
+                      date: finalDate
+                    });
                     setAcceptModalData(null);
                   }}
                   disabled={updatingAction !== null}
@@ -684,12 +695,12 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
                                       const d1 = new Date(parts[0]);
                                       const d2 = new Date(parts[1]);
                                       if (!isNaN(d1.getTime()) && !isNaN(d2.getTime())) {
-                                        formattedDate = `${format(d1, "yyyy-MM-dd")} - ${format(d2, "yyyy-MM-dd")}`;
+                                        formattedDate = `${format(d1, "dd-MM-yyyy")} - ${format(d2, "dd-MM-yyyy")}`;
                                       }
                                     } else {
                                       const d = new Date(formattedDate);
                                       if (!isNaN(d.getTime())) {
-                                        formattedDate = format(d, "yyyy-MM-dd");
+                                        formattedDate = format(d, "dd-MM-yyyy");
                                       }
                                     }
                                     let timeSlot = row[4] || "";
@@ -914,8 +925,21 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
                           className="w-1/2 h-12 flex items-center justify-center font-bold text-green-600 bg-white hover:bg-green-50 active:bg-green-100 transition-colors disabled:opacity-50"
                           onClick={(e) => {
                             e.stopPropagation();
-                            const d = new Date(row[3]);
-                            const formattedDate = !isNaN(d.getTime()) ? format(d, "yyyy-MM-dd") : (row[3] || "");
+                            let formattedDate = row[3] || "";
+                            if (formattedDate.includes(" - ")) {
+                              // Preserve date range
+                              const parts = formattedDate.split(" - ");
+                              const d1 = new Date(parts[0]);
+                              const d2 = new Date(parts[1]);
+                              if (!isNaN(d1.getTime()) && !isNaN(d2.getTime())) {
+                                formattedDate = `${format(d1, "dd-MM-yyyy")} - ${format(d2, "dd-MM-yyyy")}`;
+                              }
+                            } else {
+                              const d = new Date(formattedDate);
+                              if (!isNaN(d.getTime())) {
+                                formattedDate = format(d, "dd-MM-yyyy");
+                              }
+                            }
                             let timeSlot = row[4] || "";
                             if (timeSlot.includes(" - ")) {
                               const timeParts = timeSlot.split(" - ");
