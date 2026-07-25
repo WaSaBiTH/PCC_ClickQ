@@ -16,8 +16,10 @@ import {
   startOfDay,
 } from "date-fns";
 import { th } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, X, ExternalLink, Image as ImageIcon, FileText, Clock } from "lucide-react";
+import { ChevronLeft, ChevronRight, X, ExternalLink, Image as ImageIcon, FileText, Clock, Edit2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import EditBookingModal from "./edit-booking-modal";
+import { getThaiNow } from "@/lib/date-utils";
 
 // --- Types & Mock Data ---
 type BookingStatus = "pending" | "accepted" | "completed" | "rejected";
@@ -79,10 +81,12 @@ export interface CalendarViewProps {
 }
 
 export default function CalendarView({ initialBookings }: CalendarViewProps) {
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const [currentDate, setCurrentDate] = useState(getThaiNow());
   const [viewMode, setViewMode] = useState<"month" | "week" | "day">("month");
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
   
   // If initialBookings is provided, parse the dates, otherwise fallback to mock
   const [bookings] = useState<Booking[]>(
@@ -193,10 +197,28 @@ export default function CalendarView({ initialBookings }: CalendarViewProps) {
           </a>
         </div>
       )}
+
+      {/* Edit Button */}
+      {(booking.status === "pending" || booking.status === "accepted") && (
+        <div className="mt-4 pt-3 border-t border-slate-100 pl-2 flex justify-end">
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              setEditingBooking(booking);
+              setIsEditModalOpen(true);
+            }}
+            className="inline-flex items-center gap-1.5 text-orange-500 hover:text-orange-600 hover:bg-orange-50 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors border border-transparent hover:border-orange-100"
+          >
+            <Edit2 className="w-3.5 h-3.5" />
+            แก้ไขคิวงาน
+          </button>
+        </div>
+      )}
     </div>
   );
 
   return (
+    <>
     <div className="w-full flex-1 min-h-[600px] h-full flex flex-col bg-white rounded-xl shadow-xl border border-slate-200">
       
       {/* Header Controls */}
@@ -216,10 +238,10 @@ export default function CalendarView({ initialBookings }: CalendarViewProps) {
           </div>
 
           <div className="flex gap-1.5 md:gap-2 items-center">
-            <Button variant="outline" size="sm" onClick={() => setCurrentDate(new Date())} className="bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hidden md:flex">
+            <Button variant="outline" size="sm" onClick={() => setCurrentDate(getThaiNow())} className="bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hidden md:flex">
               วันนี้
             </Button>
-            <Button variant="outline" size="sm" onClick={() => setCurrentDate(new Date())} className="bg-white border-slate-200 text-slate-700 hover:bg-slate-50 md:hidden px-2.5 text-xs h-8">
+            <Button variant="outline" size="sm" onClick={() => setCurrentDate(getThaiNow())} className="bg-white border-slate-200 text-slate-700 hover:bg-slate-50 md:hidden px-2.5 text-xs h-8">
               วันนี้
             </Button>
             <div className="flex gap-1">
@@ -267,7 +289,7 @@ export default function CalendarView({ initialBookings }: CalendarViewProps) {
 
           <div className="flex-1 grid grid-cols-7 bg-slate-200 auto-rows-fr min-h-0">
             {monthDays.map((dayItem, idx) => {
-              const today = startOfDay(new Date());
+              const today = startOfDay(getThaiNow());
               const isCurrentMonth = isSameMonth(dayItem, monthStart);
               const isToday = isSameDay(dayItem, today);
               const isPast = isBefore(startOfDay(dayItem), today);
@@ -337,8 +359,8 @@ export default function CalendarView({ initialBookings }: CalendarViewProps) {
         <div className="flex-1 flex flex-col overflow-hidden bg-slate-50">
           <div className="grid grid-cols-7 bg-white border-b border-slate-200 shadow-sm z-10 shrink-0">
              {weekDaysDates.map((dayItem, idx) => {
-                const isToday = isSameDay(dayItem, new Date());
-                const isPast = isBefore(startOfDay(dayItem), startOfDay(new Date()));
+                const isToday = isSameDay(dayItem, getThaiNow());
+                const isPast = isBefore(startOfDay(dayItem), startOfDay(getThaiNow()));
                 const isSelected = isSameDay(dayItem, currentDate);
                 const dayBookings = bookings.filter((b) => isSameDay(b.date, dayItem));
                 
@@ -504,6 +526,24 @@ export default function CalendarView({ initialBookings }: CalendarViewProps) {
                       </a>
                     </div>
                   )}
+
+                  {/* Edit Button */}
+                  {(booking.status === "pending" || booking.status === "accepted") && (
+                    <div className="mt-4 pt-3 border-t border-slate-200 pl-2 flex justify-end">
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setIsModalOpen(false); // Close day modal first
+                          setEditingBooking(booking);
+                          setIsEditModalOpen(true);
+                        }}
+                        className="inline-flex items-center gap-1.5 text-orange-500 hover:text-orange-600 hover:bg-orange-50 px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors border border-transparent hover:border-orange-100"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                        แก้ไขคิวงาน
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -512,5 +552,13 @@ export default function CalendarView({ initialBookings }: CalendarViewProps) {
       )}
 
     </div>
+      
+      {/* Edit Booking OTP Modal */}
+      <EditBookingModal 
+        isOpen={isEditModalOpen} 
+        onClose={() => setIsEditModalOpen(false)}
+        booking={editingBooking}
+      />
+    </>
   );
 }

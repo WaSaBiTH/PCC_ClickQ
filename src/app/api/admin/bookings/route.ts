@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { updateBookingStatus } from "@/lib/google-sheets";
 import { appendToSheet } from "@/lib/google-sheets-api";
+import { getThaiNow } from "@/lib/date-utils";
 
 export async function POST(request: Request) {
   try {
@@ -18,7 +19,7 @@ export async function POST(request: Request) {
     if (status === "Rejected") {
       try {
         const { updateSheetCell } = await import("@/lib/google-sheets-api");
-        await updateSheetCell("Bookings", `K${rowIndex + 1}`, new Date().toISOString());
+        await updateSheetCell("Bookings", `K${rowIndex + 1}`, getThaiNow().toISOString());
       } catch (e) {
         console.error("Failed to save rejection date:", e);
       }

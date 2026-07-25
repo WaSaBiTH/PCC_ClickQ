@@ -8,6 +8,7 @@ import { Loader2, Users, Settings, LogOut, Image as ImageIcon, Search } from "lu
 import Link from "next/link";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
+import { getThaiNow, diffDaysThai } from "@/lib/date-utils";
 
 interface Props {
   initialBookings: any[];
@@ -162,7 +163,7 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
         
         // Exclude old rejected from select all
         if (status === "Rejected") {
-          const diffDays = (new Date().getTime() - new Date(row[3]).getTime()) / (1000 * 3600 * 24);
+          const diffDays = diffDaysThai(getThaiNow(), row[3]);
           if (diffDays > 3) return false;
         }
 
@@ -252,7 +253,7 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
     
     // Skip old rejected
     if (status === "Rejected") {
-      const diffDays = (new Date().getTime() - new Date(row[3]).getTime()) / (1000 * 3600 * 24);
+      const diffDays = diffDaysThai(getThaiNow(), row[3]);
       if (diffDays > 3) return;
     }
 
@@ -523,7 +524,7 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
                         bookings.slice(1).filter(row => {
                           if (!row[0] || String(row[0]).trim() === "") return false;
                           const status = row[7] || "Pending";
-                          if (status === "Rejected" && (new Date().getTime() - new Date(row[3]).getTime()) / (1000 * 3600 * 24) > 3) return false;
+                          if (status === "Rejected" && diffDaysThai(getThaiNow(), row[3]) > 3) return false;
                           if (status !== activeTab) return false;
                           if (searchQuery.trim() !== "") {
                             const query = searchQuery.toLowerCase();
@@ -537,7 +538,7 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
                         bookings.slice(1).filter(row => {
                           if (!row[0] || String(row[0]).trim() === "") return false;
                           const status = row[7] || "Pending";
-                          if (status === "Rejected" && (new Date().getTime() - new Date(row[3]).getTime()) / (1000 * 3600 * 24) > 3) return false;
+                          if (status === "Rejected" && diffDaysThai(getThaiNow(), row[3]) > 3) return false;
                           if (status !== activeTab) return false;
                           if (searchQuery.trim() !== "") {
                             const query = searchQuery.toLowerCase();
@@ -552,7 +553,7 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
                           const realIndex = bookings.findIndex((r, i) => i > 0 && r === bookings.slice(1).filter(row => {
                               if (!row[0] || String(row[0]).trim() === "") return false;
                               const status = row[7] || "Pending";
-                              if (status === "Rejected" && (new Date().getTime() - new Date(row[3]).getTime()) / (1000 * 3600 * 24) > 3) return false;
+                              if (status === "Rejected" && diffDaysThai(getThaiNow(), row[3]) > 3) return false;
                               if (status !== activeTab) return false;
                               if (searchQuery.trim() !== "") {
                                 const query = searchQuery.toLowerCase();
@@ -586,10 +587,7 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
 
                   // Auto-hide (delete) rejected bookings older than 3 days
                   if (row[7] === "Rejected") {
-                    const referenceDate = new Date(row[10] || row[3]);
-                    const today = new Date();
-                    const diffTime = today.getTime() - referenceDate.getTime();
-                    const diffDays = diffTime / (1000 * 3600 * 24);
+                    const diffDays = diffDaysThai(getThaiNow(), row[10] || row[3]);
                     if (diffDays > 3) return null;
                   }
 
@@ -713,8 +711,8 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
                               </Button>
                             )}
                             {row[7] === "Rejected" && (() => {
-                              const diffDays = (new Date().getTime() - new Date(row[10] || row[3]).getTime()) / (1000 * 3600 * 24);
-                              const daysLeft = Math.max(0, Math.ceil(3 - diffDays));
+                              const diffDays = diffDaysThai(getThaiNow(), row[10] || row[3]);
+                              const daysLeft = Math.min(3, Math.max(0, Math.ceil(3 - diffDays)));
                               return (
                                 <div className="flex items-center text-xs font-medium text-slate-500 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200" title="This row will be deleted from the sheet automatically">
                                   <Loader2 className="w-4 h-4 mr-2 text-slate-400" style={{ animation: 'spin 3s linear infinite reverse' }} />
@@ -776,8 +774,7 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
               if (!row[0] || String(row[0]).trim() === "") return null;
 
               if (row[7] === "Rejected") {
-                const bookingDate = new Date(row[3]);
-                const diffDays = (new Date().getTime() - bookingDate.getTime()) / (1000 * 3600 * 24);
+                const diffDays = diffDaysThai(getThaiNow(), row[3]);
                 if (diffDays > 3) return null;
               }
 
@@ -922,7 +919,7 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
                       </button>
                     )}
                     {row[7] === "Rejected" && (() => {
-                      const diffDays = (new Date().getTime() - new Date(row[10] || row[3]).getTime()) / (1000 * 3600 * 24);
+                      const diffDays = diffDaysThai(getThaiNow(), row[10] || row[3]);
                       const daysLeft = Math.max(0, Math.ceil(3 - diffDays));
                       return (
                         <div className="w-full h-12 flex items-center justify-center font-medium text-slate-500 bg-slate-50/50 text-sm">

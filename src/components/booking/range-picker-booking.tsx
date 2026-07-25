@@ -26,7 +26,7 @@ type UploadFile = {
   id: string;
   name: string;
   originalFile: File;
-  status: "compressing" | "uploading" | "success" | "error";
+  status: "compressing" | "uploading" | "success" | "error" | "deleting";
   url?: string;
   errorMsg?: string;
 };
@@ -178,7 +178,34 @@ export default function RangePickerBooking() {
     e.target.value = '';
   };
 
-  const removeFile = (id: string) => {
+  const removeFile = async (id: string) => {
+    const fileToRemove = files.find(f => f.id === id);
+    if (!fileToRemove) return;
+
+    if (fileToRemove.status === "success" && fileToRemove.url) {
+      setFiles((prev) => prev.map((f) => f.id === id ? { ...f, status: "deleting" } : f));
+      try {
+        const response = await fetch("/api/upload/delete", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: fileToRemove.url })
+        });
+        const data = await response.json();
+        
+        if (!response.ok || !data.success) {
+          console.error("Failed to delete file from drive", data.error);
+          showAlert("ไม่สามารถลบไฟล์ออกจาก Google Drive ได้", "error");
+          setFiles((prev) => prev.map((f) => f.id === id ? { ...f, status: "success" } : f));
+          return;
+        }
+      } catch (error) {
+        console.error("Failed to delete file from drive", error);
+        showAlert("เกิดข้อผิดพลาดในการเชื่อมต่อเพื่อลบไฟล์", "error");
+        setFiles((prev) => prev.map((f) => f.id === id ? { ...f, status: "success" } : f));
+        return;
+      }
+    }
+    
     setFiles((prev) => prev.filter((f) => f.id !== id));
   };
 
@@ -615,12 +642,15 @@ export default function RangePickerBooking() {
                       <div className="flex items-center gap-3">
                         {f.status === "compressing" && <span className="flex items-center text-xs text-orange-500 font-medium"><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> บีบอัด...</span>}
                         {f.status === "uploading" && <span className="flex items-center text-xs text-blue-500 font-medium"><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> อัปโหลด...</span>}
+                        {f.status === "deleting" && <span className="flex items-center text-xs text-red-500 font-medium"><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> กำลังลบ...</span>}
                         {f.status === "success" && <span className="flex items-center text-xs text-green-600 font-bold"><CheckCircle2 className="w-4 h-4 mr-1.5" /> สำเร็จ</span>}
                         {f.status === "error" && <span className="text-xs text-red-500 font-medium" title={f.errorMsg}>ล้มเหลว</span>}
                         
-                        <button type="button" onClick={() => removeFile(f.id)} className="text-slate-400 hover:text-red-500 transition-colors p-1">
-                          <X className="w-4 h-4" />
-                        </button>
+                        {f.status !== "deleting" && (
+                          <button type="button" onClick={() => removeFile(f.id)} className="text-slate-400 hover:text-red-500 transition-colors p-1">
+                            <X className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))}

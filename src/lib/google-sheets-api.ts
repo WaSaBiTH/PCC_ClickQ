@@ -1,5 +1,6 @@
 import { google } from "googleapis";
 import path from "path";
+import { getThaiNow } from "./date-utils";
 
 const SCOPES = [
   "https://www.googleapis.com/auth/spreadsheets",
@@ -7,7 +8,7 @@ const SCOPES = [
 ];
 const KEYFILE_PATH = path.join(process.cwd(), "pccclickq-8b26393bf8f0.json");
 const SPREADSHEET_ID = process.env.SPREADSHEET_ID as string;
-const PRUNE_DRIVE_FOLDER_ID = process.env.PRUNE_DRIVE_FOLDER_ID || "1qkakow5riHrQB6C0LVgPaZ2HlFrkwYvY";
+const PRUNE_DRIVE_FOLDER_ID = process.env.PRUNE_DRIVE_FOLDER_ID as string;
 
 let auth: any = null;
 
@@ -265,7 +266,8 @@ export async function cleanOldRejectedBookings() {
   if (!rows || rows.length <= 1) return { deletedRows: 0, deletedFiles: 0 };
 
   const rowsToDelete: number[] = [];
-  const filesToDelete: string[] = [];
+  const candidateFilesToDelete: Set<string> = new Set();
+  const filesToKeep: Set<string> = new Set();
 
   // Iterate backwards so row indices aren't affected when deleting
   for (let i = rows.length - 1; i >= 1; i--) {
@@ -274,11 +276,15 @@ export async function cleanOldRejectedBookings() {
     const status = row[7];
     const dateStr = row[10] || row[3]; // Use RejectedAt date if available, else fallback to booking date
     
+    let isDeletingRow = false;
+    
     if (status === "Rejected" && dateStr) {
       const referenceDate = new Date(dateStr);
       if (!isNaN(referenceDate.getTime())) {
-        const diffDays = (new Date().getTime() - referenceDate.getTime()) / (1000 * 3600 * 24);
-        if (diffDays > 3) {
+        const today = getThaiNow();
+        const diffDays = (today.getTime() - referenceDate.getTime()) / (1000 * 3600 * 24);
+        if (diffDays >= 3) {
+          isDeletingRow = true;
           rowsToDelete.push(i);
           
           // Extract drive links (Reference Files are usually in row[6])
@@ -288,23 +294,44 @@ export async function cleanOldRejectedBookings() {
             for (const link of links) {
               const match = link.match(/[-\w]{25,}/);
               if (match && match[0]) {
-                filesToDelete.push(match[0]);
+                candidateFilesToDelete.add(match[0]);
               }
             }
           }
         }
       }
     }
+    
+    // If we are keeping this row, save its files so we don't delete them
+    if (!isDeletingRow) {
+      const linksStr = row[6];
+      if (linksStr) {
+        const links = String(linksStr).split(',');
+        for (const link of links) {
+          const match = link.match(/[-\w]{25,}/);
+          if (match && match[0]) {
+            filesToKeep.add(match[0]);
+          }
+        }
+      }
+    }
   }
 
-  // 2. Delete files
+  // Filter out files that are used in rows we are keeping
+  const filesToDelete = Array.from(candidateFilesToDelete).filter(fileId => !filesToKeep.has(fileId));
+
+  // 2. Remove files from folder
   let deletedFilesCount = 0;
   for (const fileId of filesToDelete) {
     try {
-      await drive.files.delete({ fileId });
-      deletedFilesCount++;
+      const fileData = await drive.files.get({ fileId, fields: "parents" });
+      const parents = fileData.data.parents?.join(",") || "";
+      if (parents) {
+        await drive.files.update({ fileId, removeParents: parents });
+        deletedFilesCount++;
+      }
     } catch (e) {
-      console.error(`Failed to delete file ${fileId}`, e);
+      console.error(`Failed to remove file ${fileId}`, e);
     }
   }
 
@@ -336,4 +363,93 @@ export async function cleanOldRejectedBookings() {
   }
 
   return { deletedRows: rowsToDelete.length, deletedFiles: deletedFilesCount };
+}
+
+/**
+ * Save an OTP to the OTP_Verifications sheet
+ */
+export async function saveOTP(email: string, bookingId: string, otp: string, expiresAt: string) {
+  const client = await getAuthClient();
+  const sheets = google.sheets({ version: "v4", auth: client as any });
+  
+  // Format: [Email, BookingId, OTP, ExpiresAt, CreatedAt]
+  const values = [email, bookingId, otp, expiresAt, getThaiNow().toISOString()];
+  
+  await sheets.spreadsheets.values.append({
+    spreadsheetId: SPREADSHEET_ID,
+    range: `OTP_Verifications!A:E`,
+    valueInputOption: "USER_ENTERED",
+    requestBody: {
+      values: [values],
+    },
+  });
+  
+  clearSheetCache("OTP_Verifications");
+}
+
+/**
+ * Verify an OTP from the OTP_Verifications sheet and delete it if valid
+ */
+export async function verifyOTP(email: string, bookingId: string, otp: string): Promise<boolean> {
+  const client = await getAuthClient();
+  const sheets = google.sheets({ version: "v4", auth: client as any });
+  
+  // Get all OTPs
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: SPREADSHEET_ID,
+    range: "OTP_Verifications!A:Z",
+  });
+  
+  const rows = res.data.values || [];
+  if (rows.length <= 1) return false;
+  
+  let isValid = false;
+  let rowIndexToDelete = -1;
+  const now = new Date();
+  
+  // Search from bottom up to get the latest OTP
+  for (let i = rows.length - 1; i >= 1; i--) {
+    const row = rows[i];
+    const rowEmail = row[0];
+    const rowBookingId = row[1];
+    const rowOtp = row[2];
+    const rowExpiresAt = row[3];
+    
+    if (rowEmail === email && rowBookingId === bookingId) {
+      // Check if OTP matches and is not expired
+      if (rowOtp === otp && new Date(rowExpiresAt) > now) {
+        isValid = true;
+      }
+      rowIndexToDelete = i;
+      break; // Found the latest entry for this email/bookingId
+    }
+  }
+  
+  // Delete the row only if the OTP is valid. 
+  // We rely on the client-side 3-attempt limit and the 5-minute expiration to prevent brute force.
+  if (isValid && rowIndexToDelete !== -1) {
+    const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId: SPREADSHEET_ID });
+    const sheetId = spreadsheet.data.sheets?.find(s => s.properties?.title === "OTP_Verifications")?.properties?.sheetId;
+    
+    if (sheetId !== undefined) {
+      await sheets.spreadsheets.batchUpdate({
+        spreadsheetId: SPREADSHEET_ID,
+        requestBody: {
+          requests: [{
+            deleteDimension: {
+              range: {
+                sheetId: sheetId,
+                dimension: "ROWS",
+                startIndex: rowIndexToDelete,
+                endIndex: rowIndexToDelete + 1
+              }
+            }
+          }]
+        }
+      });
+      clearSheetCache("OTP_Verifications");
+    }
+  }
+  
+  return isValid;
 }

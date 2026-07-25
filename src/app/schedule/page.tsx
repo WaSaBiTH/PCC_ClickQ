@@ -1,3 +1,4 @@
+import { getThaiNow, getThaiDate } from "@/lib/date-utils";
 import CalendarView from "@/components/booking/calendar-view";
 import { ClientLink } from "@/components/ClientLink";
 import MainNav from "@/components/main-nav";
@@ -14,7 +15,7 @@ export default async function SchedulePage() {
     .slice(1) // Skip header row
     .map((row: any[], i: number) => {
       const dateStr = row[3] || "";
-      const dateObj = new Date(dateStr);
+      const dateObj = getThaiDate(dateStr);
       
       let status: "pending" | "accepted" | "completed" | "rejected" = "pending";
       const rawStatus = (row[7] || "").toLowerCase();
@@ -30,7 +31,7 @@ export default async function SchedulePage() {
 
       return {
         id: `booking-${i}`,
-        date: isNaN(dateObj.getTime()) ? new Date(0).toISOString() : dateObj.toISOString(),
+        date: isNaN(dateObj.getTime()) ? getThaiDate(0).toISOString() : dateObj.toISOString(),
         time: row[4] || "",
         clientName: row[0] || "ไม่ระบุชื่อ",
         service: row[5] || "ทั่วไป",
@@ -41,12 +42,12 @@ export default async function SchedulePage() {
     })
     .filter((b: any) => {
       // Filter out invalid rows
-      if (b.clientName === "ไม่ระบุชื่อ" || b.date === new Date(0).toISOString()) return false;
+      if (b.clientName === "ไม่ระบุชื่อ" || b.date === getThaiDate(0).toISOString()) return false;
       
       // Auto-hide (delete) rejected bookings older than 3 days
       if (b.status === "rejected") {
-        const bookingDate = new Date(b.date);
-        const today = new Date();
+        const bookingDate = getThaiDate(b.date);
+        const today = getThaiNow();
         const diffTime = today.getTime() - bookingDate.getTime();
         const diffDays = diffTime / (1000 * 3600 * 24);
         if (diffDays > 3) return false;

@@ -6,7 +6,7 @@ import fs from "fs";
 const SCOPES = ["https://www.googleapis.com/auth/drive"];
 
 const KEYFILE_PATH = path.join(process.cwd(), "pccclickq-8b26393bf8f0.json");
-const FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID || "1k4ulYoqDcO91GxEMFPxIRf_L5rWBzNEU";
+const FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID as string;
 
 /**
  * Get an authenticated Google Drive client
