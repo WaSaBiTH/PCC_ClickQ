@@ -37,7 +37,7 @@ export default function EditBookingModal({ booking, isOpen, onClose }: EditBooki
   const [editToken, setEditToken] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [isSuccessSpinning, setIsSuccessSpinning] = useState(false);
+  const [successCountdown, setSuccessCountdown] = useState(0);
   
   // Timer for OTP
   const [timeLeft, setTimeLeft] = useState(0);
@@ -76,6 +76,15 @@ export default function EditBookingModal({ booking, isOpen, onClose }: EditBooki
       return () => clearTimeout(timer);
     }
   }, [timeLeft]);
+
+  useEffect(() => {
+    if (step === "SUCCESS" && successCountdown > 0) {
+      const timer = setInterval(() => {
+        setSuccessCountdown((prev) => prev - 1);
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [step, successCountdown]);
 
   if (!isOpen) return null;
 
@@ -180,8 +189,8 @@ export default function EditBookingModal({ booking, isOpen, onClose }: EditBooki
         // Parse timeSlot "09:00 - 17:00"
         let startT = "09:00";
         let endT = "17:00";
-        if (data.booking.timeSlot && data.booking.timeSlot.includes(" - ")) {
-          [startT, endT] = data.booking.timeSlot.split(" - ").map((t: string) => t.trim());
+        if (data.booking.timeSlot && data.booking.timeSlot.includes("-")) {
+          [startT, endT] = data.booking.timeSlot.split("-").map((t: string) => t.trim());
         } else if (data.booking.timeSlot) {
           startT = data.booking.timeSlot;
           endT = data.booking.timeSlot;
@@ -194,20 +203,21 @@ export default function EditBookingModal({ booking, isOpen, onClose }: EditBooki
 
         // Clean Notes by extracting the actual user notes
         let cleanedNotes = data.booking.notes || "";
+        
+        // Remove [Ref: PCQ-XXXX]
+        cleanedNotes = cleanedNotes.replace(/\[Ref:.*?\]\n?/g, "");
+        
         const detailMarker = "รายละเอียดเพิ่มเติม:\n";
         const detailIndex = cleanedNotes.indexOf(detailMarker);
         if (detailIndex !== -1) {
           cleanedNotes = cleanedNotes.substring(detailIndex + detailMarker.length).trim();
-        } else if (cleanedNotes.startsWith("คิวงานทั้งหมด:")) {
+        } else if (cleanedNotes.trim().startsWith("คิวงานทั้งหมด:")) {
           // Fallback if marker is missing but it's still a formatted string
           cleanedNotes = "";
         }
-
-        // Remove [Ref: ...] from the notes if it exists
-        const refIndex = cleanedNotes.indexOf("[Ref: ");
-        if (refIndex !== -1) {
-          cleanedNotes = cleanedNotes.substring(0, refIndex).trim();
-        }
+        
+        cleanedNotes = cleanedNotes.trim();
+        if (cleanedNotes === "-") cleanedNotes = "";
 
         setFormData({
           bookerName: bName,
@@ -385,10 +395,8 @@ export default function EditBookingModal({ booking, isOpen, onClose }: EditBooki
       const data = await res.json();
       
       if (res.ok) {
-        setIsSuccessSpinning(true);
-        setTimeout(() => {
-          window.location.reload();
-        }, 10000);
+        setStep("SUCCESS");
+        setSuccessCountdown(15);
       } else {
         setError(data.error || "เกิดข้อผิดพลาดในการบันทึกข้อมูล");
         setLoading(false);
@@ -683,43 +691,61 @@ export default function EditBookingModal({ booking, isOpen, onClose }: EditBooki
           )}
 
           {step === "SUCCESS" && (
-            <div className="text-center py-8">
-              <CheckCircle className="w-16 h-16 text-emerald-500 mx-auto mb-4" />
-              <h4 className="font-bold text-xl text-slate-800 mb-2">แก้ไขข้อมูลสำเร็จ!</h4>
-              <p className="text-sm text-slate-500 max-w-[250px] mx-auto">
-                ระบบได้บันทึกข้อมูลการจองใหม่ของคุณเรียบร้อยแล้ว
-              </p>
+            <div className="py-6 flex flex-col items-center">
+              {successCountdown > 0 ? (
+                <>
+                  <Loader2 className="w-16 h-16 animate-spin text-orange-500 mb-4" />
+                  <h4 className="font-bold text-xl text-slate-800 mb-2">กำลังแก้ไขงานของคุณ...</h4>
+                  <p className="text-sm text-slate-500 mb-6">กรุณารอสักครู่</p>
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="w-16 h-16 text-emerald-500 mx-auto mb-4" />
+                  <h4 className="font-bold text-xl text-slate-800 mb-2">แก้ไขข้อมูลสำเร็จ!</h4>
+                  <p className="text-sm text-slate-500 mb-6">ระบบได้บันทึกข้อมูลการจองใหม่ของคุณเรียบร้อยแล้ว</p>
+                </>
+              )}
+              
+              <div className="w-full bg-slate-50 border border-slate-100 rounded-xl p-4 mb-6 text-left space-y-2">
+                <p className="text-sm font-semibold text-slate-700 border-b pb-2 mb-3">สรุปข้อมูลที่แก้ไข</p>
+                <div className="grid grid-cols-[100px_1fr] gap-1 text-sm">
+                  <span className="text-slate-500">ชื่อผู้จอง:</span>
+                  <span className="font-medium text-slate-800">{formData.bookerName}</span>
+                  
+                  <span className="text-slate-500">ชื่องาน:</span>
+                  <span className="font-medium text-slate-800">{formData.eventName}</span>
+                  
+                  <span className="text-slate-500">วันที่:</span>
+                  <span className="font-medium text-slate-800">{formData.date}</span>
+                  
+                  <span className="text-slate-500">เวลา:</span>
+                  <span className="font-medium text-slate-800">{formData.startTime} - {formData.endTime} น.</span>
+                  
+                  <span className="text-slate-500">ประเภทงาน:</span>
+                  <span className="font-medium text-slate-800">
+                    {Array.isArray(formData.serviceType) ? formData.serviceType.join(", ") : formData.serviceType}
+                  </span>
+                </div>
+              </div>
               
               <button
+                disabled={successCountdown > 0}
                 onClick={() => {
                   onClose();
-                  window.location.reload(); // Refresh to see changes
+                  window.location.reload();
                 }}
-                className="w-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold py-3 rounded-xl transition-colors"
+                className={`w-full font-semibold py-3 rounded-xl transition-all ${
+                  successCountdown > 0 
+                    ? "bg-slate-100 text-slate-400 cursor-not-allowed" 
+                    : "bg-slate-900 hover:bg-slate-800 text-white shadow-lg shadow-slate-900/20"
+                }`}
               >
-                กลับไปที่หน้าปฏิทิน
+                {successCountdown > 0 ? "กำลังดำเนินการ..." : "ตกลง"}
               </button>
             </div>
           )}
         </div>
       </div>
-
-      <AnimatePresence>
-        {isSuccessSpinning && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-2xl shadow-2xl p-8 flex flex-col items-center justify-center text-center"
-            >
-              <Loader2 className="w-16 h-16 animate-spin text-blue-500 mb-4" />
-              <h3 className="text-xl font-bold text-slate-800">กำลังแก้ไขคิวงานของคุณ...</h3>
-              <p className="text-slate-500 text-sm mt-2">กรุณารอสักครู่</p>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }
