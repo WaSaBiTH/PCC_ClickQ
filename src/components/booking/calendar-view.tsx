@@ -27,6 +27,7 @@ type BookingStatus = "pending" | "accepted" | "completed" | "rejected";
 interface Booking {
   id: string;
   date: Date;
+  endDate?: Date;
   time: string;
   clientName: string;
   service: string;
@@ -71,6 +72,7 @@ export interface CalendarViewProps {
   initialBookings?: {
     id: string;
     date: string; // ISO String
+    endDate?: string;
     time: string;
     clientName: string;
     service: string;
@@ -91,9 +93,16 @@ export default function CalendarView({ initialBookings }: CalendarViewProps) {
   // If initialBookings is provided, parse the dates, otherwise fallback to mock
   const [bookings] = useState<Booking[]>(
     initialBookings 
-      ? initialBookings.map(b => ({ ...b, date: new Date(b.date) }))
+      ? initialBookings.map(b => ({ ...b, date: new Date(b.date), endDate: b.endDate ? new Date(b.endDate) : new Date(b.date) }))
       : MOCK_BOOKINGS
   );
+
+  const isDateInRange = (booking: Booking, targetDay: Date) => {
+    const start = startOfDay(booking.date);
+    const end = startOfDay(booking.endDate || booking.date);
+    const target = startOfDay(targetDay);
+    return target >= start && target <= end;
+  };
 
   const nextPeriod = () => {
     if (viewMode === "month") setCurrentDate(addMonths(currentDate, 1));
@@ -295,7 +304,7 @@ export default function CalendarView({ initialBookings }: CalendarViewProps) {
               const isPast = isBefore(startOfDay(dayItem), today);
               const statusPriority = { pending: 1, accepted: 2, completed: 3, rejected: 4 };
               const dayBookings = bookings
-                .filter((b) => isSameDay(b.date, dayItem))
+                .filter((b) => isDateInRange(b, dayItem))
                 .sort((a, b) => statusPriority[a.status] - statusPriority[b.status]);
               const hasBookings = dayBookings.length > 0;
 
@@ -390,7 +399,7 @@ export default function CalendarView({ initialBookings }: CalendarViewProps) {
           
           <div className="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar space-y-6">
              {weekDaysDates.map((dayItem) => {
-               const dayBookings = bookings.filter((b) => isSameDay(b.date, dayItem));
+               const dayBookings = bookings.filter((b) => isDateInRange(b, dayItem));
                if (dayBookings.length === 0) return null;
                
                return (
@@ -405,7 +414,7 @@ export default function CalendarView({ initialBookings }: CalendarViewProps) {
                  </div>
                );
              })}
-             {bookings.filter(b => b.date >= weekStart && b.date <= weekEnd).length === 0 && (
+             {bookings.filter(b => (b.date <= weekEnd && (b.endDate || b.date) >= weekStart)).length === 0 && (
                <div className="flex flex-col items-center justify-center h-full text-slate-400 p-8 text-center">
                  <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
                    <Clock className="w-8 h-8 opacity-50" />
@@ -423,7 +432,7 @@ export default function CalendarView({ initialBookings }: CalendarViewProps) {
           <div className="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar">
             <div className="max-w-2xl mx-auto space-y-4">
               {(() => {
-                const dayBookings = bookings.filter((b) => isSameDay(b.date, currentDate));
+                const dayBookings = bookings.filter((b) => isDateInRange(b, currentDate));
                 if (dayBookings.length === 0) {
                   return (
                     <div className="flex flex-col items-center justify-center py-20 text-slate-400">

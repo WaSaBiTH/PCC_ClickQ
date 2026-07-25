@@ -623,11 +623,20 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
                         <TableCell>
                           {(() => {
                             try {
-                              const d = new Date(row[3]);
+                              const rawDate = row[3] || "";
+                              if (rawDate.includes(" - ")) {
+                                const parts = rawDate.split(" - ");
+                                const d1 = new Date(parts[0]);
+                                const d2 = new Date(parts[1]);
+                                if (!isNaN(d1.getTime()) && !isNaN(d2.getTime())) {
+                                  return `${format(d1, "dd MMM yyyy", { locale: th })} - ${format(d2, "dd MMM yyyy", { locale: th })}`;
+                                }
+                              }
+                              const d = new Date(rawDate);
                               if (!isNaN(d.getTime())) {
                                 return format(d, "dd MMM yyyy", { locale: th });
                               }
-                              return row[3];
+                              return rawDate;
                             } catch(e) {
                               return row[3];
                             }
@@ -668,8 +677,21 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
                                   className="text-blue-600 border-blue-600 hover:bg-blue-50 bg-white flex items-center"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    const d = new Date(row[3]);
-                                    const formattedDate = !isNaN(d.getTime()) ? format(d, "yyyy-MM-dd") : (row[3] || "");
+                                    let formattedDate = row[3] || "";
+                                    if (formattedDate.includes(" - ")) {
+                                      // Preserve date range
+                                      const parts = formattedDate.split(" - ");
+                                      const d1 = new Date(parts[0]);
+                                      const d2 = new Date(parts[1]);
+                                      if (!isNaN(d1.getTime()) && !isNaN(d2.getTime())) {
+                                        formattedDate = `${format(d1, "yyyy-MM-dd")} - ${format(d2, "yyyy-MM-dd")}`;
+                                      }
+                                    } else {
+                                      const d = new Date(formattedDate);
+                                      if (!isNaN(d.getTime())) {
+                                        formattedDate = format(d, "yyyy-MM-dd");
+                                      }
+                                    }
                                     setAcceptModalData({
                                       rowIndex: rowIndex,
                                       name: row[0] || "",

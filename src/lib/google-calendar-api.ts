@@ -47,19 +47,33 @@ export async function createCalendarEvent(title: string, dateStr: string, timeSl
     // This is tricky. Let's assume we can parse it, or we just create an all-day event if parsing fails.
     // If dateStr is an ISO string like "2026-07-26T17:00:00.000Z", we want to get the local date in Bangkok.
     // "2026-07-26T17:00:00.000Z" is July 27th in Bangkok.
-    let cleanDateStr = dateStr.substring(0, 10);
-    const d = new Date(dateStr);
-    if (!isNaN(d.getTime())) {
-      const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok' });
-      cleanDateStr = formatter.format(d); // Outputs YYYY-MM-DD in BKK timezone
+    let startDateStr = dateStr;
+    let endDateStr = dateStr;
+    if (dateStr.includes(" - ")) {
+      const parts = dateStr.split(" - ");
+      startDateStr = parts[0];
+      endDateStr = parts[1];
     }
+
+    const parseToLocalIso = (dStr: string) => {
+      let cleanStr = dStr.substring(0, 10);
+      const d = new Date(dStr);
+      if (!isNaN(d.getTime())) {
+        const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok' });
+        cleanStr = formatter.format(d);
+      }
+      return cleanStr;
+    };
+
+    const cleanStartStr = parseToLocalIso(startDateStr);
+    const cleanEndStr = parseToLocalIso(endDateStr);
     
     const [startH, startM] = timeSlotStr ? timeSlotStr.split("-")[0].split(":") : ["09", "00"];
     const [endH, endM] = timeSlotStr ? timeSlotStr.split("-")[1].split(":") : ["17", "00"];
     
     // Timezone is Asia/Bangkok (+07:00)
-    const startTimeIso = `${cleanDateStr}T${startH}:${startM}:00+07:00`;
-    const endTimeIso = `${cleanDateStr}T${endH}:${endM}:00+07:00`;
+    const startTimeIso = `${cleanStartStr}T${startH}:${startM}:00+07:00`;
+    const endTimeIso = `${cleanEndStr}T${endH}:${endM}:00+07:00`;
 
     // Clean emails: remove any spaces or invalid Thai vowels (e.g., ุ)
     const attendees = emails

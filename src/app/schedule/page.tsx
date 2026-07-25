@@ -29,9 +29,22 @@ export default async function SchedulePage() {
         publicNotes = fullNotes.split("รายละเอียดเพิ่มเติม:")[0].trim();
       }
 
+      let startDate = dateObj;
+      let endDate = dateObj;
+      if (dateStr.includes(" - ")) {
+        const parts = dateStr.split(" - ");
+        const d1 = getThaiDate(parts[0]);
+        const d2 = getThaiDate(parts[1]);
+        if (!isNaN(d1.getTime()) && !isNaN(d2.getTime())) {
+          startDate = d1;
+          endDate = d2;
+        }
+      }
+
       return {
         id: `booking-${i}`,
-        date: isNaN(dateObj.getTime()) ? getThaiDate(0).toISOString() : dateObj.toISOString(),
+        date: isNaN(startDate.getTime()) ? getThaiDate(0).toISOString() : startDate.toISOString(),
+        endDate: isNaN(endDate.getTime()) ? getThaiDate(0).toISOString() : endDate.toISOString(),
         time: row[4] || "",
         clientName: row[0] || "ไม่ระบุชื่อ",
         service: row[5] || "ทั่วไป",
