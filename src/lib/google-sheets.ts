@@ -1,4 +1,5 @@
 const GAS_URL = process.env.GAS_URL || "";
+import { getSheetData } from "./google-sheets-api";
 
 /**
  * Fetch all bookings using GAS_URL (App Script)
@@ -111,27 +112,34 @@ export async function getApprovedGooglePhotosLinks(): Promise<string[]> {
  * Fetch all approved Google Photos Links with Date
  */
 export async function getApprovedGooglePhotosData(): Promise<{link: string, date: string}[]> {
-  const bookings = await getBookings();
-  
-  // Bookings structure: Name(0), Phone(1), Contact(2), Date(3), TimeSlot(4), ServiceType(5), DriveLink(6), Status(7), Notes(8), GooglePhotosLink(9)
-  const validBookings: { row: any[], index: number }[] = bookings.slice(1)
-    .map((row: any[], index: number) => ({ row, index }))
-    .filter((item: { row: any[], index: number }) => {
-      const row = item.row;
-      return row[7] === "Approved" && row[9] && typeof row[9] === 'string' && row[9].trim() !== "";
-    });
-  
-  // Sort by row index descending (latest submitted/added row comes first)
-  validBookings.sort((a: { index: number }, b: { index: number }) => b.index - a.index);
-  
-  const results: {link: string, date: string}[] = [];
-  const uniqueLinks = new Set<string>();
-  for (const b of validBookings) {
-    if (!uniqueLinks.has(b.row[9])) {
-      uniqueLinks.add(b.row[9]);
-      results.push({ link: b.row[9], date: b.row[3] || "" });
+  try {
+    const rawData = await getSheetData("Gallery");
+    const dataRows = rawData.slice(1);
+    
+    // Gallery structure: Name(0), ServiceType(1), Date(2), GooglePhotosLink(3), FBLink(4), IGLink(5)
+    const validGallery = dataRows
+      .map((row: any[], index: number) => ({ row, index }))
+      .filter((item: { row: any[], index: number }) => {
+        const row = item.row;
+        return row[3] && typeof row[3] === 'string' && row[3].trim() !== "";
+      });
+      
+    // Sort by row index descending (latest submitted/added row comes first)
+    validGallery.sort((a: { index: number }, b: { index: number }) => b.index - a.index);
+    
+    const results: {link: string, date: string}[] = [];
+    const uniqueLinks = new Set<string>();
+    
+    for (const item of validGallery) {
+      if (!uniqueLinks.has(item.row[3])) {
+        uniqueLinks.add(item.row[3]);
+        results.push({ link: item.row[3], date: item.row[2] || "" });
+      }
     }
+    
+    return results;
+  } catch (err) {
+    console.error("Failed to fetch from Gallery for Google Photos links:", err);
+    return [];
   }
-  
-  return results;
 }
