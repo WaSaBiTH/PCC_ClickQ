@@ -173,7 +173,7 @@ export default function SettingsClient() {
     try {
       const res = await fetch("/api/admin/prune", { method: "POST" });
       if (res.ok) {
-        showToast("ล้างข้อมูลสำเร็จแล้วครับ! (Data Pruned Successfully)");
+        showToast("ล้างข้อมูลสำเร็จแล้ว! (Data Pruned Successfully)");
         setShowPruneDialog(false);
         setPruneConfirmText("");
       } else {
@@ -321,7 +321,7 @@ export default function SettingsClient() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-blue-50 border border-blue-200 rounded-lg gap-4">
             <div>
               <h3 className="font-semibold text-blue-900">เปิด/ปิด การส่ง Calendar Invite อัตโนมัติ</h3>
-              <p className="text-sm text-blue-700 mt-1">หากเปิดใช้งาน ระบบจะส่งปฏิทินเชิญให้ลูกค้าและทีมงานอัตโนมัติทันทีที่กด "Accept (รับงาน)"</p>
+              <p className="text-sm text-blue-700 mt-1">หากเปิดใช้งาน ระบบจะส่งปฏิทินเชิญให้ผู้จองและทีมงานอัตโนมัติทันทีที่กด "Accept (รับงาน)"</p>
             </div>
             
             {isLoading || isSavingCalendar ? (

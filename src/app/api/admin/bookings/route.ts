@@ -63,11 +63,13 @@ export async function POST(request: Request) {
           if ((customerEmail || activeTeamEmails.length > 0) && timeSlot && dateStr) {
              const { createCalendarEvent } = await import("@/lib/google-calendar-api");
              
-             // Extract customer name (Remove the event part if it's like "Name - Event")
+             // Extract customer name and event name
              const rawName = bookingDetails.name || "";
-             const customerName = rawName.split(" - ")[0] || rawName;
+             const parts = rawName.split(" - ");
+             const customerName = parts[0] || rawName;
+             const eventName = parts.slice(1).join(" - ");
 
-             const title = `คิวงาน${serviceType ? " " + serviceType : ""} PCCPhotoClub - คุณ ${customerName || "ลูกค้า"}`;
+             const title = `คิวงาน${serviceType ? " " + serviceType : ""} PCCPhotoClub - คุณ ${customerName || "ลูกค้า"}${eventName ? " (" + eventName + ")" : ""}`;
              
              const emailsToInvite = [customerEmail, ...activeTeamEmails].filter(Boolean);
              await createCalendarEvent(title, dateStr, timeSlot, emailsToInvite);

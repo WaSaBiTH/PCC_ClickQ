@@ -23,6 +23,7 @@ export default function GalleryManagerClient() {
   const [error, setError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState<number | null>(null);
   const [isEditingLink, setIsEditingLink] = useState<number | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
   const [navigatingAction, setNavigatingAction] = useState<string | null>(null);
   const [editModal, setEditModal] = useState<{ show: boolean, item: GalleryItem | null, newLink: string, newFacebookLink: string, newIgLink: string }>({ show: false, item: null, newLink: '', newFacebookLink: '', newIgLink: '' });
 
@@ -60,16 +61,15 @@ export default function GalleryManagerClient() {
   }, []);
 
   const handleDelete = async (rowIndex: number) => {
-    if (!confirm("Are you sure you want to delete this album? This action cannot be undone.")) return;
-    
+    setConfirmDelete(null);
     setIsDeleting(rowIndex);
     try {
       const res = await fetch(`/api/admin/gallery?rowIndex=${rowIndex}`, {
         method: "DELETE",
       });
       if (res.ok) {
-        setItems(prev => prev.filter(item => item.rowIndex !== rowIndex));
         showToast("Album deleted successfully.");
+        await fetchItems();
       } else {
         const data = await res.json();
         showToast(`Failed to delete: ${data.error}`, 'error');
@@ -230,14 +230,25 @@ export default function GalleryManagerClient() {
                               {isEditingLink === item.rowIndex ? <Loader2 className="w-4 h-4 animate-spin" /> : <Pencil className="w-4 h-4" />}
                             </button>
                             <button
-                              onClick={() => handleDelete(item.rowIndex)}
+                              onClick={() => {
+                                if (confirmDelete === item.rowIndex) {
+                                  handleDelete(item.rowIndex);
+                                } else {
+                                  setConfirmDelete(item.rowIndex);
+                                  setTimeout(() => {
+                                    setConfirmDelete((prev) => prev === item.rowIndex ? null : prev);
+                                  }, 3000);
+                                }
+                              }}
                               disabled={isDeleting === item.rowIndex || isEditingLink === item.rowIndex}
                               className={`inline-flex items-center justify-center p-2 rounded-lg transition-colors ${
                                 isDeleting === item.rowIndex 
                                   ? 'bg-slate-100 text-slate-400 cursor-not-allowed' 
-                                  : 'text-red-500 hover:bg-red-50'
+                                  : confirmDelete === item.rowIndex
+                                    ? 'bg-red-500 text-white hover:bg-red-600 animate-pulse'
+                                    : 'text-red-500 hover:bg-red-50'
                               }`}
-                              title="Delete Album"
+                              title={confirmDelete === item.rowIndex ? "Click again to confirm delete" : "Delete Album"}
                             >
                               {isDeleting === item.rowIndex ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                             </button>
