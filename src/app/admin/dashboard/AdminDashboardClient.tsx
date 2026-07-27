@@ -4,16 +4,73 @@ import AdminNav from "@/components/admin/admin-nav";
 import React, { useState, useEffect } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Loader2, Users, Settings, LogOut, Image as ImageIcon, Search } from "lucide-react";
+import { Loader2, Users, Settings, LogOut, Image as ImageIcon, Search, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
 import { getThaiNow, formatThaiDate, diffDaysThai, parseThaiDateToIso } from "@/lib/date-utils";
+import Cropper from "react-easy-crop";
+import imageCompression from "browser-image-compression";
 
 interface Props {
   initialBookings: any[];
   spreadsheetId: string;
 }
+
+const getCroppedImg = async (imageSrc: string, pixelCrop: any, rotation = 0): Promise<File> => {
+  const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const img = new window.Image();
+    img.onload = () => resolve(img);
+    img.onerror = (e) => reject(e);
+    img.src = imageSrc;
+  });
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("No 2d context");
+
+  const safeArea = Math.max(image.width, image.height) * 2;
+  canvas.width = safeArea;
+  canvas.height = safeArea;
+  ctx.translate(safeArea / 2, safeArea / 2);
+  ctx.rotate((rotation * Math.PI) / 180);
+  ctx.translate(-safeArea / 2, -safeArea / 2);
+  ctx.drawImage(image, safeArea / 2 - image.width * 0.5, safeArea / 2 - image.height * 0.5);
+
+  const data = ctx.getImageData(0, 0, safeArea, safeArea);
+  canvas.width = pixelCrop.width;
+  canvas.height = pixelCrop.height;
+  ctx.putImageData(
+    data,
+    Math.round(0 - safeArea / 2 + image.width * 0.5 - pixelCrop.x),
+    Math.round(0 - safeArea / 2 + image.height * 0.5 - pixelCrop.y)
+  );
+
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (!blob) {
+        reject(new Error("Canvas is empty"));
+        return;
+      }
+      resolve(new File([blob], "cover.jpg", { type: "image/jpeg" }));
+    }, "image/jpeg", 0.9);
+  });
+};
+
+export type SocialLink = {
+  platform: "Facebook" | "Instagram" | "Google Drive" | "YouTube";
+  type: string;
+  url: string;
+};
+
+const isValidUrl = (url: string) => {
+  if (!url || url.trim() === "") return true;
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch (e) {
+    return false;
+  }
+};
 
 export default function AdminDashboardClient({ initialBookings, spreadsheetId }: Props) {
   const [bookings, setBookings] = useState(initialBookings);
@@ -28,12 +85,62 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
   const [activeTab, setActiveTab] = useState<string>("Pending");
   
   // State for the Google Photos/Drive Link prompt
-  const [promptLink, setPromptLink] = useState<{ rowIndices: number[], link: string, facebookLink: string, igLink: string } | null>(null);
+  const [promptLink, setPromptLink] = useState<{ rowIndices: number[], link: string, socialLinks: SocialLink[], isVideo?: boolean } | null>(null);
+  const [isUploadingCover, setIsUploadingCover] = useState(false);
+  const [imageSrc, setImageSrc] = useState<string | null>(null);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [rotation, setRotation] = useState(0);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
   
   // State for expanded row details
   const [expandedRow, setExpandedRow] = useState<number | null>(null);
   
   // State for navigation loading
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const reader = new FileReader();
+      reader.addEventListener("load", () => setImageSrc(reader.result?.toString() || null));
+      reader.readAsDataURL(e.target.files[0]);
+    }
+  };
+
+  const onCropComplete = (croppedArea: any, croppedAreaPixels: any) => {
+    setCroppedAreaPixels(croppedAreaPixels);
+  };
+
+  const handleUploadCover = async () => {
+    try {
+      setIsUploadingCover(true);
+      const croppedImage = await getCroppedImg(imageSrc!, croppedAreaPixels, rotation);
+      const compressedFile = await imageCompression(croppedImage, {
+        maxSizeMB: 1,
+        maxWidthOrHeight: 1200,
+        useWebWorker: true,
+      });
+      const formData = new FormData();
+      formData.append("file", compressedFile);
+      formData.append("uploadType", "booking");
+
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+      const result = await res.json();
+      if (result.success) {
+        setPromptLink({ ...promptLink!, link: result.url });
+        setImageSrc(null);
+      } else {
+        alert("อัปโหลดไม่สำเร็จ: " + result.error);
+      }
+    } catch (e) {
+      console.error(e);
+      alert("เกิดข้อผิดพลาดในการอัปโหลดรูปปก");
+    } finally {
+      setIsUploadingCover(false);
+    }
+  };
+
   const [navigatingAction, setNavigatingAction] = useState<string | null>(null);
 
   // State for search query
@@ -314,45 +421,222 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
         
         {promptLink && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white p-6 rounded-lg shadow-lg w-[400px]">
-              <h3 className="text-lg font-bold mb-4">Submit Work</h3>
-              <p className="text-sm text-slate-600 mb-2">Google Drive / Google Photos link (Required):</p>
-              <input 
-                type="text" 
-                value={promptLink.link}
-                onChange={(e) => setPromptLink({ ...promptLink, link: e.target.value })}
-                className="w-full border p-2 rounded mb-4"
-                placeholder="https://drive.google.com/..."
-              />
-              <p className="text-sm text-slate-600 mb-2">Facebook Post link (Optional):</p>
-              <input 
-                type="text" 
-                value={promptLink.facebookLink}
-                onChange={(e) => setPromptLink({ ...promptLink, facebookLink: e.target.value })}
-                className="w-full border p-2 rounded mb-4"
-                placeholder="https://facebook.com/..."
-              />
-              <p className="text-sm text-slate-600 mb-2">Instagram Post link (Optional):</p>
-              <input 
-                type="text" 
-                value={promptLink.igLink}
-                onChange={(e) => setPromptLink({ ...promptLink, igLink: e.target.value })}
-                className="w-full border p-2 rounded mb-4"
-                placeholder="https://instagram.com/..."
-              />
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setPromptLink(null)}>Cancel</Button>
+            <div className="bg-white p-6 rounded-lg shadow-lg w-[400px] max-w-[90vw] max-h-[90vh] overflow-y-auto">
+              <h3 className="text-lg font-bold mb-4 text-slate-800">Submit Work</h3>
+              
+              {promptLink.isVideo && (
+                <div className="mb-6 p-4 bg-orange-50 border border-orange-100 rounded-xl">
+                  <h4 className="text-sm font-bold text-orange-800 mb-2">รูปปกหน้า Gallery (เลือกอย่างใดอย่างหนึ่ง)</h4>
+                  <p className="text-xs text-orange-600 mb-3">หากไม่มีลิงก์ Google Photos สามารถอัปโหลดรูปปกแทนได้ (ถ้าอัปโหลด ระบบจะใช้รูปนี้แทนลิงก์อัลบั้ม)</p>
+                  
+                  {promptLink.link && promptLink.link.includes("drive.google.com") ? (
+                    <div className="relative w-full aspect-[3/4] bg-slate-100 rounded-lg overflow-hidden border border-slate-200">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={promptLink.link} alt="Cover" className="object-cover w-full h-full" referrerPolicy="no-referrer" />
+                      <button 
+                        onClick={() => setPromptLink({ ...promptLink, link: "" })}
+                        className="absolute top-2 right-2 bg-red-500 text-white p-1.5 rounded-full hover:bg-red-600 shadow-md"
+                      >
+                        <LogOut className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : imageSrc ? (
+                    <div className="flex flex-col gap-4">
+                      <div className="relative w-full h-64 bg-slate-900 rounded-lg overflow-hidden">
+                        <Cropper
+                          image={imageSrc}
+                          crop={crop}
+                          zoom={zoom}
+                          rotation={rotation}
+                          aspect={3 / 4}
+                          onCropChange={setCrop}
+                          onCropComplete={onCropComplete}
+                          onZoomChange={setZoom}
+                          onRotationChange={setRotation}
+                        />
+                      </div>
+                      <div className="space-y-3">
+                        <div>
+                          <label className="text-xs font-semibold text-slate-600 mb-1 block">Zoom</label>
+                          <input type="range" value={zoom} min={1} max={3} step={0.1} onChange={(e) => setZoom(Number(e.target.value))} className="w-full" />
+                        </div>
+                        <div>
+                          <label className="text-xs font-semibold text-slate-600 mb-1 block">Rotate</label>
+                          <input type="range" value={rotation} min={0} max={360} step={1} onChange={(e) => setRotation(Number(e.target.value))} className="w-full" />
+                        </div>
+                        <div className="flex gap-2">
+                          <Button variant="outline" size="sm" onClick={() => setImageSrc(null)} className="w-1/2">ยกเลิก</Button>
+                          <Button size="sm" onClick={handleUploadCover} disabled={isUploadingCover} className="w-1/2 bg-orange-600 hover:bg-orange-700">
+                            {isUploadingCover ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <ImageIcon className="w-4 h-4 mr-2" />}
+                            บันทึกปก
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-orange-300 rounded-xl cursor-pointer bg-white hover:bg-orange-50 transition-colors">
+                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                          <ImageIcon className="w-6 h-6 text-orange-400 mb-1" />
+                          <p className="text-sm text-orange-600 font-medium">คลิกเพื่ออัปโหลดรูปปกเอง</p>
+                        </div>
+                        <input type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
+                      </label>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {(!promptLink.isVideo || (!promptLink.link?.includes("drive.google.com") && !imageSrc)) && (
+                <>
+                  <p className="text-sm font-semibold text-slate-700 mb-1">Google Photos link <span className="text-red-500">*</span></p>
+                  <input 
+                    type="text" 
+                    value={promptLink.link}
+                    onChange={(e) => setPromptLink({ ...promptLink, link: e.target.value })}
+                    className={`w-full border p-2 rounded-lg mb-1 text-sm outline-none focus:ring-2 focus:ring-blue-500 ${promptLink.link && !isValidUrl(promptLink.link) ? 'border-red-500 bg-red-50' : 'border-slate-300'}`}
+                    placeholder="https://photos.app.goo.gl/..."
+                  />
+                  {promptLink.link && !isValidUrl(promptLink.link) && (
+                    <p className="text-xs text-red-500 mb-4">กรุณากรอกลิงก์ที่ถูกต้อง (ต้องขึ้นต้นด้วย http:// หรือ https://)</p>
+                  )}
+                  {(!promptLink.link || isValidUrl(promptLink.link)) && (
+                    <div className="mb-4"></div>
+                  )}
+                </>
+              )}
+              
+              <div className="mt-6 mb-4">
+                <p className="text-sm font-bold text-slate-800 mb-3 flex items-center justify-between">
+                  <span>ลิงก์ Social Media (Optional)</span>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => setPromptLink({
+                      ...promptLink, 
+                      socialLinks: [...promptLink.socialLinks, { platform: "Facebook", type: "รูปถ่าย", url: "" }]
+                    })}
+                    className="h-7 text-xs flex items-center bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200"
+                  >
+                    <Plus className="w-3 h-3 mr-1" /> Add Link
+                  </Button>
+                </p>
+                
+                <div className="space-y-3 max-h-[40vh] overflow-y-auto pr-2">
+                  {promptLink.socialLinks.map((link, idx) => (
+                    <div key={idx} className="flex flex-col gap-2 p-3 bg-slate-50 border border-slate-200 rounded-lg relative group">
+                      <div className="flex items-center gap-2">
+                        <select 
+                          value={link.platform}
+                          onChange={(e) => {
+                            const newLinks = [...promptLink.socialLinks];
+                            newLinks[idx].platform = e.target.value as "Facebook" | "Instagram" | "Google Drive" | "YouTube";
+                            if (newLinks[idx].platform === "Google Drive" || newLinks[idx].platform === "YouTube") {
+                              newLinks[idx].type = newLinks[idx].platform;
+                            } else if (newLinks[idx].type === "Google Drive" || newLinks[idx].type === "YouTube") {
+                              newLinks[idx].type = "รูปถ่าย";
+                            }
+                            setPromptLink({ ...promptLink, socialLinks: newLinks });
+                          }}
+                          className={`${(link.platform === 'Google Drive' || link.platform === 'YouTube') ? 'w-full' : 'w-1/2'} p-2 text-xs border border-slate-300 rounded-md bg-white focus:ring-2 focus:ring-blue-500 outline-none transition-all`}
+                        >
+                          <option value="Facebook">Facebook</option>
+                          <option value="Instagram">Instagram</option>
+                          <option value="Google Drive">Google Drive</option>
+                          <option value="YouTube">YouTube</option>
+                        </select>
+                        
+                        {(link.platform !== "Google Drive" && link.platform !== "YouTube") && (
+                          <select 
+                            value={link.type}
+                            onChange={(e) => {
+                              const newLinks = [...promptLink.socialLinks];
+                              newLinks[idx].type = e.target.value;
+                              setPromptLink({ ...promptLink, socialLinks: newLinks });
+                            }}
+                            className="w-1/2 p-2 text-xs border border-slate-300 rounded-md bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                          >
+                            <option value="รูปถ่าย">รูปถ่าย (Photo)</option>
+                            <option value="วิดีโอ">วิดีโอ (Video)</option>
+                            <option value="ไลฟ์">ไลฟ์ (Live)</option>
+                            <option value="อัลบั้มรวม">อัลบั้มรวม</option>
+                            <option value="อื่นๆ">อื่นๆ</option>
+                          </select>
+                        )}
+                        
+                        <button 
+                          onClick={() => {
+                            const newLinks = promptLink.socialLinks.filter((_, i) => i !== idx);
+                            setPromptLink({ ...promptLink, socialLinks: newLinks });
+                          }}
+                          className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors flex-shrink-0"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                      
+                      <div>
+                        <input 
+                          type="url" 
+                          value={link.url}
+                          onChange={(e) => {
+                            const newLinks = [...promptLink.socialLinks];
+                            newLinks[idx].url = e.target.value;
+                            setPromptLink({ ...promptLink, socialLinks: newLinks });
+                          }}
+                          placeholder={
+                            link.platform === "YouTube" ? "https://www.youtube.com/watch?v=..." :
+                            link.platform === "Google Drive" ? "https://drive.google.com/..." :
+                            `วางลิงก์โพสต์ ${link.platform} ที่นี่...`
+                          }
+                          className={`w-full p-2 text-xs border rounded-md focus:ring-2 focus:ring-blue-500 outline-none ${link.url && !isValidUrl(link.url) ? 'border-red-500 bg-red-50' : 'border-slate-300 bg-white'}`}
+                        />
+                        {link.url && !isValidUrl(link.url) && (
+                          <p className="text-[10px] text-red-500 mt-1">กรุณากรอกลิงก์ที่ถูกต้อง (http:// หรือ https://)</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {promptLink.socialLinks.length === 0 && (
+                    <div className="text-center py-4 text-xs text-slate-400 italic">
+                      ไม่ได้เพิ่มลิงก์โซเชียล (สามารถกด Add Link ได้)
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              <div className="flex justify-end gap-3 pt-4 border-t mt-4">
+                <Button variant="outline" onClick={() => {
+                  setPromptLink(null);
+                  setImageSrc(null);
+                }}>Cancel</Button>
                 <Button 
                   onClick={() => {
+                    // Group Google Drive & YouTube links into FB links array for storage (no schema changes needed)
+                    // The Gallery page will pull them out based on the type flag.
+                    const fbLinks = promptLink.socialLinks.filter(l => (l.platform === "Facebook" || l.platform === "Google Drive" || l.platform === "YouTube") && l.url.trim() !== "");
+                    const igLinks = promptLink.socialLinks.filter(l => l.platform === "Instagram" && l.url.trim() !== "");
+                    
+                    const facebookLink = fbLinks.map(l => `${l.type}|${l.url.trim()}`).join(",");
+                    const igLink = igLinks.map(l => `${l.type}|${l.url.trim()}`).join(",");
+
                     if (promptLink.rowIndices.length === 1) {
                       const rowIndex = promptLink.rowIndices[0];
-                      handleStatusUpdate(rowIndex, "Completed", promptLink.link, promptLink.facebookLink, promptLink.igLink);
+                      handleStatusUpdate(rowIndex, "Completed", promptLink.link, facebookLink, igLink);
                       setPromptLink(null);
+                      setImageSrc(null);
                     } else {
-                      handleBulkStatusUpdate("Completed", promptLink.link, promptLink.facebookLink, promptLink.igLink);
+                      handleBulkStatusUpdate("Completed", promptLink.link, facebookLink, igLink);
                     }
                   }}
-                  disabled={updatingAction !== null || isBulkUpdating}
+                  disabled={
+                    updatingAction !== null || 
+                    isBulkUpdating || 
+                    !promptLink.link || 
+                    !isValidUrl(promptLink.link) ||
+                    promptLink.socialLinks.some(l => !isValidUrl(l.url))
+                  }
                   className="bg-green-600 hover:bg-green-700 text-white flex items-center"
                 >
                   {(updatingAction !== null || isBulkUpdating) && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
@@ -488,7 +772,11 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
                   onClick={() => {
                     // Only submit links for items that are actually accepted
                     const acceptedRows = selectedRows.filter(idx => bookings[idx][7] === "Accepted");
-                    setPromptLink({ rowIndices: acceptedRows, link: "", facebookLink: "", igLink: "" });
+                    const isVideo = acceptedRows.every(idx => {
+                      const service = (bookings[idx][5] || "").toLowerCase();
+                      return service.includes("วิดีโอ") || service.includes("วีดีโอ") || service.includes("ไลฟ์") || service.includes("video") || service.includes("live");
+                    });
+                    setPromptLink({ rowIndices: acceptedRows, link: "", socialLinks: [{ platform: "Facebook", type: "รูปถ่าย", url: "" }], isVideo });
                   }}
                   disabled={isBulkUpdating}
                 >
@@ -748,7 +1036,9 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
                                 className="text-green-600 border-green-600 hover:bg-green-50 bg-white flex items-center"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  setPromptLink({ rowIndices: [rowIndex], link: "", facebookLink: "", igLink: "" });
+                                  const service = (row[5] || "").toLowerCase();
+                                  const isVideo = service.includes("วิดีโอ") || service.includes("วีดีโอ") || service.includes("ไลฟ์") || service.includes("video") || service.includes("live");
+                                  setPromptLink({ rowIndices: [rowIndex], link: "", socialLinks: [{ platform: "Facebook", type: "รูปถ่าย", url: "" }], isVideo });
                                 }}
                                 disabled={updatingAction !== null}
                               >
@@ -981,7 +1271,9 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
                         className="w-full h-12 flex items-center justify-center font-bold text-blue-600 bg-white hover:bg-blue-50 active:bg-blue-100 transition-colors disabled:opacity-50"
                         onClick={(e) => {
                           e.stopPropagation();
-                          setPromptLink({ rowIndices: [rowIndex], link: "", facebookLink: "", igLink: "" });
+                          const service = (row[5] || "").toLowerCase();
+                          const isVideo = service.includes("วิดีโอ") || service.includes("วีดีโอ") || service.includes("ไลฟ์") || service.includes("video") || service.includes("live");
+                          setPromptLink({ rowIndices: [rowIndex], link: "", socialLinks: [{ platform: "Facebook", type: "รูปถ่าย", url: "" }], isVideo });
                         }}
                         disabled={updatingAction !== null}
                       >

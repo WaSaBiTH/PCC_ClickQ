@@ -141,3 +141,32 @@ export async function PUT(request: Request) {
   }
 }
 
+export async function POST(request: Request) {
+  try {
+    const cookieStore = await cookies();
+    const adminToken = cookieStore.get("admin_auth")?.value;
+    
+    if (adminToken !== "authenticated") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { name, serviceType, dateStr, link, facebookLink, igLink } = await request.json();
+    if (!name || !dateStr) return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    
+    const sheets = await getSheetsClient();
+    
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: SPREADSHEET_ID,
+      range: "Gallery!A:F",
+      valueInputOption: "USER_ENTERED",
+      requestBody: {
+        values: [[name, serviceType || "", dateStr, link || "", facebookLink || "", igLink || ""]],
+      },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    console.error("POST gallery item error:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}

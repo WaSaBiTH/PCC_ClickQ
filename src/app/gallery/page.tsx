@@ -4,7 +4,8 @@ import Image from "next/image";
 import { ClientLink } from "@/components/ClientLink";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
-import { AlertCircle, ExternalLink, Share2 } from "lucide-react";
+import { AlertCircle, ExternalLink, Share2, ChevronDown } from "lucide-react";
+import { GoogleDrive2026, Youtube, Facebook, Instagram } from "@thesvg/react";
 import MainNav from "@/components/main-nav";
 
 export const revalidate = 60; // Cache for 60 seconds
@@ -39,6 +40,9 @@ export default async function GalleryPage() {
       } catch (e) {
         isDeadLink = true;
       }
+    } else if (link && link.includes("drive.google.com")) {
+      // For manually uploaded cover images
+      coverImage = link;
     }
 
     const itemDate = new Date(dateStr);
@@ -138,34 +142,169 @@ export default async function GalleryPage() {
                     {item.name}
                   </h3>
                   
-                  {(item.facebookLink || item.igLink) && (
-                    <div className="mt-3 flex flex-wrap gap-3">
-                      {item.facebookLink && (
-                        <a 
-                          href={item.facebookLink} 
-                          target="_blank" 
-                          rel="noreferrer"
-                          className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 font-medium w-fit transition-colors"
-                          title="ดูโพสต์ Facebook"
-                        >
-                          <ExternalLink className="w-4 h-4" />
-                          <span>Facebook</span>
-                        </a>
-                      )}
-                      {item.igLink && (
-                        <a 
-                          href={item.igLink} 
-                          target="_blank" 
-                          rel="noreferrer"
-                          className="flex items-center gap-1.5 text-sm text-pink-600 hover:text-pink-700 font-medium w-fit transition-colors"
-                          title="ดูโพสต์ Instagram"
-                        >
-                          <ExternalLink className="w-4 h-4" />
-                          <span>Instagram</span>
-                        </a>
-                      )}
-                    </div>
-                  )}
+                  {(item.facebookLink || item.igLink) && (() => {
+                    type ParsedLink = { type: string, url: string };
+                    const fbLinks: ParsedLink[] = [];
+                    const igLinks: ParsedLink[] = [];
+                    const driveLinks: ParsedLink[] = [];
+                    const ytLinks: ParsedLink[] = [];
+                    
+                    const processLinkStr = (str: string) => {
+                      return str.split(',').map(l => {
+                        const trimmed = l.trim();
+                        if (!trimmed) return null;
+                        const parts = trimmed.split('|');
+                        if (parts.length > 1) {
+                          return { type: parts[0].trim(), url: parts.slice(1).join('|').trim() };
+                        }
+                        return { type: "ลิงก์", url: trimmed };
+                      }).filter(Boolean) as ParsedLink[];
+                    };
+                    
+                    if (item.facebookLink) {
+                      const parsed = processLinkStr(item.facebookLink);
+                      driveLinks.push(...parsed.filter(l => l.type === "Google Drive"));
+                      ytLinks.push(...parsed.filter(l => l.type === "YouTube"));
+                      fbLinks.push(...parsed.filter(l => l.type !== "Google Drive" && l.type !== "YouTube"));
+                    }
+                    if (item.igLink) {
+                      const parsed = processLinkStr(item.igLink);
+                      driveLinks.push(...parsed.filter(l => l.type === "Google Drive"));
+                      ytLinks.push(...parsed.filter(l => l.type === "YouTube"));
+                      igLinks.push(...parsed.filter(l => l.type !== "Google Drive" && l.type !== "YouTube"));
+                    }
+                    
+                    return (
+                      <div className="mt-3 flex flex-wrap gap-3">
+                        {/* Facebook Links */}
+                        {fbLinks.length > 0 && (() => {
+                          if (fbLinks.length === 1) {
+                            return (
+                              <a 
+                                href={fbLinks[0].url} 
+                                target="_blank" 
+                                rel="noreferrer"
+                                className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 font-medium w-fit transition-colors"
+                                title="ดูโพสต์ Facebook"
+                              >
+                                <Facebook className="w-4 h-4" />
+                                <span>{fbLinks[0].type !== "ลิงก์" ? fbLinks[0].type : "Facebook"}</span>
+                              </a>
+                            );
+                          } else {
+                            return (
+                              <details className="group relative">
+                                <summary className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 font-medium cursor-pointer list-none transition-colors">
+                                  <Facebook className="w-4 h-4" />
+                                  <span>Facebook ({fbLinks.length}) <ChevronDown className="w-3 h-3 inline transition-transform group-open:rotate-180" /></span>
+                                </summary>
+                                <div className="absolute top-full left-0 z-10 mt-1 min-w-[120px] bg-white rounded-lg shadow-xl border border-slate-100 p-2 flex flex-col gap-1 overflow-hidden animate-in fade-in slide-in-from-top-2">
+                                  {fbLinks.map((link, i) => (
+                                    <a key={i} href={link.url} target="_blank" rel="noreferrer" className="text-sm text-slate-600 hover:text-blue-600 hover:bg-slate-50 px-3 py-2 rounded-md transition-colors whitespace-nowrap">{link.type}</a>
+                                  ))}
+                                </div>
+                              </details>
+                            );
+                          }
+                        })()}
+                        
+                        {/* Instagram Links */}
+                        {igLinks.length > 0 && (() => {
+                          if (igLinks.length === 1) {
+                            return (
+                              <a 
+                                href={igLinks[0].url} 
+                                target="_blank" 
+                                rel="noreferrer"
+                                className="flex items-center gap-1.5 text-sm text-pink-600 hover:text-pink-700 font-medium w-fit transition-colors"
+                                title="ดูโพสต์ Instagram"
+                              >
+                                <Instagram className="w-4 h-4" />
+                                <span>{igLinks[0].type !== "ลิงก์" ? igLinks[0].type : "Instagram"}</span>
+                              </a>
+                            );
+                          } else {
+                            return (
+                              <details className="group relative">
+                                <summary className="flex items-center gap-1.5 text-sm text-pink-600 hover:text-pink-700 font-medium cursor-pointer list-none transition-colors">
+                                  <Instagram className="w-4 h-4" />
+                                  <span>Instagram ({igLinks.length}) <ChevronDown className="w-3 h-3 inline transition-transform group-open:rotate-180" /></span>
+                                </summary>
+                                <div className="absolute top-full left-0 z-10 mt-1 min-w-[120px] bg-white rounded-lg shadow-xl border border-slate-100 p-2 flex flex-col gap-1 overflow-hidden animate-in fade-in slide-in-from-top-2">
+                                  {igLinks.map((link, i) => (
+                                    <a key={i} href={link.url} target="_blank" rel="noreferrer" className="text-sm text-slate-600 hover:text-pink-600 hover:bg-slate-50 px-3 py-2 rounded-md transition-colors whitespace-nowrap">{link.type}</a>
+                                  ))}
+                                </div>
+                              </details>
+                            );
+                          }
+                        })()}
+                        
+                        {/* Google Drive Links */}
+                        {driveLinks.length > 0 && (() => {
+                          if (driveLinks.length === 1) {
+                            return (
+                              <a 
+                                href={driveLinks[0].url} 
+                                target="_blank" 
+                                rel="noreferrer"
+                                className="flex items-center gap-1.5 text-sm text-slate-700 hover:text-slate-900 font-medium w-fit transition-colors"
+                                title="ดูลิงก์ Google Drive"
+                              >
+                                <GoogleDrive2026 className="w-4 h-4" />
+                                <span>Google Drive</span>
+                              </a>
+                            );
+                          } else {
+                            return (
+                              <details className="group relative">
+                                <summary className="flex items-center gap-1.5 text-sm text-slate-700 hover:text-slate-900 font-medium cursor-pointer list-none transition-colors">
+                                  <GoogleDrive2026 className="w-4 h-4" />
+                                  <span>Google Drive ({driveLinks.length}) <ChevronDown className="w-3 h-3 inline transition-transform group-open:rotate-180" /></span>
+                                </summary>
+                                <div className="absolute top-full left-0 z-10 mt-1 min-w-[120px] bg-white rounded-lg shadow-xl border border-slate-100 p-2 flex flex-col gap-1 overflow-hidden animate-in fade-in slide-in-from-top-2">
+                                  {driveLinks.map((link, i) => (
+                                    <a key={i} href={link.url} target="_blank" rel="noreferrer" className="text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-50 px-3 py-2 rounded-md transition-colors whitespace-nowrap">ลิงก์ที่ {i + 1}</a>
+                                  ))}
+                                </div>
+                              </details>
+                            );
+                          }
+                        })()}
+                        {/* YouTube Links */}
+                        {ytLinks.length > 0 && (() => {
+                          if (ytLinks.length === 1) {
+                            return (
+                              <a 
+                                href={ytLinks[0].url} 
+                                target="_blank" 
+                                rel="noreferrer"
+                                className="flex items-center gap-1.5 text-sm text-red-600 hover:text-red-700 font-medium w-fit transition-colors"
+                                title="ดูวิดีโอ YouTube"
+                              >
+                                <Youtube className="w-4 h-4" />
+                                <span>YouTube</span>
+                              </a>
+                            );
+                          } else {
+                            return (
+                              <details className="group relative">
+                                <summary className="flex items-center gap-1.5 text-sm text-red-600 hover:text-red-700 font-medium cursor-pointer list-none transition-colors">
+                                  <Youtube className="w-4 h-4" />
+                                  <span>YouTube ({ytLinks.length}) <ChevronDown className="w-3 h-3 inline transition-transform group-open:rotate-180" /></span>
+                                </summary>
+                                <div className="absolute top-full left-0 z-10 mt-1 min-w-[120px] bg-white rounded-lg shadow-xl border border-slate-100 p-2 flex flex-col gap-1 overflow-hidden animate-in fade-in slide-in-from-top-2">
+                                  {ytLinks.map((link, i) => (
+                                    <a key={i} href={link.url} target="_blank" rel="noreferrer" className="text-sm text-slate-600 hover:text-red-600 hover:bg-slate-50 px-3 py-2 rounded-md transition-colors whitespace-nowrap">คลิปที่ {i + 1}</a>
+                                  ))}
+                                </div>
+                              </details>
+                            );
+                          }
+                        })()}
+                      </div>
+                    );
+                  })()}
                   
                   {item.isOld && (
                     <div 
