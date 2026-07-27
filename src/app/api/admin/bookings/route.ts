@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { updateBookingStatus } from "@/lib/google-sheets";
 import { appendToSheet } from "@/lib/google-sheets-api";
 import { getThaiNow } from "@/lib/date-utils";
+import { sendBookingSummaryEmail } from "@/lib/nodemailer";
 
 export async function POST(request: Request) {
   try {
@@ -72,7 +73,16 @@ export async function POST(request: Request) {
              const title = `คิวงาน${serviceType ? " " + serviceType : ""} PCCPhotoClub - คุณ ${customerName || "ลูกค้า"}${eventName ? " (" + eventName + ")" : ""}`;
              
              const emailsToInvite = [customerEmail, ...activeTeamEmails].filter(Boolean);
-             await createCalendarEvent(title, dateStr, timeSlot, emailsToInvite);
+             await createCalendarEvent(title, dateStr, timeSlot, emailsToInvite, false);
+             
+             if (customerEmail) {
+               await sendBookingSummaryEmail(customerEmail, customerName || "ลูกค้า", [{
+                 eventName: eventName || "-",
+                 serviceType: serviceType || "-",
+                 date: dateStr,
+                 timeSlot: timeSlot
+               }]);
+             }
           }
         }
       } catch (e) {

@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import { formatThaiDate } from '@/lib/date-utils';
 
 export async function sendOTPEmail(to: string, otp: string, bookerName: string = 'ลูกค้า', eventName: string = '') {
   // We use standard environment variables for Gmail
@@ -48,6 +49,65 @@ export async function sendOTPEmail(to: string, otp: string, bookerName: string =
     return true;
   } catch (error) {
     console.error("Error sending OTP email:", error);
+    throw error;
+  }
+}
+
+export async function sendBookingSummaryEmail(to: string, bookerName: string, bookings: Array<{ eventName?: string, serviceType: string, date: string, timeSlot: string }>) {
+  const user = process.env.SMTP_EMAIL;
+  const pass = process.env.SMTP_PASSWORD;
+
+  if (!user || !pass) {
+    console.error("Missing SMTP_EMAIL or SMTP_PASSWORD environment variables");
+    return false; // Silently fail if not configured
+  }
+
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user,
+      pass,
+    },
+  });
+
+  const bookingsHtml = bookings.map(b => `
+    <li style="margin-bottom: 10px;">
+      <b>วันที่:</b> ${formatThaiDate(b.date, "d MMM yyyy")} <br/>
+      <b>เวลา:</b> ${b.timeSlot} <br/>
+      <b>ชื่องาน:</b> ${b.eventName || "-"} <br/>
+      <b>ประเภทงาน:</b> ${b.serviceType}
+    </li>
+  `).join('');
+
+  const mailOptions = {
+    from: `"PCC ClickQ" <${user}>`,
+    to,
+    replyTo: "noreply@pcc-clickq.com",
+    subject: 'ยืนยันการรับงาน (PCC ClickQ)',
+    html: `
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
+        <h2 style="color: #0f172a; text-align: center;">ยืนยันการจองคิวงาน</h2>
+        <p style="color: #334155; font-size: 16px;">สวัสดีครับ คุณ ${bookerName},</p>
+        <p style="color: #334155; font-size: 16px;">ชมรม PCC Photo Club ได้รับและ <b>ยืนยัน</b> คิวงานของคุณเรียบร้อยแล้ว ดังรายการต่อไปนี้:</p>
+        <ul style="color: #334155; font-size: 15px; background: #f8fafc; padding: 20px 40px; border-radius: 8px; border: 1px solid #e2e8f0;">
+          ${bookingsHtml}
+        </ul>
+        <p style="color: #334155; font-size: 15px; margin-top: 20px;">
+          ทีมงานได้บันทึกลงในปฏิทินเรียบร้อยแล้วครับ แล้วพบกันตามวันและเวลาที่นัดหมายครับ
+        </p>
+
+        <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 30px 0;" />
+        <p style="color: #94a3b8; font-size: 12px; text-align: center;">นี่คืออีเมลอัตโนมัติจากระบบ กรุณาอย่าตอบกลับอีเมลนี้</p>
+      </div>
+    `,
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log("Summary email sent: " + info.response);
+    return true;
+  } catch (error) {
+    console.error("Error sending summary email:", error);
     throw error;
   }
 }

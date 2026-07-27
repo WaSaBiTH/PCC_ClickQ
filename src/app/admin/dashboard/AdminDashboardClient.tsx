@@ -210,39 +210,55 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
     const updatedBookings = [...bookings];
     let hasError = false;
 
-    for (let i = 0; i < selectedRows.length; i++) {
-      const rowIndex = selectedRows[i];
+    const updates = selectedRows.map((rowIndex) => {
       const rowData = bookings[rowIndex];
-      
-      const bookingDetails = {
-        name: rowData[0],
-        serviceType: rowData[5],
-        date: rowData[3],
-        timeSlot: rowData[4],
-        email: rowData[11]
+      return {
+        rowIndex,
+        status,
+        googlePhotosLink,
+        facebookLink,
+        igLink,
+        bookingDetails: {
+          name: rowData[0],
+          serviceType: rowData[5],
+          date: rowData[3],
+          timeSlot: rowData[4],
+          email: rowData[11]
+        }
       };
+    });
 
-      try {
-        const res = await fetch("/api/admin/bookings", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ rowIndex, status, googlePhotosLink, facebookLink, igLink, bookingDetails }),
-        });
-        
-        if (res.ok) {
+    let fakeProgress = 0;
+    const progressInterval = setInterval(() => {
+      if (fakeProgress < selectedRows.length - 1) {
+        fakeProgress += 1;
+        setBulkProgress({ current: fakeProgress, total: selectedRows.length });
+      }
+    }, 1500);
+
+    try {
+      const res = await fetch("/api/admin/bookings/bulk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ updates }),
+      });
+      
+      if (res.ok) {
+        updates.forEach(({ rowIndex, status, googlePhotosLink }) => {
           updatedBookings[rowIndex][7] = status;
           if (googlePhotosLink !== undefined) {
             updatedBookings[rowIndex][9] = googlePhotosLink;
           }
-        } else {
-          hasError = true;
-        }
-      } catch (error) {
+        });
+        setBulkProgress({ current: selectedRows.length, total: selectedRows.length });
+      } else {
         hasError = true;
-        console.error(error);
       }
-      
-      setBulkProgress({ current: i + 1, total: selectedRows.length });
+    } catch (error) {
+      hasError = true;
+      console.error(error);
+    } finally {
+      clearInterval(progressInterval);
     }
     
     setBookings(updatedBookings);

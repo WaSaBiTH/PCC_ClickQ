@@ -28,8 +28,9 @@ const getAuthClient = () => {
  * @param dateStr Date in format like "14 ส.ค." or "2024-08-14"
  * @param timeSlotStr Time slot string like "09:00-12:00"
  * @param emails List of attendee emails
+ * @param sendInvites Whether to send notification emails (defaults to true)
  */
-export async function createCalendarEvent(title: string, dateStr: string, timeSlotStr: string, emails: string[]) {
+export async function createCalendarEvent(title: string, dateStr: string, timeSlotStr: string, emails: string[], sendInvites: boolean = true) {
   try {
     const auth = getAuthClient();
     const calendar = google.calendar({ version: "v3", auth: auth as any });
@@ -117,6 +118,7 @@ export async function createCalendarEvent(title: string, dateStr: string, timeSl
         startTime: startTimeIso,
         endTime: endTimeIso,
         emails: attendees.map(a => a.email).join(","),
+        sendInvites: sendInvites,
       }),
     });
 
