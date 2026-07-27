@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { Loader2, AlertCircle, Edit, Trash2, Plus, Image as ImageIcon, Pencil, Check } from "lucide-react";
+import { Loader2, AlertCircle, Edit, Trash2, Plus, Image as ImageIcon, Pencil, Check, ChevronDown } from "lucide-react";
 import AdminNav from "@/components/admin/admin-nav";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
@@ -301,6 +301,58 @@ export default function GalleryManagerClient() {
     }
   };
 
+  const renderSocialLinks = (rawLinks: string, colorClass: string, platformName: string) => {
+    if (!rawLinks || rawLinks === "-") return <span className="text-slate-400">-</span>;
+    
+    const links = rawLinks.split(',').map(l => {
+      const trimmed = l.trim();
+      if (!trimmed) return null;
+      const parts = trimmed.split('|');
+      if (parts.length > 1) {
+        return { type: parts[0].trim(), url: parts.slice(1).join('|').trim() };
+      }
+      return { type: 'ลิงก์', url: trimmed };
+    }).filter(Boolean) as { type: string, url: string }[];
+  
+    if (links.length === 0) return <span className="text-slate-400">-</span>;
+  
+    if (links.length === 1) {
+      return (
+        <a 
+          href={links[0].url} 
+          target="_blank" 
+          rel="noreferrer"
+          className={`${colorClass} hover:underline text-sm truncate block max-w-[150px] sm:max-w-[200px]`}
+          title={links[0].url}
+        >
+          {links[0].type !== 'ลิงก์' ? `${links[0].type}` : platformName}
+        </a>
+      );
+    }
+  
+    return (
+      <div className="relative group">
+        <button className={`${colorClass} hover:underline text-sm flex items-center gap-1`}>
+          {links.length} Links <ChevronDown className="w-3 h-3" />
+        </button>
+        <div className="absolute left-0 top-full mt-1 w-48 bg-white border border-slate-200 shadow-xl rounded-xl overflow-hidden z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
+          {links.map((l, i) => (
+            <a
+              key={i}
+              href={l.url}
+              target="_blank"
+              rel="noreferrer"
+              className={`block px-4 py-2 text-sm ${colorClass} hover:bg-slate-50 border-b border-slate-50 last:border-0 truncate`}
+              title={l.url}
+            >
+              {l.type}
+            </a>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
       <AdminNav activePage="gallery" />
@@ -391,26 +443,10 @@ export default function GalleryManagerClient() {
                           </a>
                         </td>
                         <td className="px-4 sm:px-6 py-4">
-                          <a 
-                            href={item.facebookLink} 
-                            target="_blank" 
-                            rel="noreferrer"
-                            className="text-blue-600 hover:text-blue-700 hover:underline text-sm truncate block max-w-[150px] sm:max-w-[200px]"
-                            title={item.facebookLink}
-                          >
-                            {item.facebookLink || "-"}
-                          </a>
+                          {renderSocialLinks(item.facebookLink, "text-blue-600", "Facebook")}
                         </td>
                         <td className="px-4 sm:px-6 py-4">
-                          <a 
-                            href={item.igLink} 
-                            target="_blank" 
-                            rel="noreferrer"
-                            className="text-pink-600 hover:text-pink-700 hover:underline text-sm truncate block max-w-[150px] sm:max-w-[200px]"
-                            title={item.igLink}
-                          >
-                            {item.igLink || "-"}
-                          </a>
+                          {renderSocialLinks(item.igLink, "text-pink-600", "Instagram")}
                         </td>
                         <td className="px-4 sm:px-6 py-4 text-right">
                           <div className="flex justify-end gap-2">
@@ -695,7 +731,7 @@ export default function GalleryManagerClient() {
                     </div>
                   </div>
                   <div className="mb-6 p-4 bg-orange-50 border border-orange-100 rounded-xl">
-                    <h4 className="text-sm font-bold text-orange-800 mb-2">รูปปกหน้า Gallery (เลือกอย่างใดอย่างหนึ่ง)</h4>
+                    <h4 className="text-sm font-bold text-orange-800 mb-2">Gallery cover (เลือกอย่างใดอย่างหนึ่ง)</h4>
                     <p className="text-xs text-orange-600 mb-3">หากไม่มีลิงก์ Google Photos สามารถอัปโหลดรูปปกแทนได้ (ถ้าอัปโหลด ระบบจะใช้รูปนี้แทนลิงก์อัลบั้ม)</p>
                     
                     {addModal.newLink && addModal.newLink.includes("drive.google.com") ? (

@@ -97,7 +97,7 @@ export async function sendBookingSummaryEmail(to: string, bookerName: string, bo
         </p>
 
         <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 30px 0;" />
-        <p style="color: #94a3b8; font-size: 12px; text-align: center;">นี่คืออีเมลอัตโนมัติจากระบบ กรุณาอย่าตอบกลับอีเมลนี้</p>
+        <p style="color: #94a3b8; font-size: 12px; text-align: center;">นี่คืออีเมลอัตโนมัติ กรุณาอย่าตอบกลับอีเมลนี้</p>
       </div>
     `,
   };

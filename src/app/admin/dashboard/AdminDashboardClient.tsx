@@ -442,7 +442,7 @@ export default function AdminDashboardClient({ initialBookings, spreadsheetId }:
               
               {promptLink.isVideo && (
                 <div className="mb-6 p-4 bg-orange-50 border border-orange-100 rounded-xl">
-                  <h4 className="text-sm font-bold text-orange-800 mb-2">รูปปกหน้า Gallery (เลือกอย่างใดอย่างหนึ่ง)</h4>
+                  <h4 className="text-sm font-bold text-orange-800 mb-2">Gallery cover (เลือกอย่างใดอย่างหนึ่ง)</h4>
                   <p className="text-xs text-orange-600 mb-3">หากไม่มีลิงก์ Google Photos สามารถอัปโหลดรูปปกแทนได้ (ถ้าอัปโหลด ระบบจะใช้รูปนี้แทนลิงก์อัลบั้ม)</p>
                   
                   {promptLink.link && promptLink.link.includes("drive.google.com") ? (
