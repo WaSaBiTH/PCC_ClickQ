@@ -59,16 +59,31 @@ const FlipCard = React.memo(function FlipCard({ src, index, total, phase, scatte
     const currentSrc = allImages[safeIndex] || src;
     const nextSrc = allImages[nextSafeIndex] || src;
 
-    const transformValues = useTransform([morphProgress, scrollRotate], ([m, r]: any) => {
-        let target = { x: 0, y: 0, rotation: 0, scale: 1, opacity: 1 };
-        
+    const x = useMotionValue(0);
+    const y = useMotionValue(0);
+    const z = useMotionValue(0);
+    const rotate = useMotionValue(0);
+    const scale = useMotionValue(1);
+    const opacity = useMotionValue(1);
+
+    const updateTransforms = (m: number, r: number) => {
         if (phase === "scatter") {
-            target = scatterPos;
+            x.set(scatterPos.x);
+            y.set(scatterPos.y);
+            z.set(0);
+            rotate.set(scatterPos.rotation);
+            scale.set(scatterPos.scale);
+            opacity.set(scatterPos.opacity);
         } else if (phase === "line") {
             const lineSpacing = 70;
             const lineTotalWidth = total * lineSpacing;
             const lineX = index * lineSpacing - lineTotalWidth / 2;
-            target = { x: lineX, y: 0, rotation: 0, scale: 1, opacity: 1 };
+            x.set(lineX);
+            y.set(0);
+            z.set(0);
+            rotate.set(0);
+            scale.set(1);
+            opacity.set(1);
         } else {
             const minDimension = Math.min(containerSize.width, containerSize.height);
             const step = 360 / total;
@@ -76,11 +91,9 @@ const FlipCard = React.memo(function FlipCard({ src, index, total, phase, scatte
 
             const circleRadius = Math.min(minDimension * 0.35, 350);
             const circleRad = (currentAngle * Math.PI) / 180;
-            const circlePos = {
-                x: Math.cos(circleRad) * circleRadius,
-                y: Math.sin(circleRad) * circleRadius,
-                rotation: currentAngle + 90,
-            };
+            const cx = Math.cos(circleRad) * circleRadius;
+            const cy = Math.sin(circleRad) * circleRadius;
+            const crot = currentAngle + 90;
 
             const radiusX = isMobile ? containerSize.width * 0.4 : containerSize.width * 0.32;
             const radiusY = isMobile ? 60 : Math.min(containerSize.height * 0.15, 130);
@@ -90,30 +103,33 @@ const FlipCard = React.memo(function FlipCard({ src, index, total, phase, scatte
             const zPos = Math.cos(rad);
             const yPos = zPos * radiusY;
             
-            const arcPos = {
-                x: xPos,
-                y: yPos + (isMobile ? 50 : Math.min(containerSize.height * 0.12, 100)), 
-                rotation: xPos * 0.05,
-                scale: (isMobile ? 0.9 : 1.3) + (zPos * (isMobile ? 0.3 : 0.4)),
-            };
+            const ax = xPos;
+            const ay = yPos + (isMobile ? 50 : Math.min(containerSize.height * 0.12, 100));
+            const az = zPos * 100;
+            const arot = xPos * 0.05;
+            const ascale = (isMobile ? 0.9 : 1.3) + (zPos * (isMobile ? 0.3 : 0.4));
 
-            target = {
-                x: circlePos.x * (1 - m) + arcPos.x * m,
-                y: circlePos.y * (1 - m) + arcPos.y * m,
-                rotation: circlePos.rotation * (1 - m) + arcPos.rotation * m,
-                scale: 1 * (1 - m) + arcPos.scale * m,
-                opacity: 1,
-            };
+            x.set(cx * (1 - m) + ax * m);
+            y.set(cy * (1 - m) + ay * m);
+            z.set(0 * (1 - m) + az * m);
+            rotate.set(crot * (1 - m) + arot * m);
+            scale.set(1 * (1 - m) + ascale * m);
+            opacity.set(1);
         }
-        return target;
+    };
+
+    useMotionValueEvent(scrollRotate, "change", (r) => {
+        updateTransforms(morphProgress.get(), r);
     });
 
-    const x = useTransform(transformValues, (t: any) => t.x);
-    const y = useTransform(transformValues, (t: any) => t.y);
-    const rotate = useTransform(transformValues, (t: any) => t.rotation);
-    const scale = useTransform(transformValues, (t: any) => t.scale);
-    const opacity = useTransform(transformValues, (t: any) => t.opacity);
-    const zIndex = useTransform(scale, (s: any) => Math.round(s * 100000));
+    useMotionValueEvent(morphProgress, "change", (m) => {
+        updateTransforms(m, scrollRotate.get());
+    });
+
+    // Run once on mount/update to set initial values
+    useEffect(() => {
+        updateTransforms(morphProgress.get(), scrollRotate.get());
+    }, [containerSize, phase]);
 
     const [isLoaded, setIsLoaded] = useState(false);
     const [hasReportedLoad, setHasReportedLoad] = useState(false);
@@ -168,8 +184,10 @@ const FlipCard = React.memo(function FlipCard({ src, index, total, phase, scatte
                 position: "absolute",
                 width: IMG_WIDTH,
                 height: IMG_HEIGHT,
-                x, y, rotate, scale, opacity, zIndex,
+                x, y, z, rotate, scale, opacity,
                 willChange: "transform",
+                WebkitBackfaceVisibility: "hidden",
+                backfaceVisibility: "hidden"
             }}
             className="cursor-pointer group"
             onClick={() => setSpin(spin + 360)}
@@ -191,7 +209,7 @@ const FlipCard = React.memo(function FlipCard({ src, index, total, phase, scatte
                     alt={`hero-${index}-a`}
                     referrerPolicy="no-referrer"
                     onLoad={handleLoadA}
-                    className={`absolute inset-0 h-full w-full object-cover transition-all duration-1000 group-hover:scale-105 will-change-transform ${showA ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
+                    className={`absolute inset-0 h-full w-full object-cover transition-[opacity,transform] duration-1000 group-hover:scale-105 will-change-transform ${showA ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
                     style={{ WebkitBackfaceVisibility: "hidden", backfaceVisibility: "hidden" }}
                 />
 
@@ -202,7 +220,7 @@ const FlipCard = React.memo(function FlipCard({ src, index, total, phase, scatte
                     alt={`hero-${index}-b`}
                     referrerPolicy="no-referrer"
                     onLoad={handleLoadB}
-                    className={`absolute inset-0 h-full w-full object-cover transition-all duration-1000 group-hover:scale-105 will-change-transform ${!showA ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
+                    className={`absolute inset-0 h-full w-full object-cover transition-[opacity,transform] duration-1000 group-hover:scale-105 will-change-transform ${!showA ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
                     style={{ WebkitBackfaceVisibility: "hidden", backfaceVisibility: "hidden" }}
                 />
             </motion.div>
@@ -320,17 +338,21 @@ export default function IntroAnimation({ images = [] }: { images?: any[] }) {
         if (!containerRef.current) return;
         const handleResize = (entries: ResizeObserverEntry[]) => {
             for (const entry of entries) {
-                setContainerSize({
-                    width: entry.contentRect.width,
-                    height: entry.contentRect.height,
+                setContainerSize(prev => {
+                    const newW = Math.round(entry.contentRect.width);
+                    const newH = Math.round(entry.contentRect.height);
+                    if (Math.abs(prev.width - newW) > 5 || Math.abs(prev.height - newH) > 5) {
+                        return { width: newW, height: newH };
+                    }
+                    return prev;
                 });
             }
         };
         const observer = new ResizeObserver(handleResize);
         observer.observe(containerRef.current);
         setContainerSize({
-            width: containerRef.current.offsetWidth,
-            height: containerRef.current.offsetHeight,
+            width: Math.round(containerRef.current.offsetWidth),
+            height: Math.round(containerRef.current.offsetHeight),
         });
         return () => observer.disconnect();
     }, []);
@@ -359,19 +381,22 @@ export default function IntroAnimation({ images = [] }: { images?: any[] }) {
         let isCancelled = false;
         let timer3: NodeJS.Timeout;
 
-        const runAnimationSequence = async () => {
-            let currentRot = 0;
-            while (!isCancelled) {
-                // 1. Forward Spin: 120 deg over 20 seconds
-                await animate(scrollRotate, currentRot + 120, { duration: 20, ease: "linear" });
-                if (isCancelled) break;
-                currentRot += 120;
-                
-                // 2. Fast Rewind: -360 deg over 1.5 seconds
-                await animate(scrollRotate, currentRot - 360, { duration: 1.5, ease: "easeInOut" });
-                if (isCancelled) break;
-                currentRot -= 360;
-            }
+        const playForward = (currentRot: number) => {
+            if (isCancelled) return;
+            animate(scrollRotate, currentRot + 120, { 
+                duration: 20, 
+                ease: "linear",
+                onComplete: () => playRewind(currentRot + 120)
+            });
+        };
+
+        const playRewind = (currentRot: number) => {
+            if (isCancelled) return;
+            animate(scrollRotate, currentRot - 360, { 
+                duration: 1.5, 
+                ease: "easeInOut",
+                onComplete: () => playForward(currentRot - 360)
+            });
         };
 
         if (isFullyLoaded) {
@@ -379,7 +404,7 @@ export default function IntroAnimation({ images = [] }: { images?: any[] }) {
                 if (isCancelled) return;
                 setIntroPhase("arc");
                 animate(morphProgress, 1, { duration: 1.5, ease: "easeInOut" });
-                runAnimationSequence();
+                playForward(0);
             }, 800);
         }
 
@@ -473,7 +498,7 @@ export default function IntroAnimation({ images = [] }: { images?: any[] }) {
                         </motion.div>
                     </AnimatePresence>
                 </motion.div>
-                <div className="relative flex items-center justify-center w-full h-full">
+                <div className="relative flex items-center justify-center w-full h-full [transform-style:preserve-3d]">
                     {/* Center Logo with 3D depth effect (cards will pass in front and behind it) */}
                     <motion.div
                         initial={{ opacity: 0, scale: 0.8 }}
@@ -481,7 +506,7 @@ export default function IntroAnimation({ images = [] }: { images?: any[] }) {
                         transition={{ duration: 1.5, delay: 1.2, ease: "easeOut" }}
                         className="absolute pointer-events-none drop-shadow-2xl"
                         style={{ 
-                            zIndex: isMobileView ? 90000 : 130000, // Matches the center line of the arc based on new zIndex precision
+                            z: 0, 
                             y: -40,       // Matches the carousel center yPos (moved up)
                         }}
                     >
