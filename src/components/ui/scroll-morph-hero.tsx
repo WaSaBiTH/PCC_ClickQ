@@ -197,8 +197,9 @@ const FlipCard = React.memo(function FlipCard({ src, index, total, phase, scatte
                     alt={`hero-${index}-a`}
                     referrerPolicy="no-referrer"
                     fetchPriority="high"
+                    decoding="async"
                     onLoad={handleLoadA}
-                    className={`absolute inset-0 h-full w-full object-cover transition-[opacity,transform] duration-1000 group-hover:scale-105 will-change-transform ${showA ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
+                    className={`absolute inset-0 h-full w-full object-cover transition-[opacity,transform] duration-150 group-hover:scale-105 will-change-transform ${showA ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
                     style={{ WebkitBackfaceVisibility: "hidden", backfaceVisibility: "hidden" }}
                 />
 
@@ -209,8 +210,9 @@ const FlipCard = React.memo(function FlipCard({ src, index, total, phase, scatte
                     alt={`hero-${index}-b`}
                     referrerPolicy="no-referrer"
                     fetchPriority="high"
+                    decoding="async"
                     onLoad={handleLoadB}
-                    className={`absolute inset-0 h-full w-full object-cover transition-[opacity,transform] duration-1000 group-hover:scale-105 will-change-transform ${!showA ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
+                    className={`absolute inset-0 h-full w-full object-cover transition-[opacity,transform] duration-150 group-hover:scale-105 will-change-transform ${!showA ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
                     style={{ WebkitBackfaceVisibility: "hidden", backfaceVisibility: "hidden" }}
                 />
             </motion.div>
@@ -398,25 +400,29 @@ export default function IntroAnimation({ images = [] }: { images?: any[] }) {
             const isReady = nextUrls.every(url => loadedImagesRef.current.has(url));
             
             if (isReady) {
-                if (currentAnimation) currentAnimation.stop();
-                const exactRot = scrollRotate.get();
+                const targetRot = scrollRotate.get() - 360;
                 
-                // Delay image swap by 0.5s so the wheel is already spinning fast backwards
+                // Delay image swap to peak rotation speed (1000ms)
+                // Use startTransition to prevent frame drops during the heavy 20-image swap
                 setTimeout(() => {
-                    if (!isCancelled) incrementLap();
-                }, 500);
+                    if (!isCancelled) {
+                        React.startTransition(() => {
+                            incrementLap();
+                        });
+                    }
+                }, 1000);
                 
-                playRewind(exactRot);
+                playRewind(targetRot);
             } else {
                 // Keep spinning forward, check again in 1 second
                 checkTimeout = setTimeout(tryRewind, 1000);
             }
         };
 
-        const playForward = (currentRot: number) => {
+        const playForward = () => {
             if (isCancelled) return;
             // Spin infinitely at 6 degrees per second (360000 degrees in 60000 seconds)
-            currentAnimation = animate(scrollRotate, currentRot + 360000, { 
+            currentAnimation = animate(scrollRotate, scrollRotate.get() + 360000, { 
                 duration: 60000, 
                 ease: "linear",
             });
@@ -424,12 +430,12 @@ export default function IntroAnimation({ images = [] }: { images?: any[] }) {
             checkTimeout = setTimeout(tryRewind, 20000);
         };
 
-        const playRewind = (currentRot: number) => {
+        const playRewind = (targetRot: number) => {
             if (isCancelled) return;
-            currentAnimation = animate(scrollRotate, currentRot - 360, { 
-                duration: 1.5,
+            currentAnimation = animate(scrollRotate, targetRot, { 
+                duration: 2.0,
                 ease: "easeInOut",
-                onComplete: () => playForward(currentRot - 360)
+                onComplete: () => playForward()
             });
         };
 
@@ -438,7 +444,7 @@ export default function IntroAnimation({ images = [] }: { images?: any[] }) {
                 if (isCancelled) return;
                 setIntroPhase("arc");
                 animate(morphProgress, 1, { duration: 1.5, ease: "easeInOut" });
-                playForward(0);
+                playForward();
             }, 800);
         }
 
