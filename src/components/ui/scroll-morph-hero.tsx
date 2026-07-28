@@ -414,11 +414,14 @@ export default function IntroAnimation({ images = [] }: { images?: any[] }) {
         };
     }, [morphProgress, scrollRotate, isFullyLoaded]);
 
+    const prevCaptionIndexRef = useRef(0);
+
     // Caption Rotation
     useEffect(() => {
         if (!mounted) return;
-        const delay = captionIndex === 0 ? 10000 : 4000;
+        const delay = captionIndex === 0 ? 10000 : 6000;
         const timer = setTimeout(() => {
+            prevCaptionIndexRef.current = captionIndex;
             setCaptionIndex((prev) => (prev + 1) % CAPTIONS.length);
         }, delay);
         return () => clearTimeout(timer);
@@ -440,8 +443,6 @@ export default function IntroAnimation({ images = [] }: { images?: any[] }) {
             };
         })
     );
-
-    // Removed local state morphValue and rotateValue for performance
 
     const contentOpacity = useTransform(morphProgress, [0.8, 1], [0, 1]);
     const contentY = useTransform(morphProgress, [0.8, 1], [20, 0]);
@@ -478,25 +479,43 @@ export default function IntroAnimation({ images = [] }: { images?: any[] }) {
 
                 <motion.div
                     style={{ opacity: contentOpacity, y: contentY }}
-                    className="absolute top-[10%] z-10 flex flex-col items-center justify-center text-center pointer-events-none px-4 min-h-[120px]"
+                    className="absolute top-[10%] z-10 flex flex-col items-center justify-center text-center pointer-events-none px-4 min-h-[120px] w-full"
                 >
-                    <AnimatePresence mode="wait">
-                        <motion.div
-                            key={captionIndex}
-                            initial={{ opacity: 0, y: 15 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -15 }}
-                            transition={{ duration: 0.8, ease: "easeInOut" }}
-                            className="flex flex-col items-center"
-                        >
-                            <h2 className="text-3xl md:text-5xl font-semibold text-gray-900 tracking-tight mb-4">
-                                {CAPTIONS[captionIndex].title}
-                            </h2>
-                            <p className="text-sm md:text-base text-gray-600 max-w-lg leading-relaxed">
-                                {CAPTIONS[captionIndex].subtitle}
-                            </p>
-                        </motion.div>
-                    </AnimatePresence>
+                    <div className="relative w-full h-full flex items-center justify-center">
+                        {CAPTIONS.map((caption, idx) => {
+                            const isCurrent = captionIndex === idx;
+                            const isPrev = prevCaptionIndexRef.current === idx;
+                            let yPos = 15;
+                            if (isCurrent) yPos = 0;
+                            else if (isPrev) yPos = -15;
+
+                            return (
+                                <motion.div
+                                    key={idx}
+                                    initial={{ opacity: 0, y: 15 }}
+                                    animate={{ 
+                                        opacity: isCurrent ? 1 : 0, 
+                                        y: yPos,
+                                        zIndex: isCurrent ? 10 : 0,
+                                        filter: isCurrent ? "blur(0px)" : "blur(4px)"
+                                    }}
+                                    transition={{ 
+                                        duration: 0.5, 
+                                        ease: "easeInOut",
+                                        delay: isCurrent ? 0.5 : 0 // Sequential animation: exit first, then enter
+                                    }}
+                                    className="absolute flex flex-col items-center w-full"
+                                >
+                                    <h2 className="text-3xl md:text-5xl font-semibold text-gray-900 tracking-tight mb-4 drop-shadow-sm">
+                                        {caption.title}
+                                    </h2>
+                                    <p className="text-sm md:text-base text-gray-600 max-w-lg leading-relaxed">
+                                        {caption.subtitle}
+                                    </p>
+                                </motion.div>
+                            );
+                        })}
+                    </div>
                 </motion.div>
                 <div className="relative flex items-center justify-center w-full h-full [transform-style:preserve-3d]">
                     {/* Center Logo with 3D depth effect (cards will pass in front and behind it) */}
