@@ -21,7 +21,7 @@ interface FlipCardProps {
 const IMG_WIDTH = 90;  
 const IMG_HEIGHT = 127; 
 
-function FlipCard({ src, index, total, phase, scatterPos, containerSize, morphProgress, scrollRotate, allImages, onImageLoad }: FlipCardProps) {
+const FlipCard = React.memo(function FlipCard({ src, index, total, phase, scatterPos, containerSize, morphProgress, scrollRotate, allImages, onImageLoad }: FlipCardProps) {
     const isMobile = containerSize.width < 768;
     const [spin, setSpin] = useState(0);
     const [imageIndex, setImageIndex] = useState(index);
@@ -208,7 +208,7 @@ function FlipCard({ src, index, total, phase, scatterPos, containerSize, morphPr
             </motion.div>
         </motion.div>
     );
-}
+});
 
 const TOTAL_IMAGES = 20;
 const MAX_SCROLL = 3000; 
@@ -257,6 +257,10 @@ export default function IntroAnimation({ images = [] }: { images?: any[] }) {
     const [captionIndex, setCaptionIndex] = useState(0);
     const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
     const [loadedCount, setLoadedCount] = useState(0);
+
+    const handleImageLoad = React.useCallback(() => {
+        setLoadedCount(c => c + 1);
+    }, []);
     const [isFullyLoaded, setIsFullyLoaded] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
     let displayImages = images.length > 0 ? images.map(img => img.thumbnailLink?.replace('=s220', '=s300') || "") : IMAGES;
@@ -500,7 +504,7 @@ export default function IntroAnimation({ images = [] }: { images?: any[] }) {
                             morphProgress={morphProgress}
                             scrollRotate={scrollRotate}
                             allImages={allImages}
-                            onImageLoad={() => setLoadedCount(c => c + 1)}
+                            onImageLoad={handleImageLoad}
                         />
                     ))}
                 </div>

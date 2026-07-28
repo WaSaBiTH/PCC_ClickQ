@@ -222,6 +222,12 @@ export default function RangePickerBooking() {
       return;
     }
 
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      showAlert("รูปแบบอีเมลไม่ถูกต้อง", "error");
+      return;
+    }
+
     setLoading(true);
 
     try {
