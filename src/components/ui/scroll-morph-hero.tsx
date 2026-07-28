@@ -15,43 +15,19 @@ interface FlipCardProps {
     morphProgress: any;
     scrollRotate: any;
     allImages: string[];
-    onImageLoad?: () => void;
+    onImageLoad?: (src: string) => void;
+    globalLap: number;
 }
 
 const IMG_WIDTH = 90;  
 const IMG_HEIGHT = 127; 
 
-const FlipCard = React.memo(function FlipCard({ src, index, total, phase, scatterPos, containerSize, morphProgress, scrollRotate, allImages, onImageLoad }: FlipCardProps) {
+const FlipCard = React.memo(function FlipCard({ src, index, total, phase, scatterPos, containerSize, morphProgress, scrollRotate, allImages, onImageLoad, globalLap }: FlipCardProps) {
     const isMobile = containerSize.width < 768;
     const [spin, setSpin] = useState(0);
-    const [imageIndex, setImageIndex] = useState(index);
     
-    // Calculate initial angles to set up lap tracking
-    const initialStep = 360 / total;
-    const initialAngle = (index * initialStep) + scrollRotate.get();
-    const prevLapRef = useRef(Math.floor((initialAngle + 180) / 360));
-    const prevAngleRef = useRef(initialAngle);
-
-    useMotionValueEvent(scrollRotate, "change", (latestRotation: number) => {
-        if (phase !== "circle" && phase !== "arc") return;
-        
-        const step = 360 / total;
-        const currentAngle = (index * step) + latestRotation;
-        const currentLap = Math.floor((currentAngle + 180) / 360);
-        const prevLap = prevLapRef.current;
-        const prevAngle = prevAngleRef.current;
-        
-        // Only swap images when spinning backward and passing the back of the wheel (crossing 180 deg)
-        if (currentAngle < prevAngle) {
-            if (currentLap < prevLap) {
-                const lapsCrossed = prevLap - currentLap;
-                setImageIndex(prev => prev + (lapsCrossed * total));
-            }
-        }
-        
-        prevLapRef.current = currentLap;
-        prevAngleRef.current = currentAngle;
-    });
+    // Instead of swapping individually at 180 degrees, we swap all 20 images simultaneously when globalLap increments
+    const imageIndex = index + (globalLap * total);
 
     const safeIndex = imageIndex % Math.max(1, allImages.length);
     const nextSafeIndex = (imageIndex + total) % Math.max(1, allImages.length);
@@ -118,17 +94,17 @@ const FlipCard = React.memo(function FlipCard({ src, index, total, phase, scatte
         }
     };
 
-    useMotionValueEvent(scrollRotate, "change", (r) => {
-        updateTransforms(morphProgress.get(), r);
+    useMotionValueEvent(scrollRotate, "change", (r: any) => {
+        updateTransforms(morphProgress.get() as number, r as number);
     });
 
-    useMotionValueEvent(morphProgress, "change", (m) => {
-        updateTransforms(m, scrollRotate.get());
+    useMotionValueEvent(morphProgress, "change", (m: any) => {
+        updateTransforms(m as number, scrollRotate.get() as number);
     });
 
     // Run once on mount/update to set initial values
     useEffect(() => {
-        updateTransforms(morphProgress.get(), scrollRotate.get());
+        updateTransforms(morphProgress.get() as number, scrollRotate.get() as number);
     }, [containerSize, phase]);
 
     const [isLoaded, setIsLoaded] = useState(false);
@@ -142,14 +118,22 @@ const FlipCard = React.memo(function FlipCard({ src, index, total, phase, scatte
     const imgARef = useRef<HTMLImageElement>(null);
     const imgBRef = useRef<HTMLImageElement>(null);
 
-    // 1. Preload nextSrc into the inactive buffer immediately
+    // 1. Manage the inactive buffer safely without infinite loops
     useEffect(() => {
-        if (showA && imgB !== nextSrc) {
-            setImgB(nextSrc);
-        } else if (!showA && imgA !== nextSrc) {
-            setImgA(nextSrc);
+        // The active buffer is the one currently shown
+        const activeSrc = showA ? imgA : imgB;
+        
+        // If the active buffer already shows the current target, we can safely preload the next target
+        // Otherwise, we MUST load the current target into the inactive buffer to catch up
+        const targetSrc = (activeSrc === currentSrc) ? nextSrc : currentSrc;
+        
+        // Update the inactive buffer to the target
+        if (showA && imgB !== targetSrc) {
+            setImgB(targetSrc);
+        } else if (!showA && imgA !== targetSrc) {
+            setImgA(targetSrc);
         }
-    }, [nextSrc, showA, imgA, imgB]);
+    }, [nextSrc, currentSrc, showA, imgA, imgB]);
 
     // 2. Swap to the inactive buffer if it matches currentSrc and is already fully loaded
     useEffect(() => {
@@ -164,8 +148,8 @@ const FlipCard = React.memo(function FlipCard({ src, index, total, phase, scatte
         setIsLoaded(true);
         if (!hasReportedLoad) {
             setHasReportedLoad(true);
-            onImageLoad?.();
         }
+        onImageLoad?.(imgA);
         if (imgA === currentSrc && !showA) setShowA(true);
     };
 
@@ -173,8 +157,8 @@ const FlipCard = React.memo(function FlipCard({ src, index, total, phase, scatte
         setIsLoaded(true);
         if (!hasReportedLoad) {
             setHasReportedLoad(true);
-            onImageLoad?.();
         }
+        onImageLoad?.(imgB);
         if (imgB === currentSrc && showA) setShowA(false);
     };
 
@@ -182,6 +166,10 @@ const FlipCard = React.memo(function FlipCard({ src, index, total, phase, scatte
         <motion.div
             style={{
                 position: "absolute",
+                top: "50%",
+                left: "50%",
+                marginTop: -IMG_HEIGHT / 2,
+                marginLeft: -IMG_WIDTH / 2,
                 width: IMG_WIDTH,
                 height: IMG_HEIGHT,
                 x, y, z, rotate, scale, opacity,
@@ -208,6 +196,7 @@ const FlipCard = React.memo(function FlipCard({ src, index, total, phase, scatte
                     src={imgA}
                     alt={`hero-${index}-a`}
                     referrerPolicy="no-referrer"
+                    fetchPriority="high"
                     onLoad={handleLoadA}
                     className={`absolute inset-0 h-full w-full object-cover transition-[opacity,transform] duration-1000 group-hover:scale-105 will-change-transform ${showA ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
                     style={{ WebkitBackfaceVisibility: "hidden", backfaceVisibility: "hidden" }}
@@ -219,6 +208,7 @@ const FlipCard = React.memo(function FlipCard({ src, index, total, phase, scatte
                     src={imgB}
                     alt={`hero-${index}-b`}
                     referrerPolicy="no-referrer"
+                    fetchPriority="high"
                     onLoad={handleLoadB}
                     className={`absolute inset-0 h-full w-full object-cover transition-[opacity,transform] duration-1000 group-hover:scale-105 will-change-transform ${!showA ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
                     style={{ WebkitBackfaceVisibility: "hidden", backfaceVisibility: "hidden" }}
@@ -275,10 +265,20 @@ export default function IntroAnimation({ images = [] }: { images?: any[] }) {
     const [captionIndex, setCaptionIndex] = useState(0);
     const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
     const [loadedCount, setLoadedCount] = useState(0);
+    
+    const [globalLap, setGlobalLap] = useState(0);
+    const globalLapRef = useRef(0);
+    const incrementLap = () => {
+        globalLapRef.current += 1;
+        setGlobalLap(globalLapRef.current);
+    };
 
-    const handleImageLoad = React.useCallback(() => {
-        setLoadedCount(c => c + 1);
+    const loadedImagesRef = useRef<Set<string>>(new Set());
+    const handleImageLoad = React.useCallback((src: string) => {
+        loadedImagesRef.current.add(src);
+        setLoadedCount(loadedImagesRef.current.size);
     }, []);
+    
     const [isFullyLoaded, setIsFullyLoaded] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
     let displayImages = images.length > 0 ? images.map(img => img.thumbnailLink?.replace('=s220', '=s300') || "") : IMAGES;
@@ -359,7 +359,6 @@ export default function IntroAnimation({ images = [] }: { images?: any[] }) {
 
     const morphProgress = useMotionValue(0);
     const scrollRotate = useMotionValue(0);
-    // Remove useSpring for scrollRotate to prevent physics wiggle at exactly 180 degrees
     const mouseX = useMotionValue(0);
     const smoothMouseX = useSpring(mouseX, { stiffness: 30, damping: 20 });
 
@@ -380,20 +379,50 @@ export default function IntroAnimation({ images = [] }: { images?: any[] }) {
         setMounted(true);
         let isCancelled = false;
         let timer3: NodeJS.Timeout;
+        let checkTimeout: NodeJS.Timeout;
+        let currentAnimation: any;
+
+        const getNextLapUrls = (lap: number) => {
+            const urls = [];
+            for (let i = 0; i < currentTotal; i++) {
+                const idx = (i + ((lap + 1) * currentTotal)) % Math.max(1, allImages.length);
+                urls.push(allImages[idx]);
+            }
+            return urls;
+        };
+
+        const tryRewind = () => {
+            if (isCancelled) return;
+            
+            const nextUrls = getNextLapUrls(globalLapRef.current);
+            const isReady = nextUrls.every(url => loadedImagesRef.current.has(url));
+            
+            if (isReady) {
+                if (currentAnimation) currentAnimation.stop();
+                const exactRot = scrollRotate.get();
+                incrementLap();
+                playRewind(exactRot);
+            } else {
+                // Keep spinning forward, check again in 1 second
+                checkTimeout = setTimeout(tryRewind, 1000);
+            }
+        };
 
         const playForward = (currentRot: number) => {
             if (isCancelled) return;
-            animate(scrollRotate, currentRot + 120, { 
-                duration: 20, 
+            // Spin infinitely at 6 degrees per second (360000 degrees in 60000 seconds)
+            currentAnimation = animate(scrollRotate, currentRot + 360000, { 
+                duration: 60000, 
                 ease: "linear",
-                onComplete: () => playRewind(currentRot + 120)
             });
+            // Try to rewind after 20 seconds, but wait if images aren't loaded yet
+            checkTimeout = setTimeout(tryRewind, 20000);
         };
 
         const playRewind = (currentRot: number) => {
             if (isCancelled) return;
-            animate(scrollRotate, currentRot - 360, { 
-                duration: 1.5, 
+            currentAnimation = animate(scrollRotate, currentRot - 360, { 
+                duration: 1.5,
                 ease: "easeInOut",
                 onComplete: () => playForward(currentRot - 360)
             });
@@ -410,6 +439,8 @@ export default function IntroAnimation({ images = [] }: { images?: any[] }) {
 
         return () => { 
             if (timer3) clearTimeout(timer3); 
+            if (checkTimeout) clearTimeout(checkTimeout);
+            if (currentAnimation) currentAnimation.stop();
             isCancelled = true;
         };
     }, [morphProgress, scrollRotate, isFullyLoaded]);
@@ -466,15 +497,6 @@ export default function IntroAnimation({ images = [] }: { images?: any[] }) {
                 )}
             </AnimatePresence>
 
-            {/* Aggressive Preload: Force Safari/Mobile to download all images into cache immediately */}
-            {mounted && uniqueImages.length > 0 && (
-                <div style={{ position: "absolute", top: -9999, left: -9999, opacity: 0.01, pointerEvents: "none" }}>
-                    {uniqueImages.map((src, i) => (
-                        <img key={`preload-${i}`} src={src} width="10" height="10" alt="" />
-                    ))}
-                </div>
-            )}
-            
             <div className={`flex h-full w-full flex-col items-center justify-center perspective-1000 transition-all duration-1000 ${isFullyLoaded ? 'scale-100 opacity-100' : 'scale-105 opacity-50'}`}>
 
                 <motion.div
@@ -549,6 +571,7 @@ export default function IntroAnimation({ images = [] }: { images?: any[] }) {
                             scrollRotate={scrollRotate}
                             allImages={allImages}
                             onImageLoad={handleImageLoad}
+                            globalLap={globalLap}
                         />
                     ))}
                 </div>
