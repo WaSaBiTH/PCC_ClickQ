@@ -400,7 +400,12 @@ export default function IntroAnimation({ images = [] }: { images?: any[] }) {
             if (isReady) {
                 if (currentAnimation) currentAnimation.stop();
                 const exactRot = scrollRotate.get();
-                incrementLap();
+                
+                // Delay image swap by 0.5s so the wheel is already spinning fast backwards
+                setTimeout(() => {
+                    if (!isCancelled) incrementLap();
+                }, 500);
+                
                 playRewind(exactRot);
             } else {
                 // Keep spinning forward, check again in 1 second
