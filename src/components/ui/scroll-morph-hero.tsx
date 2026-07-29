@@ -26,14 +26,32 @@ const FlipCard = React.memo(function FlipCard({ src, index, total, phase, scatte
     const isMobile = containerSize.width < 768;
     const [spin, setSpin] = useState(0);
     
-    // Instead of swapping individually at 180 degrees, we swap all 20 images simultaneously when globalLap increments
-    const imageIndex = index + (globalLap * total);
+    const [localLap, setLocalLap] = useState(globalLap);
+
+    useEffect(() => {
+        if (globalLap > localLap) {
+            // Stagger image swaps between 500ms and 1500ms based on index
+            // This prevents all 20 images from updating simultaneously, avoiding framerate drops
+            const delay = 500 + (index / total) * 1000;
+            const timer = setTimeout(() => {
+                setLocalLap(globalLap);
+            }, delay);
+            return () => clearTimeout(timer);
+        }
+    }, [globalLap, localLap, index, total]);
+
+    // Instead of swapping individually at 180 degrees, we swap sequentially via localLap
+    const imageIndex = index + (localLap * total);
 
     const safeIndex = imageIndex % Math.max(1, allImages.length);
     const nextSafeIndex = (imageIndex + total) % Math.max(1, allImages.length);
     
     const currentSrc = allImages[safeIndex] || src;
     const nextSrc = allImages[nextSafeIndex] || src;
+
+    const [fallbackMap, setFallbackMap] = useState<Record<string, string>>({});
+    const resolvedCurrentSrc = fallbackMap[currentSrc] || currentSrc;
+    const resolvedNextSrc = fallbackMap[nextSrc] || nextSrc;
 
     const x = useMotionValue(0);
     const y = useMotionValue(0);
@@ -125,7 +143,7 @@ const FlipCard = React.memo(function FlipCard({ src, index, total, phase, scatte
         
         // If the active buffer already shows the current target, we can safely preload the next target
         // Otherwise, we MUST load the current target into the inactive buffer to catch up
-        const targetSrc = (activeSrc === currentSrc) ? nextSrc : currentSrc;
+        const targetSrc = (activeSrc === resolvedCurrentSrc) ? resolvedNextSrc : resolvedCurrentSrc;
         
         // Update the inactive buffer to the target
         if (showA && imgB !== targetSrc) {
@@ -133,16 +151,16 @@ const FlipCard = React.memo(function FlipCard({ src, index, total, phase, scatte
         } else if (!showA && imgA !== targetSrc) {
             setImgA(targetSrc);
         }
-    }, [nextSrc, currentSrc, showA, imgA, imgB]);
+    }, [resolvedNextSrc, resolvedCurrentSrc, showA, imgA, imgB]);
 
     // 2. Swap to the inactive buffer if it matches currentSrc and is already fully loaded
     useEffect(() => {
-        if (showA && currentSrc === imgB && imgBRef.current?.complete) {
+        if (showA && resolvedCurrentSrc === imgB && imgBRef.current?.complete) {
             setShowA(false);
-        } else if (!showA && currentSrc === imgA && imgARef.current?.complete) {
+        } else if (!showA && resolvedCurrentSrc === imgA && imgARef.current?.complete) {
             setShowA(true);
         }
-    }, [currentSrc, showA, imgA, imgB]);
+    }, [resolvedCurrentSrc, showA, imgA, imgB]);
 
     const handleLoadA = () => {
         setIsLoaded(true);
@@ -150,7 +168,17 @@ const FlipCard = React.memo(function FlipCard({ src, index, total, phase, scatte
             setHasReportedLoad(true);
         }
         onImageLoad?.(imgA);
-        if (imgA === currentSrc && !showA) setShowA(true);
+        if (imgA === resolvedCurrentSrc && !showA) setShowA(true);
+    };
+
+    const handleLoadAError = () => {
+        const brokenUrl = imgA;
+        if (!fallbackMap[brokenUrl]) {
+            // Pick a random fallback image from the API photos (allImages)
+            const randomImage = allImages[Math.floor(Math.random() * allImages.length)];
+            setFallbackMap(prev => ({ ...prev, [brokenUrl]: randomImage }));
+            onImageLoad?.(brokenUrl); // Mark as loaded so it doesn't block the carousel
+        }
     };
 
     const handleLoadB = () => {
@@ -159,7 +187,17 @@ const FlipCard = React.memo(function FlipCard({ src, index, total, phase, scatte
             setHasReportedLoad(true);
         }
         onImageLoad?.(imgB);
-        if (imgB === currentSrc && showA) setShowA(false);
+        if (imgB === resolvedCurrentSrc && showA) setShowA(false);
+    };
+
+    const handleLoadBError = () => {
+        const brokenUrl = imgB;
+        if (!fallbackMap[brokenUrl]) {
+            // Pick a random fallback image from the API photos (allImages)
+            const randomImage = allImages[Math.floor(Math.random() * allImages.length)];
+            setFallbackMap(prev => ({ ...prev, [brokenUrl]: randomImage }));
+            onImageLoad?.(brokenUrl);
+        }
     };
 
     return (
@@ -199,6 +237,7 @@ const FlipCard = React.memo(function FlipCard({ src, index, total, phase, scatte
                     fetchPriority="high"
                     decoding="async"
                     onLoad={handleLoadA}
+                    onError={handleLoadAError}
                     className={`absolute inset-0 h-full w-full object-cover transition-[opacity,transform] duration-150 group-hover:scale-105 will-change-transform ${showA ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
                     style={{ WebkitBackfaceVisibility: "hidden", backfaceVisibility: "hidden" }}
                 />
@@ -212,6 +251,7 @@ const FlipCard = React.memo(function FlipCard({ src, index, total, phase, scatte
                     fetchPriority="high"
                     decoding="async"
                     onLoad={handleLoadB}
+                    onError={handleLoadBError}
                     className={`absolute inset-0 h-full w-full object-cover transition-[opacity,transform] duration-150 group-hover:scale-105 will-change-transform ${!showA ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
                     style={{ WebkitBackfaceVisibility: "hidden", backfaceVisibility: "hidden" }}
                 />
@@ -283,7 +323,8 @@ export default function IntroAnimation({ images = [] }: { images?: any[] }) {
     
     const [isFullyLoaded, setIsFullyLoaded] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
-    let displayImages = images.length > 0 ? images.map(img => img.thumbnailLink?.replace('=s220', '=s300') || "") : IMAGES;
+    let displayImages = images.length > 0 ? images.map(img => img.thumbnailLink?.replace('=s220', '=s300') || "").filter(Boolean) : IMAGES;
+    if (displayImages.length === 0) displayImages = IMAGES;
     
     const isMobileView = containerSize.width > 0 && containerSize.width < 768;
     const isTabletView = containerSize.width >= 768 && containerSize.width < 1024;
@@ -402,15 +443,10 @@ export default function IntroAnimation({ images = [] }: { images?: any[] }) {
             if (isReady) {
                 const targetRot = scrollRotate.get() - 360;
                 
-                // Delay image swap to peak rotation speed (1000ms)
-                // Use startTransition to prevent frame drops during the heavy 20-image swap
-                setTimeout(() => {
-                    if (!isCancelled) {
-                        React.startTransition(() => {
-                            incrementLap();
-                        });
-                    }
-                }, 1000);
+                // Immediately increment globalLap. 
+                // Each FlipCard will stagger its own update between 0.5s - 1.5s 
+                // to prevent framerate drops and make the images ready by 2.0s
+                incrementLap();
                 
                 playRewind(targetRot);
             } else {
