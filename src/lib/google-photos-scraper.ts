@@ -5,7 +5,7 @@ export async function scrapeSingleAlbum(albumUrl: string): Promise<any[]> {
   try {
     const response = await fetch(albumUrl, { 
       // Cache for 60 seconds
-      next: { revalidate: 60 },
+      next: { revalidate: 3600 },
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
       }

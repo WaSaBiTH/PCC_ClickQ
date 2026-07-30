@@ -8,7 +8,7 @@ export async function getBookings() {
   try {
     const res = await fetch(`${GAS_URL}?action=getBookings`, { 
       // Next.js cache settings (revalidate every 60s)
-      next: { revalidate: 60 }
+      next: { revalidate: 3600 }
     });
     const result = await res.json();
     if (result.status === "success") {
@@ -27,7 +27,7 @@ export async function getBookings() {
 export async function getTeamMembers() {
   try {
     const res = await fetch(`${GAS_URL}?action=getTeamMembers`, {
-      next: { revalidate: 60 }
+      next: { revalidate: 3600 }
     });
     const result = await res.json();
     if (result.status === "success") {

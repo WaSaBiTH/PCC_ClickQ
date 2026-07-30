@@ -8,7 +8,7 @@ import { AlertCircle, ExternalLink, Share2, ChevronDown } from "lucide-react";
 import { GoogleDrive2026, Youtube, Facebook, Instagram } from "@thesvg/react";
 import MainNav from "@/components/main-nav";
 
-export const revalidate = 60; // Cache for 60 seconds
+export const revalidate = 3600; // Cache for 3600 seconds
 
 export default async function GalleryPage() {
   const rawData = await getSheetData("Gallery");

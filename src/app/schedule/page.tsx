@@ -4,7 +4,7 @@ import { ClientLink } from "@/components/ClientLink";
 import MainNav from "@/components/main-nav";
 import { getBookings } from "@/lib/google-sheets";
 
-export const revalidate = 60;
+export const revalidate = 86400;
 
 export default async function SchedulePage() {
   const rawBookings = await getBookings();

@@ -4,7 +4,7 @@ import IntroAnimation from "@/components/ui/scroll-morph-hero";
 import HomeLayout from "@/components/home-layout";
 import TeamSection from "@/components/team-section";
 
-export const revalidate = 60; // Revalidate every 60 seconds
+export const revalidate = 3600; // Revalidate every 3600 seconds
 
 async function fetchTeamMembers() {
   try {
