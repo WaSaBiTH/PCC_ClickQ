@@ -3,6 +3,7 @@ import { getSheetData } from "@/lib/google-sheets-api";
 import { google } from "googleapis";
 import path from "path";
 import { cookies } from "next/headers";
+import { revalidatePath } from "next/cache";
 
 const SCOPES = ["https://www.googleapis.com/auth/spreadsheets"];
 const KEYFILE_PATH = path.join(process.cwd(), "pccclickq-8b26393bf8f0.json");
@@ -103,6 +104,7 @@ export async function DELETE(request: Request) {
     // but since we are bypassing the wrapper, we might just rely on TTL.
     // However, it's better to provide a way to clear cache or let it expire.
 
+    revalidatePath('/gallery');
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error("DELETE gallery item error:", error);
@@ -134,6 +136,7 @@ export async function PUT(request: Request) {
       },
     });
 
+    revalidatePath('/gallery');
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error("PUT gallery item error:", error);
@@ -164,6 +167,7 @@ export async function POST(request: Request) {
       },
     });
 
+    revalidatePath('/gallery');
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error("POST gallery item error:", error);

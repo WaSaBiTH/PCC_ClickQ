@@ -63,7 +63,7 @@ function FanCardImage({ card, index }: { card: CardItem; index: number }) {
   return (
     <div className="relative w-full h-full overflow-hidden rounded-[32px] shadow-2xl group bg-slate-200">
       {/* Soft overlay to make image feel 'softer' */}
-      <div className="absolute inset-0 bg-white/5 mix-blend-overlay z-15 pointer-events-none" />
+      <div className="absolute inset-0 bg-white/5 z-15 pointer-events-none" />
       
       {/* Skeleton / Blur placeholder */}
       <div className={`absolute inset-0 z-0 bg-slate-200 transition-opacity duration-700 ${isLoaded ? 'opacity-0' : 'opacity-100'}`}>
@@ -83,12 +83,12 @@ function FanCardImage({ card, index }: { card: CardItem; index: number }) {
       
       <div className="absolute inset-x-0 top-0 p-4 md:p-6 z-20 flex justify-end items-start gap-2 bg-gradient-to-b from-black/80 via-black/30 to-transparent pb-16 pointer-events-none">
         {card.status === "Alumni" && (
-          <span className="px-3 py-1 bg-red-500/80 backdrop-blur-md rounded-full text-white text-[10px] md:text-sm font-semibold border border-red-400/50 shadow-sm">
+          <span className="px-3 py-1 bg-red-500/90 rounded-full text-white text-[10px] md:text-sm font-semibold border border-red-400/50 shadow-sm">
             ศิษย์เก่า
           </span>
         )}
         {card.description && (
-          <span className="px-3 py-1 bg-slate-700/70 backdrop-blur-md rounded-full text-white/95 text-[10px] md:text-sm font-semibold border border-slate-500/50 shadow-sm truncate max-w-[40%]">
+          <span className="px-3 py-1 bg-slate-700/90 rounded-full text-white/95 text-[10px] md:text-sm font-semibold border border-slate-500/50 shadow-sm truncate max-w-[40%]">
             {card.description}
           </span>
         )}
@@ -108,7 +108,7 @@ function FanCardImage({ card, index }: { card: CardItem; index: number }) {
             if (tag.includes("ไลฟ์") || tag.toLowerCase().includes("live")) tagColor = "bg-red-500/80 border-red-400 text-white";
 
             return (
-              <span key={i} className={`px-3 py-1 backdrop-blur-md rounded-full text-[10px] md:text-sm font-semibold border shadow-sm ${tagColor}`}>
+              <span key={i} className={`px-3 py-1 rounded-full text-[10px] md:text-sm font-semibold border shadow-sm ${tagColor}`}>
                 {tag}
               </span>
             );
@@ -121,7 +121,7 @@ function FanCardImage({ card, index }: { card: CardItem; index: number }) {
 }
 
 const ARROW_CLASSES =
-  "relative flex items-center justify-center rounded-full border-[1.5px] border-slate-300 bg-white/60 backdrop-blur-[16px] text-slate-500 cursor-pointer shrink-0 z-30 outline-none shadow-md hover:border-slate-400 hover:text-slate-900 hover:bg-white active:opacity-70 transition-all duration-300 before:content-[''] before:absolute before:inset-[3px] before:rounded-full before:border before:border-slate-200/[0.5] before:pointer-events-none";
+  "relative flex items-center justify-center rounded-full border-[1.5px] border-slate-300 bg-white/90 text-slate-500 cursor-pointer shrink-0 z-30 outline-none shadow-md hover:border-slate-400 hover:text-slate-900 hover:bg-white active:opacity-70 transition-all duration-300 before:content-[''] before:absolute before:inset-[3px] before:rounded-full before:border before:border-slate-200/[0.5] before:pointer-events-none";
 
 export default function SocialCards({ cards }: SocialCardsProps) {
   const containerRef = useRef<HTMLDivElement>(null);
