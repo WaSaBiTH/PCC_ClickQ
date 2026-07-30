@@ -42,6 +42,7 @@ export default function MainNav({ activeOverride, onHomeClick, onTeamClick, fbLi
           {/* Logo & Social Links */}
           <div className="flex items-center gap-3 md:gap-4 z-50">
             <Link 
+              prefetch={false}
               href="/"
               onClick={(e) => {
                 if (onHomeClick && pathname === "/") {
@@ -77,6 +78,7 @@ export default function MainNav({ activeOverride, onHomeClick, onTeamClick, fbLi
               
               return (
                 <Link
+                  prefetch={false}
                   key={item.id}
                   href={item.href}
                   onClick={(e) => {
@@ -106,6 +108,7 @@ export default function MainNav({ activeOverride, onHomeClick, onTeamClick, fbLi
             })}
             
             <Link 
+              prefetch={false}
               href="/booking" 
               onClick={() => { if (currentPath !== '/booking') setNavigatingAction('booking') }} 
               className={`text-sm font-medium bg-orange-500 text-white px-5 py-2 rounded-full hover:bg-orange-600 transition-all shadow-sm flex items-center justify-center min-w-[120px] ml-2 ${navigatingAction === 'booking' ? 'opacity-70 pointer-events-none' : ''}`}
@@ -132,6 +135,7 @@ export default function MainNav({ activeOverride, onHomeClick, onTeamClick, fbLi
         <div className="bg-white border-t pb-safe shadow-[0_-5px_15px_-5px_rgba(0,0,0,0.1)] relative z-20">
           <div className="flex items-center justify-around h-16 px-2">
             <Link 
+              prefetch={false}
               href="/"
               onClick={(e) => {
                 if (onHomeClick && pathname === "/") {
@@ -153,6 +157,7 @@ export default function MainNav({ activeOverride, onHomeClick, onTeamClick, fbLi
             
             {!hideTeam && (
               <Link 
+                prefetch={false}
                 href="/#team"
                 onClick={(e) => {
                   if (onTeamClick && pathname === "/") {
@@ -174,6 +179,7 @@ export default function MainNav({ activeOverride, onHomeClick, onTeamClick, fbLi
             )}
 
             <Link 
+              prefetch={false}
               href="/gallery" 
               onClick={() => { if (currentPath !== '/gallery') setNavigatingAction('/gallery') }} 
               className={`flex flex-col items-center justify-center w-full h-full space-y-1 ${currentPath === '/gallery' ? 'text-orange-500' : 'text-slate-500'} ${navigatingAction === '/gallery' ? 'opacity-50 pointer-events-none' : ''}`}
@@ -187,6 +193,7 @@ export default function MainNav({ activeOverride, onHomeClick, onTeamClick, fbLi
             </Link>
 
             <Link 
+              prefetch={false}
               href="/schedule" 
               onClick={() => { if (currentPath !== '/schedule') setNavigatingAction('/schedule') }} 
               className={`flex flex-col items-center justify-center w-full h-full space-y-1 ${currentPath === '/schedule' ? 'text-orange-500' : 'text-slate-500'} ${navigatingAction === '/schedule' ? 'opacity-50 pointer-events-none' : ''}`}
@@ -200,6 +207,7 @@ export default function MainNav({ activeOverride, onHomeClick, onTeamClick, fbLi
             </Link>
 
             <Link 
+              prefetch={false}
               href="/booking" 
               onClick={() => { if (currentPath !== '/booking') setNavigatingAction('/booking') }} 
               className={`flex flex-col items-center justify-center w-full h-full space-y-1 text-slate-500 ${navigatingAction === '/booking' ? 'pointer-events-none' : ''}`}

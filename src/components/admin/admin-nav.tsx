@@ -26,25 +26,25 @@ export default function AdminNav({ activePage }: AdminNavProps) {
           <span className="text-slate-500 text-xs sm:text-sm font-normal truncate">| Admin</span>
         </a>
         <div className="flex items-center gap-1 sm:gap-1 md:gap-2 overflow-x-auto custom-scrollbar flex-nowrap justify-start sm:justify-end pb-1 pt-1 -mb-1">
-          <Link href="/admin/dashboard" onClick={() => { if (activePage !== 'dashboard') setNavigatingAction('dashboard'); }}>
+          <Link prefetch={false} href="/admin/dashboard" onClick={() => { if (activePage !== 'dashboard') setNavigatingAction('dashboard'); }}>
             <Button variant="ghost" size="icon" className={getButtonClass('dashboard')} title="Dashboard" disabled={navigatingAction === 'dashboard'}>
               {navigatingAction === 'dashboard' ? <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 md:mr-2 animate-spin" /> : <LayoutDashboard className="w-4 h-4 sm:w-5 sm:h-5 md:mr-2" />}
               <span className="hidden md:inline">Queue</span>
             </Button>
           </Link>
-          <Link href="/admin/gallery" onClick={() => { if (activePage !== 'gallery') setNavigatingAction('gallery'); }}>
+          <Link prefetch={false} href="/admin/gallery" onClick={() => { if (activePage !== 'gallery') setNavigatingAction('gallery'); }}>
             <Button variant="ghost" size="icon" className={getButtonClass('gallery')} title="Manage Gallery" disabled={navigatingAction === 'gallery'}>
               {navigatingAction === 'gallery' ? <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 md:mr-2 animate-spin" /> : <ImageIcon className="w-4 h-4 sm:w-5 sm:h-5 md:mr-2" />}
               <span className="hidden md:inline">Gallery</span>
             </Button>
           </Link>
-          <Link href="/admin/team" onClick={() => { if (activePage !== 'team') setNavigatingAction('team'); }}>
+          <Link prefetch={false} href="/admin/team" onClick={() => { if (activePage !== 'team') setNavigatingAction('team'); }}>
             <Button variant="ghost" size="icon" className={getButtonClass('team')} title="Manage Team" disabled={navigatingAction === 'team'}>
               {navigatingAction === 'team' ? <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 md:mr-2 animate-spin" /> : <Users className="w-4 h-4 sm:w-5 sm:h-5 md:mr-2" />}
               <span className="hidden md:inline">Team</span>
             </Button>
           </Link>
-          <Link href="/admin/settings" onClick={() => { if (activePage !== 'settings') setNavigatingAction('settings'); }}>
+          <Link prefetch={false} href="/admin/settings" onClick={() => { if (activePage !== 'settings') setNavigatingAction('settings'); }}>
             <Button variant="ghost" size="icon" className={getButtonClass('settings')} title="Settings" disabled={navigatingAction === 'settings'}>
               {navigatingAction === 'settings' ? <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 md:mr-2 animate-spin" /> : <Settings className="w-4 h-4 sm:w-5 sm:h-5 md:mr-2" />}
               <span className="hidden md:inline">Settings</span>
