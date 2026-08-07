@@ -1,4 +1,4 @@
-import { getSheetData } from "@/lib/google-sheets-api";
+import { getSheetData, getSetting } from "@/lib/google-sheets-api";
 import { scrapeSingleAlbum } from "@/lib/google-photos-scraper";
 import Image from "next/image";
 import { ClientLink } from "@/components/ClientLink";
@@ -11,7 +11,11 @@ import MainNav from "@/components/main-nav";
 export const revalidate = 3600; // Cache for 3600 seconds
 
 export default async function GalleryPage() {
-  const rawData = await getSheetData("Gallery");
+  const [rawData, fbLink, igLink] = await Promise.all([
+    getSheetData("Gallery"),
+    getSetting("fb_link"),
+    getSetting("ig_link"),
+  ]);
   // Header is row 0: Name, ServiceType, Date, GooglePhotosLink
   const dataRows = rawData.slice(1);
 
@@ -22,7 +26,7 @@ export default async function GalleryPage() {
     const dateStr = row[2];
     const link = row[3];
     const facebookLink = row[4] || "";
-    const igLink = row[5] || "";
+    const igLinkRow = row[5] || "";
 
     let coverImage = "";
     let photoCount = 0;
@@ -55,7 +59,7 @@ export default async function GalleryPage() {
       dateStr,
       link,
       facebookLink,
-      igLink,
+      igLink: igLinkRow,
       coverImage,
       photoCount,
       isDeadLink,
@@ -77,7 +81,7 @@ export default async function GalleryPage() {
     <div className="min-h-[100dvh] bg-slate-50 text-slate-900 font-sans selection:bg-orange-500/30">
       
       {/* Navbar/Header */}
-      <MainNav />
+      <MainNav fbLink={fbLink} igLink={igLink} />
 
 
 

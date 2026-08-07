@@ -215,7 +215,7 @@ const FlipCard = React.memo(function FlipCard({ src, index, total, phase, scatte
                 WebkitBackfaceVisibility: "hidden",
                 backfaceVisibility: "hidden"
             }}
-            className="cursor-pointer group"
+            className="cursor-pointer group select-none"
             onClick={() => setSpin(spin + 360)}
         >
             <motion.div
@@ -236,6 +236,7 @@ const FlipCard = React.memo(function FlipCard({ src, index, total, phase, scatte
                     referrerPolicy="no-referrer"
                     fetchPriority="high"
                     decoding="async"
+                    draggable={false}
                     onLoad={handleLoadA}
                     onError={handleLoadAError}
                     className={`absolute inset-0 h-full w-full object-cover transition-[opacity,transform] duration-150 group-hover:scale-105 will-change-transform ${showA ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
@@ -250,6 +251,7 @@ const FlipCard = React.memo(function FlipCard({ src, index, total, phase, scatte
                     referrerPolicy="no-referrer"
                     fetchPriority="high"
                     decoding="async"
+                    draggable={false}
                     onLoad={handleLoadB}
                     onError={handleLoadBError}
                     className={`absolute inset-0 h-full w-full object-cover transition-[opacity,transform] duration-150 group-hover:scale-105 will-change-transform ${!showA ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
@@ -536,9 +538,10 @@ export default function IntroAnimation({ images = [] }: { images?: any[] }) {
             <AnimatePresence>
                 {!isFullyLoaded && mounted && (
                     <motion.div 
+                        key="loading-overlay"
                         initial={{ opacity: 1 }}
                         exit={{ opacity: 0, transition: { duration: 0.8, delay: 0.2 } }}
-                        className="absolute inset-0 z-[200] bg-white/95 backdrop-blur-[150px] flex flex-col items-center justify-center"
+                        className="absolute inset-0 z-[200] bg-white/95 backdrop-blur-[150px] flex flex-col items-center justify-center pointer-events-none"
                     >
                         <motion.img
                             src="/PCC%20Photo%20Club.webp"
@@ -566,7 +569,7 @@ export default function IntroAnimation({ images = [] }: { images?: any[] }) {
                 )}
             </AnimatePresence>
 
-            <div className={`flex h-full w-full flex-col items-center justify-center perspective-1000 transition-all duration-1000 ${isFullyLoaded ? 'scale-100 opacity-100' : 'scale-105 opacity-50'}`}>
+            <div className={`flex h-full w-full flex-col items-center justify-center perspective-1000 transition-all duration-1000 select-none ${isFullyLoaded ? 'scale-100 opacity-100' : 'scale-105 opacity-50'}`}>
 
                 <motion.div
                     style={{ opacity: contentOpacity, y: contentY }}

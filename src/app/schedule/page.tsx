@@ -3,11 +3,16 @@ import CalendarView from "@/components/booking/calendar-view";
 import { ClientLink } from "@/components/ClientLink";
 import MainNav from "@/components/main-nav";
 import { getBookings } from "@/lib/google-sheets";
+import { getSetting } from "@/lib/google-sheets-api";
 
 export const revalidate = 86400;
 
 export default async function SchedulePage() {
-  const rawBookings = await getBookings();
+  const [rawBookings, fbLink, igLink] = await Promise.all([
+    getBookings(),
+    getSetting("fb_link"),
+    getSetting("ig_link"),
+  ]);
   
   // Bookings structure from GAS:
   // Name(0), Phone(1), Contact(2), Date(3), TimeSlot(4), ServiceType(5), DriveLink(6), Status(7), Notes(8), GooglePhotosLink(9)
@@ -72,7 +77,7 @@ export default async function SchedulePage() {
     <div className="min-h-[100dvh] md:h-[100dvh] bg-slate-100 text-slate-900 font-sans selection:bg-orange-500/30 flex flex-col md:overflow-hidden">
       
       {/* Navbar/Header */}
-      <MainNav />
+      <MainNav fbLink={fbLink} igLink={igLink} />
 
       {/* Main Content */}
       <main className="w-full px-4 pt-20 pb-4 flex-1 flex flex-col md:min-h-0">
