@@ -537,10 +537,32 @@ export default function IntroAnimation({ images = [] }: { images?: any[] }) {
                 {!isFullyLoaded && mounted && (
                     <motion.div 
                         initial={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.8 }}
-                        className="absolute inset-0 z-[200] bg-slate-50/80 backdrop-blur-2xl pointer-events-none"
-                    />
+                        exit={{ opacity: 0, transition: { duration: 0.8, delay: 0.2 } }}
+                        className="absolute inset-0 z-[200] bg-slate-50/90 backdrop-blur-3xl flex flex-col items-center justify-center"
+                    >
+                        <motion.img
+                            src="/PCC%20Photo%20Club.webp"
+                            alt="Loading Logo"
+                            className="w-48 md:w-72 lg:w-80 h-auto drop-shadow-2xl"
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0, scale: [0.95, 1.05, 0.95] }}
+                            exit={{ opacity: 0, y: 100, scale: 0.8, transition: { duration: 0.6, ease: "easeIn" } }}
+                            transition={{
+                                opacity: { duration: 0.5 },
+                                y: { duration: 0.5 },
+                                scale: { repeat: Infinity, duration: 2, ease: "easeInOut" }
+                            }}
+                        />
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: [0.3, 0.8, 0.3] }}
+                            exit={{ opacity: 0 }}
+                            transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
+                            className="mt-8 text-sm font-semibold tracking-[0.2em] text-slate-500"
+                        >
+                            <span style={{ color: '#E35205' }}>KMITL</span> CHUMPHON
+                        </motion.div>
+                    </motion.div>
                 )}
             </AnimatePresence>
 
