@@ -538,7 +538,7 @@ export default function IntroAnimation({ images = [] }: { images?: any[] }) {
                     <motion.div 
                         initial={{ opacity: 1 }}
                         exit={{ opacity: 0, transition: { duration: 0.8, delay: 0.2 } }}
-                        className="absolute inset-0 z-[200] bg-slate-50/90 backdrop-blur-3xl flex flex-col items-center justify-center"
+                        className="absolute inset-0 z-[200] bg-white/95 backdrop-blur-[150px] flex flex-col items-center justify-center"
                     >
                         <motion.img
                             src="/PCC%20Photo%20Club.webp"
