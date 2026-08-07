@@ -197,7 +197,7 @@ export default function SocialCards({ cards }: SocialCardsProps) {
     const multiplier = getResponsiveMultiplier(window.innerWidth);
     const sampleCard = document.querySelector('.fan-card') as HTMLElement;
     const actualCardHeight = sampleCard ? sampleCard.clientHeight : 600;
-    const hMult = Math.min(1, actualCardHeight / 600);
+    const hMult = actualCardHeight / 600;
     const slotCount = Math.min(maxVisible, totalCards);
     const config = (slot: number) => getSlotConfig(slotCount, slot);
 
@@ -269,7 +269,7 @@ export default function SocialCards({ cards }: SocialCardsProps) {
       const mult = getResponsiveMultiplier(window.innerWidth);
       const sampleCard = document.querySelector('.fan-card') as HTMLElement;
       const actualCardHeight = sampleCard ? sampleCard.clientHeight : 600;
-      const hM = Math.min(1, actualCardHeight / 600);
+      const hM = actualCardHeight / 600;
 
       visibleEntries.forEach(({ el, slot }) => {
         const base = config(slot);
@@ -355,9 +355,9 @@ export default function SocialCards({ cards }: SocialCardsProps) {
           {cards.map((card, index) => {
             const image = <FanCardImage card={card} index={index} />;
             return card.linkUrl ? (
-              <a key={index} href={card.linkUrl} onClick={(e) => handleCardClick(e, index)} target={card.linkUrl.startsWith("http") ? "_blank" : "_self"} rel="noopener noreferrer" className="fan-card block cursor-pointer h-[65vh] md:h-[60vh] lg:h-[65vh] xl:h-[70vh] max-h-[85%] aspect-[44/60] absolute">{image}</a>
+              <a key={index} href={card.linkUrl} onClick={(e) => handleCardClick(e, index)} target={card.linkUrl.startsWith("http") ? "_blank" : "_self"} rel="noopener noreferrer" className="fan-card block cursor-pointer h-full max-h-[85%] aspect-[44/60] absolute">{image}</a>
             ) : (
-              <div key={index} onClick={(e) => handleCardClick(e, index)} className="fan-card block cursor-pointer h-[65vh] md:h-[60vh] lg:h-[65vh] xl:h-[70vh] max-h-[85%] aspect-[44/60] absolute">{image}</div>
+              <div key={index} onClick={(e) => handleCardClick(e, index)} className="fan-card block cursor-pointer h-full max-h-[85%] aspect-[44/60] absolute">{image}</div>
             );
           })}
         </div>
