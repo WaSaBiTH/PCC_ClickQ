@@ -1,5 +1,5 @@
 import { scrapeGooglePhotosAlbum } from "@/lib/google-photos-scraper";
-import { getSheetData, getSetting } from "@/lib/google-sheets-api";
+import { getSheetData, getSettings } from "@/lib/google-sheets-api";
 import IntroAnimation from "@/components/ui/scroll-morph-hero";
 import HomeLayout from "@/components/home-layout";
 import TeamSection from "@/components/team-section";
@@ -25,12 +25,14 @@ async function fetchTeamMembers() {
 }
 
 export default async function Home() {
-  const [images, teamMembers, fbLink, igLink] = await Promise.all([
+  const [images, teamMembers, settings] = await Promise.all([
     scrapeGooglePhotosAlbum(),
     fetchTeamMembers(),
-    getSetting("fb_link"),
-    getSetting("ig_link"),
+    getSettings(["fb_link", "ig_link"]),
   ]);
+
+  const fbLink = settings.fb_link;
+  const igLink = settings.ig_link;
 
   const heroSection = (
     <div className="w-full h-full relative">

@@ -46,6 +46,9 @@ pccclickq-*.json
 # vercel
 .vercel
 
+# local Serena agent metadata
+.serena/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

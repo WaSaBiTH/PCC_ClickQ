@@ -21,11 +21,11 @@
     "googleapis": "^173.0.0",
     "gsap": "^3.15.0",
     "lucide-react": "^1.25.0",
-    "next": "^16.3.0",
+    "next": "16.3.5",
     "nodemailer": "^9.0.3",
-    "react": "19.2.4",
+    "react": "19.2.8",
     "react-day-picker": "^10.0.1",
-    "react-dom": "19.2.4",
+    "react-dom": "19.2.8",
     "react-easy-crop": "^6.2.2",
     "shadcn": "^4.13.1",
     "tailwind-merge": "^3.6.0",
@@ -34,11 +34,14 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.7",
     "eslint": "^9",
-    "eslint-config-next": "^16.3.0",
+    "eslint-config-next": "16.3.5",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "engines": {
+    "node": "24.x"
   }
 }

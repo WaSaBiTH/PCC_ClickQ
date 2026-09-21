@@ -1,4 +1,4 @@
-import { getSheetData, getSetting } from "@/lib/google-sheets-api";
+import { getSheetData, getSettings } from "@/lib/google-sheets-api";
 import { scrapeSingleAlbum } from "@/lib/google-photos-scraper";
 import Image from "next/image";
 import { format } from "date-fns";
@@ -11,11 +11,12 @@ import { getThaiNow } from "@/lib/date-utils";
 export const revalidate = 3600; // Cache for 3600 seconds
 
 export default async function GalleryPage() {
-  const [rawData, fbLink, igLink] = await Promise.all([
+  const [rawData, settings] = await Promise.all([
     getSheetData("Gallery"),
-    getSetting("fb_link"),
-    getSetting("ig_link"),
+    getSettings(["fb_link", "ig_link"]),
   ]);
+  const fbLink = settings.fb_link;
+  const igLink = settings.ig_link;
   // Header is row 0: Name, ServiceType, Date, GooglePhotosLink
   const dataRows = rawData.slice(1);
   const now = getThaiNow().getTime();
@@ -111,7 +112,7 @@ export default async function GalleryPage() {
                       fill
                       referrerPolicy="no-referrer"
                       className="object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
-                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
                     />
                   ) : (
                     <div className="absolute inset-0 flex items-center justify-center text-slate-400 bg-slate-200">

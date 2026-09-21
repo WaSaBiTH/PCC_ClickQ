@@ -35,6 +35,7 @@ async function getAuthClient() {
 }
 
 let sheetCache: Record<string, { data: string[][]; timestamp: number }> = {};
+const inFlightSheetRequests = new Map<string, Promise<string[][]>>();
 const CACHE_TTL = 30000; // 30 seconds cache
 
 export function clearSheetCache(sheetName: string, range: string = "A:Z") {
@@ -89,17 +90,31 @@ export async function getSheetData(sheetName: string, range: string = "A:Z") {
     return sheetCache[cacheKey].data;
   }
 
-  const client = await getAuthClient();
-  const sheets = google.sheets({ version: "v4", auth: client as any });
+  const existingRequest = inFlightSheetRequests.get(cacheKey);
+  if (existingRequest) {
+    return existingRequest;
+  }
 
-  const res = await sheets.spreadsheets.values.get({
-    spreadsheetId: SPREADSHEET_ID,
-    range: cacheKey,
-  });
+  const request = (async () => {
+    const client = await getAuthClient();
+    const sheets = google.sheets({ version: "v4", auth: client as any });
 
-  const data = res.data.values || [];
-  sheetCache[cacheKey] = { data, timestamp: now };
-  return data;
+    const res = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: cacheKey,
+    });
+
+    const data = (res.data.values || []) as string[][];
+    sheetCache[cacheKey] = { data, timestamp: Date.now() };
+    return data;
+  })();
+
+  inFlightSheetRequests.set(cacheKey, request);
+  try {
+    return await request;
+  } finally {
+    inFlightSheetRequests.delete(cacheKey);
+  }
 }
 
 /**
@@ -114,6 +129,54 @@ export async function getSetting(key: string): Promise<string | null> {
     console.error("Error fetching setting:", error);
     return null;
   }
+}
+
+
+export async function getSettings(keys: string[]): Promise<Record<string, string | null>> {
+  const data = await getSheetData("Settings");
+  const wanted = new Set(keys);
+  const values: Record<string, string | null> = Object.fromEntries(keys.map((key) => [key, null]));
+
+  for (const row of data) {
+    const key = row[0];
+    if (wanted.has(key)) {
+      values[key] = row[1] ?? null;
+    }
+  }
+
+  return values;
+}
+
+export async function updateSettings(settings: Record<string, string>) {
+  const entries = Object.entries(settings);
+  if (entries.length === 0) return;
+
+  const client = await getAuthClient();
+  const sheets = google.sheets({ version: "v4", auth: client as any });
+  const data = await getSheetData("Settings");
+  let newRowOffset = 0;
+
+  const updates = entries.map(([key, value]) => {
+    const rowIndex = data.findIndex((row) => row[0] === key);
+    const rowNumber = rowIndex !== -1
+      ? rowIndex + 1
+      : data.length + 1 + newRowOffset++;
+
+    return {
+      range: `Settings!A${rowNumber}:B${rowNumber}`,
+      values: [[key, value]],
+    };
+  });
+
+  await sheets.spreadsheets.values.batchUpdate({
+    spreadsheetId: SPREADSHEET_ID,
+    requestBody: {
+      valueInputOption: "USER_ENTERED",
+      data: updates,
+    },
+  });
+
+  clearSheetCache("Settings");
 }
 
 /**

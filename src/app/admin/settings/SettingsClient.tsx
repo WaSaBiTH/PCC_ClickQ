@@ -34,33 +34,39 @@ export default function SettingsClient() {
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const t = Date.now();
-        const [resBg, resFb, resIg, resCal] = await Promise.all([
-          fetch(`/api/admin/settings?key=custom_background_urls&t=${t}`),
-          fetch(`/api/admin/settings?key=fb_link&t=${t}`),
-          fetch(`/api/admin/settings?key=ig_link&t=${t}`),
-          fetch(`/api/admin/settings?key=enable_calendar_invites&t=${t}`),
-        ]);
-        const dataBg = await resBg.json();
-        const dataFb = await resFb.json();
-        const dataIg = await resIg.json();
-        const dataCal = await resCal.json();
+        const res = await fetch(
+          "/api/admin/settings?keys=custom_background_urls,fb_link,ig_link,enable_calendar_invites"
+        );
+        if (!res.ok) {
+          throw new Error("Failed to load settings");
+        }
 
-        if (dataBg.value) {
-          const urls = dataBg.value.split(",").map((u: string) => u.trim()).filter((u: string) => u);
+        const data = await res.json();
+        const values = data.values ?? {};
+        const backgroundValue = values.custom_background_urls as string | null;
+
+        if (backgroundValue) {
+          const urls = backgroundValue
+            .split(",")
+            .map((u: string) => u.trim())
+            .filter((u: string) => u);
           if (urls.length > 0) {
             setCustomUrls(urls);
           }
         }
-        if (dataFb.value) setFbLink(dataFb.value);
-        if (dataIg.value) setIgLink(dataIg.value);
-        if (dataCal.value) setEnableCalendar(dataCal.value === "on");
+
+        if (values.fb_link) setFbLink(values.fb_link);
+        if (values.ig_link) setIgLink(values.ig_link);
+        if (values.enable_calendar_invites) {
+          setEnableCalendar(values.enable_calendar_invites === "on");
+        }
       } catch (e) {
         console.error(e);
       } finally {
         setIsLoading(false);
       }
     };
+
     fetchSettings();
   }, []);
 
@@ -90,25 +96,19 @@ export default function SettingsClient() {
     setSaveMessage(null);
     try {
       const bgValue = customUrls.map(u => u.trim()).filter(u => u).join(",");
-      const results = await Promise.all([
-        fetch("/api/admin/settings", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ key: "custom_background_urls", value: bgValue })
+      const res = await fetch("/api/admin/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          settings: {
+            custom_background_urls: bgValue,
+            fb_link: fbLink,
+            ig_link: igLink,
+          },
         }),
-        fetch("/api/admin/settings", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ key: "fb_link", value: fbLink })
-        }),
-        fetch("/api/admin/settings", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ key: "ig_link", value: igLink })
-        })
-      ]);
-      
-      const allOk = results.every(res => res.ok);
+      });
+
+      const allOk = res.ok;
       
       if (allOk) {
         setSaveMessage({ type: 'success', text: 'Settings saved successfully.' });

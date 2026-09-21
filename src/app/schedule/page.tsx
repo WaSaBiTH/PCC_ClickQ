@@ -2,16 +2,17 @@ import { getThaiNow, getThaiDate } from "@/lib/date-utils";
 import CalendarView from "@/components/booking/calendar-view";
 import MainNav from "@/components/main-nav";
 import { getBookings } from "@/lib/google-sheets";
-import { getSetting } from "@/lib/google-sheets-api";
+import { getSettings } from "@/lib/google-sheets-api";
 
 export const dynamic = "force-dynamic";
 
 export default async function SchedulePage() {
-  const [rawBookings, fbLink, igLink] = await Promise.all([
+  const [rawBookings, settings] = await Promise.all([
     getBookings(),
-    getSetting("fb_link"),
-    getSetting("ig_link"),
+    getSettings(["fb_link", "ig_link"]),
   ]);
+  const fbLink = settings.fb_link;
+  const igLink = settings.ig_link;
   
   // Bookings structure from GAS:
   // Name(0), Phone(1), Contact(2), Date(3), TimeSlot(4), ServiceType(5), DriveLink(6), Status(7), Notes(8), GooglePhotosLink(9)
