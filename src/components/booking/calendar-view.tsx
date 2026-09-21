@@ -147,8 +147,25 @@ export default function CalendarView({ initialBookings }: CalendarViewProps) {
   const weekDays = ["อา.", "จ.", "อ.", "พ.", "พฤ.", "ศ.", "ส."];
   
   const selectedDateBookings = selectedDate 
-    ? bookings.filter((b) => isSameDay(b.date, selectedDate))
+    ? bookings.filter((b) => isDateInRange(b, selectedDate))
     : [];
+
+  const todayStart = startOfDay(getThaiNow());
+  const upcomingBookings = bookings
+    .filter((booking) => booking.status !== "rejected" && !isBefore(startOfDay(booking.date), todayStart))
+    .sort((a, b) => a.date.getTime() - b.date.getTime());
+  const nextUpcomingBooking = upcomingBookings[0];
+
+  const getBookingLabel = (booking: Booking) => {
+    const parts = booking.clientName.split(" - ");
+    return parts.slice(1).join(" - ") || parts[0] || "คิวงาน";
+  };
+
+  const goToNextBooking = () => {
+    if (!nextUpcomingBooking) return;
+    setCurrentDate(nextUpcomingBooking.date);
+    setViewMode("month");
+  };
 
   const renderAgendaCard = (booking: Booking) => (
     <div key={booking.id} className="border border-slate-200 rounded-2xl p-5 bg-white shadow-sm relative overflow-hidden flex flex-col">
@@ -228,10 +245,10 @@ export default function CalendarView({ initialBookings }: CalendarViewProps) {
 
   return (
     <>
-    <div className="w-full flex-1 min-h-[600px] h-full flex flex-col bg-white rounded-xl shadow-xl border border-slate-200">
+    <div className="w-full flex-1 min-h-[560px] sm:min-h-[600px] lg:min-h-0 lg:h-full flex flex-col bg-white rounded-xl sm:rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
       
       {/* Header Controls */}
-      <div className="flex items-center justify-between p-4 md:p-6 md:pb-4 border-b border-slate-100 gap-2">
+      <div className="flex items-center justify-between p-3 sm:p-4 lg:p-5 lg:pb-4 [@media(max-height:820px)]:lg:p-3 border-b border-slate-100 gap-2">
         <h2 className="text-lg md:text-2xl font-bold text-slate-800 tracking-tight flex-1 truncate">
           {viewMode === "day" 
             ? format(currentDate, "d MMMM yyyy", { locale: th }) 
@@ -247,6 +264,17 @@ export default function CalendarView({ initialBookings }: CalendarViewProps) {
           </div>
 
           <div className="flex gap-1.5 md:gap-2 items-center">
+            {nextUpcomingBooking && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={goToNextBooking}
+                className="hidden lg:flex bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+                title={`คิวถัดไป ${format(nextUpcomingBooking.date, "d MMM", { locale: th })}${nextUpcomingBooking.time ? ` • ${nextUpcomingBooking.time}` : ""}`}
+              >
+                คิวถัดไป
+              </Button>
+            )}
             <Button variant="outline" size="sm" onClick={() => setCurrentDate(getThaiNow())} className="bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hidden md:flex">
               วันนี้
             </Button>
@@ -266,7 +294,7 @@ export default function CalendarView({ initialBookings }: CalendarViewProps) {
       </div>
 
       {/* Status Legend */}
-      <div className="flex overflow-x-auto custom-scrollbar gap-4 px-4 md:px-6 py-2.5 text-[11px] md:text-sm bg-slate-50 border-b border-slate-100 whitespace-nowrap">
+      <div className="flex overflow-x-auto custom-scrollbar gap-3 sm:gap-4 px-3 sm:px-4 lg:px-5 py-2 text-[11px] md:text-sm bg-slate-50 border-b border-slate-100 whitespace-nowrap">
         <div className="flex items-center gap-1.5 md:gap-2">
           <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-yellow-400"></div>
           <span className="text-slate-600 font-medium">รอการยืนยัน</span>
@@ -282,6 +310,18 @@ export default function CalendarView({ initialBookings }: CalendarViewProps) {
         <div className="flex items-center gap-1.5 md:gap-2">
           <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-red-500"></div>
           <span className="text-slate-600 font-medium">ปฏิเสธรับงาน</span>
+        </div>
+        <div className="ml-auto flex items-center gap-2 pl-2">
+          <span className="text-[10px] sm:text-xs font-semibold text-slate-500">{bookings.length} คิวทั้งหมด</span>
+          {nextUpcomingBooking && (
+            <button
+              type="button"
+              onClick={goToNextBooking}
+              className="lg:hidden rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1 text-[10px] sm:text-xs font-bold text-blue-700 hover:bg-blue-100 transition-colors"
+            >
+              ไปคิวถัดไป
+            </button>
+          )}
         </div>
       </div>
 
@@ -336,7 +376,10 @@ export default function CalendarView({ initialBookings }: CalendarViewProps) {
                         className={`shrink-0 text-xs px-2 py-1.5 rounded-md border ${statusColors[booking.status]} truncate flex items-center justify-between font-medium`}
                         title={`${booking.time} - ${booking.clientName} (${booking.service})`}
                       >
-                        <span className="truncate">{booking.clientName}</span>
+                        <span className="truncate">
+                          {booking.time && <span className="font-extrabold text-slate-700">{booking.time} · </span>}
+                          {getBookingLabel(booking)}
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -369,9 +412,8 @@ export default function CalendarView({ initialBookings }: CalendarViewProps) {
           <div className="grid grid-cols-7 bg-white border-b border-slate-200 shadow-sm z-10 shrink-0">
              {weekDaysDates.map((dayItem, idx) => {
                 const isToday = isSameDay(dayItem, getThaiNow());
-                const isPast = isBefore(startOfDay(dayItem), startOfDay(getThaiNow()));
                 const isSelected = isSameDay(dayItem, currentDate);
-                const dayBookings = bookings.filter((b) => isSameDay(b.date, dayItem));
+                const dayBookings = bookings.filter((b) => isDateInRange(b, dayItem));
                 
                 return (
                   <div 
@@ -460,7 +502,7 @@ export default function CalendarView({ initialBookings }: CalendarViewProps) {
       {/* Job Details Modal */}
       {isModalOpen && selectedDate && (
         <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 sm:p-4 bg-slate-900/40 backdrop-blur-sm">
-          <div className="bg-white border-t sm:border border-slate-200 rounded-t-3xl sm:rounded-3xl p-6 w-full max-w-lg shadow-2xl relative max-h-[85vh] flex flex-col">
+          <div className="bg-white border-t sm:border border-slate-200 rounded-t-3xl sm:rounded-3xl p-4 sm:p-6 w-full max-w-lg shadow-2xl relative max-h-[88dvh] flex flex-col">
             <button
               onClick={() => setIsModalOpen(false)}
               className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-full transition-colors"
@@ -478,7 +520,7 @@ export default function CalendarView({ initialBookings }: CalendarViewProps) {
             </div>
 
             <div className="overflow-y-auto custom-scrollbar pr-2 space-y-4">
-              {selectedDateBookings.map((booking, index) => (
+              {selectedDateBookings.map((booking) => (
                 <div key={booking.id} className="border border-slate-200 rounded-2xl p-5 bg-slate-50 relative overflow-hidden">
                   {/* Status Ribbon */}
                   <div className={`absolute top-0 left-0 w-1.5 h-full ${statusColors[booking.status].split(' ')[0]}`}></div>

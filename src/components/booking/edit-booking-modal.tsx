@@ -396,7 +396,7 @@ export default function EditBookingModal({ booking, isOpen, onClose }: EditBooki
       
       if (res.ok) {
         setStep("SUCCESS");
-        setSuccessCountdown(15);
+        setSuccessCountdown(0);
       } else {
         setError(data.error || "เกิดข้อผิดพลาดในการบันทึกข้อมูล");
         setLoading(false);
@@ -408,8 +408,8 @@ export default function EditBookingModal({ booking, isOpen, onClose }: EditBooki
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-md overflow-hidden ring-1 ring-slate-200 dark:ring-slate-800">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-2xl shadow-xl w-full max-w-md max-h-[92dvh] overflow-hidden ring-1 ring-slate-200 dark:ring-slate-800 flex flex-col">
         {/* Header */}
         <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-900">
           <h3 className="font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
@@ -425,7 +425,7 @@ export default function EditBookingModal({ booking, isOpen, onClose }: EditBooki
         </div>
 
         {/* Body */}
-        <div className="p-6">
+        <div className="p-4 sm:p-6 overflow-y-auto custom-scrollbar">
           {error && (
             <div className="mb-4 p-3 rounded-lg bg-red-50 text-red-600 text-sm font-medium border border-red-100 flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />
@@ -514,7 +514,7 @@ export default function EditBookingModal({ booking, isOpen, onClose }: EditBooki
 
           {step === "EDIT_FORM" && (
             <form onSubmit={handleSubmitEdit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">ชื่อผู้จอง</label>
                   <div className="relative">
@@ -540,7 +540,7 @@ export default function EditBookingModal({ booking, isOpen, onClose }: EditBooki
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">วันที่</label>
                   <div className="relative">

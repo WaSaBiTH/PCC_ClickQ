@@ -21,13 +21,14 @@ export function TimePicker({ value, onChange, className, label }: TimePickerProp
   };
 
   return (
-    <div className={cn("inline-flex items-center gap-1 bg-white border border-slate-300 rounded-xl px-3 py-1 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 transition-all cursor-text hover:border-blue-400", className)}>
+    <div className={cn("inline-flex min-h-11 w-full sm:w-auto items-center gap-1 bg-white border border-slate-300 rounded-xl px-2.5 sm:px-3 py-1 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 transition-all hover:border-blue-400", className)}>
       <Clock className="w-4 h-4 text-blue-500 shrink-0" />
       {label && <span className="text-sm font-bold text-slate-700 ml-1 mr-1 w-8 text-left inline-block">{label}</span>}
       <select 
         value={hours} 
         onChange={handleHourChange}
-        className="h-9 w-[46px] bg-transparent text-base text-slate-900 focus:outline-none appearance-none text-center font-bold cursor-pointer hover:bg-slate-100 rounded-lg transition-colors"
+        aria-label={label ? `${label} ชั่วโมง` : "ชั่วโมง"}
+        className="h-9 w-[44px] sm:w-[46px] bg-transparent text-base text-slate-900 focus:outline-none appearance-none text-center font-bold cursor-pointer hover:bg-slate-100 rounded-lg transition-colors"
         style={{ WebkitAppearance: 'none', MozAppearance: 'none' }}
       >
         {Array.from({ length: 24 }).map((_, i) => {
@@ -39,7 +40,8 @@ export function TimePicker({ value, onChange, className, label }: TimePickerProp
       <select 
         value={minutes} 
         onChange={handleMinuteChange}
-        className="h-9 w-[46px] bg-transparent text-base text-slate-900 focus:outline-none appearance-none text-center font-bold cursor-pointer hover:bg-slate-100 rounded-lg transition-colors"
+        aria-label={label ? `${label} นาที` : "นาที"}
+        className="h-9 w-[44px] sm:w-[46px] bg-transparent text-base text-slate-900 focus:outline-none appearance-none text-center font-bold cursor-pointer hover:bg-slate-100 rounded-lg transition-colors"
         style={{ WebkitAppearance: 'none', MozAppearance: 'none' }}
       >
         {Array.from({ length: 60 }).map((_, i) => {

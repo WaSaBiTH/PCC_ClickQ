@@ -1,12 +1,12 @@
 import { getSheetData, getSetting } from "@/lib/google-sheets-api";
 import { scrapeSingleAlbum } from "@/lib/google-photos-scraper";
 import Image from "next/image";
-import { ClientLink } from "@/components/ClientLink";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
-import { AlertCircle, ExternalLink, Share2, ChevronDown } from "lucide-react";
+import { AlertCircle, ChevronDown } from "lucide-react";
 import { GoogleDrive2026, Youtube, Facebook, Instagram } from "@thesvg/react";
 import MainNav from "@/components/main-nav";
+import { getThaiNow } from "@/lib/date-utils";
 
 export const revalidate = 3600; // Cache for 3600 seconds
 
@@ -18,6 +18,7 @@ export default async function GalleryPage() {
   ]);
   // Header is row 0: Name, ServiceType, Date, GooglePhotosLink
   const dataRows = rawData.slice(1);
+  const now = getThaiNow().getTime();
 
   // Parse and fetch cover images concurrently
   const galleryItems = await Promise.all(dataRows.map(async (row) => {
@@ -41,7 +42,7 @@ export default async function GalleryPage() {
         } else {
           isDeadLink = true;
         }
-      } catch (e) {
+      } catch {
         isDeadLink = true;
       }
     } else if (link && link.includes("drive.google.com")) {
@@ -51,7 +52,7 @@ export default async function GalleryPage() {
 
     const itemDate = new Date(dateStr);
     const isValidDate = !isNaN(itemDate.getTime());
-    const isOld = isValidDate && (Date.now() - itemDate.getTime() > 365 * 24 * 60 * 60 * 1000);
+    const isOld = isValidDate && (now - itemDate.getTime() > 365 * 24 * 60 * 60 * 1000);
 
     return {
       name,
@@ -86,7 +87,7 @@ export default async function GalleryPage() {
 
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 pt-24 pb-8 md:pt-32 md:pb-24">
+      <main className="pcc-touch-top-reset pcc-touch-bottom-safe container mx-auto px-3 sm:px-4 pt-6 sm:pt-8 xl:pt-28 pb-28 xl:pb-12">
 
         {validItems.length === 0 ? (
           <div className="text-center bg-white p-16 rounded-3xl border border-slate-100 shadow-sm max-w-2xl mx-auto">
@@ -94,7 +95,7 @@ export default async function GalleryPage() {
             <p className="text-slate-400 text-sm mt-2">ผลงานที่ถูกส่งมอบแล้วจะแสดงที่นี่โดยอัตโนมัติ</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6 2xl:gap-8">
             {validItems.map((item, idx) => (
               <div key={idx} className={`group flex flex-col bg-white rounded-3xl shadow-sm border ${item.isOld ? 'border-red-200' : 'border-slate-100'} overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1`}>
                 <a 

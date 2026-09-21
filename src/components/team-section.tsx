@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import SocialCards from "./ui/card-fan-carousel";
-import Image from "next/image";
 
 interface TeamMember {
   teamType: string;
@@ -74,7 +73,7 @@ export default function TeamSection({ teamMembers }: TeamSectionProps) {
   const displayCards = getFilteredMembers();
 
   return (
-    <div className="w-full flex-1 flex flex-col items-center h-full justify-start pt-4 pb-24 md:pb-8 overflow-visible">
+    <div className="pcc-touch-bottom-safe w-full flex-1 flex flex-col items-center h-full justify-start pt-4 pb-24 xl:pb-8 overflow-visible">
       <div className="container mx-auto px-4 mb-2 md:mb-4 text-center">
         <h2 className="text-3xl md:text-4xl font-bold mb-2 tracking-tight text-slate-800">ทำความรู้จักกับทีมงานของเรา</h2>
         <p className="text-slate-500 text-sm md:text-base max-w-2xl mx-auto mb-6">
@@ -101,7 +100,7 @@ export default function TeamSection({ teamMembers }: TeamSectionProps) {
             <button
               key={tab}
               onClick={() => setActiveTab(activeTab === tab ? null : tab)}
-              className={`relative z-10 w-full py-2 md:py-2.5 text-[11px] md:text-sm font-bold rounded-full transition-all duration-300 ${
+              className={`relative z-10 w-full min-h-11 px-2 py-2 text-[11px] sm:text-xs md:text-sm font-bold rounded-full transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/40 ${
                 activeTab === tab 
                   ? "text-white drop-shadow-sm" 
                   : "text-slate-500 hover:text-slate-800 hover:bg-white/40"

@@ -50,7 +50,7 @@ export default function RangePickerBooking() {
           start: slot.from,
           end: slot.to || slot.from,
         });
-      } catch (e) {
+      } catch {
         return [slot.from];
       }
     }),
@@ -168,9 +168,10 @@ export default function RangePickerBooking() {
         } else {
           throw new Error(data.error || "Upload failed");
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : "Upload failed";
         setFiles((prev) =>
-          prev.map((f) => (f.id === uploadItem.id ? { ...f, status: "error", errorMsg: error.message } : f))
+          prev.map((f) => (f.id === uploadItem.id ? { ...f, status: "error", errorMsg: errorMessage } : f))
         );
       }
     }
@@ -277,7 +278,7 @@ export default function RangePickerBooking() {
           try {
             const days = eachDayOfInterval({ start: s.from, end: s.to });
             days.forEach(d => allDates.add(format(d, "yyyy-MM-dd")));
-          } catch (e) {
+          } catch {
             allDates.add(format(s.from, "yyyy-MM-dd"));
           }
         }
@@ -347,7 +348,7 @@ export default function RangePickerBooking() {
           setFormData({ bookerName: "", eventName: "", phone: "", contact: "", email: "", notes: "" });
           setBookingSlots([]);
           setFiles([]);
-        }, 15000);
+        }, 700);
       } else {
         showAlert("เกิดข้อผิดพลาดในการจองคิว โปรดลองอีกครั้ง", "error");
       }
@@ -397,17 +398,20 @@ export default function RangePickerBooking() {
   }
 
   return (
-    <div className="w-[95%] max-w-[1800px] mx-auto flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 xl:gap-8 items-stretch py-4 lg:py-6 pb-24 lg:pb-6">
+    <div className="pcc-touch-bottom-safe w-full max-w-[1680px] mx-auto flex-1 grid grid-cols-1 xl:grid-cols-12 gap-4 lg:gap-5 2xl:gap-6 items-start px-3 sm:px-4 lg:px-6 py-3 sm:py-4 lg:py-5 pb-28 xl:pb-6">
       
       {/* Left Box: Calendar & Queue List */}
-      <div className="lg:col-span-8 xl:col-span-8 bg-white p-4 md:p-6 lg:p-8 rounded-[2rem] shadow-xl border border-slate-200 flex flex-col lg:flex-row gap-6 xl:gap-8">
+      <div className="xl:col-span-8 bg-white p-3 sm:p-4 lg:p-5 2xl:p-6 rounded-2xl lg:rounded-[1.75rem] shadow-lg border border-slate-200 flex flex-col lg:flex-row gap-4 lg:gap-5 min-w-0">
         
         {/* Calendar Column */}
-        <div className="lg:w-2/3 flex flex-col lg:h-full bg-white lg:bg-transparent overflow-hidden border-b lg:border-none relative z-10 p-4 lg:p-0 shrink-0 lg:shrink">
-        <h2 className="text-2xl font-extrabold text-slate-800 mb-1 flex-none">จองคิวงานที่ต้องการ</h2>
-        <p className="text-sm text-slate-500 mb-6 flex-none">เลือกวันที่ เวลา และประเภทงาน จากนั้นกด "เพิ่มลงคิว"</p>
+        <div className="lg:flex-[1.55] min-w-0 flex flex-col bg-white lg:bg-transparent overflow-hidden border-b lg:border-none relative z-10 p-2 sm:p-3 lg:p-0 shrink-0 lg:shrink">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-blue-600 px-2 text-xs font-bold text-white">1</span>
+          <h2 className="text-xl sm:text-2xl font-extrabold text-slate-800 flex-none">เลือกวันและเวลาที่ต้องการ</h2>
+        </div>
+        <p className="text-xs sm:text-sm text-slate-500 mb-3 sm:mb-4 flex-none pl-8">เลือกวัน เวลา และประเภทงาน แล้วเพิ่มลงรายการคิวด้านข้าง</p>
         
-        <div className="bg-slate-50 rounded-2xl p-3 border border-slate-200 flex flex-col items-center flex-1 min-h-0">
+        <div className="bg-slate-50 rounded-2xl p-2.5 sm:p-3 border border-slate-200 flex flex-col items-center flex-1 min-h-0">
           <div className="w-full flex justify-center bg-white rounded-xl p-2 shadow-sm border border-slate-100 mb-3 flex-none">
             <Calendar
               mode="range"
@@ -418,7 +422,7 @@ export default function RangePickerBooking() {
               locale={th}
               disabled={disabledDates}
               fixedWeeks={true}
-              className="p-1 bg-transparent [--cell-size:2.2rem] md:[--cell-size:2.8rem] xl:[--cell-size:3rem] [&_.rdp-caption_label]:text-base [&_.rdp-weekday]:text-xs [&_.rdp-day_today]:bg-blue-50 [&_.rdp-day_today]:text-blue-600 [&_.rdp-day_today]:font-bold [&_.rdp-day_today]:border [&_.rdp-day_today]:border-blue-200"
+              className="p-0.5 sm:p-1 bg-transparent [--cell-size:2.15rem] sm:[--cell-size:2.45rem] lg:[--cell-size:2.55rem] 2xl:[--cell-size:2.8rem] [@media(max-height:820px)]:lg:[--cell-size:2.25rem] [&_.rdp-caption_label]:text-sm sm:[&_.rdp-caption_label]:text-base [&_.rdp-weekday]:text-xs [&_.rdp-day_today]:bg-blue-50 [&_.rdp-day_today]:text-blue-600 [&_.rdp-day_today]:font-bold [&_.rdp-day_today]:border [&_.rdp-day_today]:border-blue-200"
             />
           </div>
           
@@ -467,7 +471,7 @@ export default function RangePickerBooking() {
                       key={service}
                       type="button"
                       onClick={() => toggleTempService(service)}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 md:px-4 md:py-2 rounded-lg border font-medium transition-all text-xs md:text-sm ${
+                      className={`flex min-h-11 items-center gap-1.5 px-3 py-2 md:px-4 rounded-xl border font-medium transition-all text-xs md:text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 ${
                         isSelected 
                           ? "bg-blue-50 border-blue-500 text-blue-700 shadow-sm" 
                           : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
@@ -495,10 +499,11 @@ export default function RangePickerBooking() {
       </div>
 
       {/* Queue Column */}
-      <div className="w-full lg:w-[300px] xl:w-[350px] 2xl:w-[400px] bg-slate-50 p-6 rounded-[1.5rem] border border-blue-100 flex flex-col">
-          <h3 className="text-xl font-bold text-slate-800 mb-4 flex items-center justify-between flex-none">
-            <span className="flex items-center gap-2">
-              รายการคิวงาน
+      <div className="w-full lg:flex-[0.85] lg:min-w-[260px] bg-blue-50/40 p-4 sm:p-5 rounded-2xl border border-blue-100 flex flex-col min-w-0">
+          <h3 className="text-lg sm:text-xl font-bold text-slate-800 mb-3 flex items-center justify-between gap-3 flex-none">
+            <span className="flex items-center gap-2 min-w-0">
+              <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-blue-600 px-2 text-xs font-bold text-white">2</span>
+              <span className="truncate">ตรวจรายการคิวงาน</span>
             </span>
             <span className="bg-blue-100 text-blue-700 text-sm py-1 px-3 rounded-full font-bold">
               {bookingSlots.length} รายการ
@@ -531,8 +536,9 @@ export default function RangePickerBooking() {
                         <button
                           type="button"
                           onClick={() => handleRemoveSlot(slot.id)}
-                          className="text-slate-400 hover:text-red-500 transition-colors"
+                          className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/30"
                           title="ลบคิวนี้"
+                          aria-label={`ลบคิวที่ ${index + 1}`}
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -559,16 +565,22 @@ export default function RangePickerBooking() {
       </div>
 
       {/* Right Side: User Info Form */}
-      <div className="lg:col-span-4 xl:col-span-4 bg-white p-6 md:p-8 rounded-[2rem] shadow-xl border border-slate-200 flex flex-col h-full">
-        <h3 className="text-lg font-bold text-slate-900 mb-5 flex-none">ข้อมูลติดต่อเพื่อยืนยัน</h3>
-          <form onSubmit={handleSubmit} className="space-y-4 flex flex-col flex-1 overflow-y-auto custom-scrollbar pr-2 min-h-0">
+      <div className="xl:col-span-4 bg-white p-4 sm:p-5 lg:p-6 rounded-2xl lg:rounded-[1.75rem] shadow-lg border border-slate-200 flex flex-col min-w-0">
+        <div className="flex items-start gap-2 mb-4 flex-none">
+          <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-slate-900 px-2 text-xs font-bold text-white">3</span>
+          <div>
+            <h3 className="text-lg font-bold text-slate-900">กรอกข้อมูลติดต่อ</h3>
+            <p className="text-xs text-slate-500 mt-0.5">ตรวจรายการคิวให้เรียบร้อยก่อนยืนยันการจอง</p>
+          </div>
+        </div>
+          <form onSubmit={handleSubmit} className="space-y-3.5 flex flex-col flex-1 min-h-0">
             <div>
               <label className="block text-xs font-medium text-slate-700 mb-1">ชื่อผู้จอง <span className="text-red-500">*</span></label>
               <Input
                 required
                 value={formData.bookerName}
                 onChange={(e) => setFormData({ ...formData, bookerName: e.target.value })}
-                className="bg-slate-50 border-slate-200 text-sm h-10 rounded-xl"
+                className="bg-slate-50 border-slate-200 text-sm h-11 rounded-xl focus-visible:ring-blue-500/30"
                 placeholder="เช่น องค์การนักศึกษา, ชมรมดนตรี"
               />
             </div>
@@ -579,7 +591,7 @@ export default function RangePickerBooking() {
                 required
                 value={formData.eventName}
                 onChange={(e) => setFormData({ ...formData, eventName: e.target.value })}
-                className="bg-slate-50 border-slate-200 text-sm h-10 rounded-xl"
+                className="bg-slate-50 border-slate-200 text-sm h-11 rounded-xl focus-visible:ring-blue-500/30"
                 placeholder="เช่น กิจกรรมรับน้อง, งานปัจฉิมนิเทศ"
               />
             </div>
@@ -589,9 +601,10 @@ export default function RangePickerBooking() {
               <Input
                 required
                 type="email"
+                autoComplete="email"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="bg-slate-50 border-slate-200 text-sm h-10 rounded-xl"
+                className="bg-slate-50 border-slate-200 text-sm h-11 rounded-xl focus-visible:ring-blue-500/30"
                 placeholder="example@email.com"
               />
             </div>
@@ -599,9 +612,12 @@ export default function RangePickerBooking() {
             <div>
               <label className="block text-xs font-medium text-slate-700 mb-1">เบอร์โทรศัพท์</label>
               <Input
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                className="bg-slate-50 border-slate-200 text-sm h-10 rounded-xl"
+                className="bg-slate-50 border-slate-200 text-sm h-11 rounded-xl focus-visible:ring-blue-500/30"
                 placeholder="08x-xxx-xxxx (ไม่บังคับ)"
               />
             </div>
@@ -611,7 +627,7 @@ export default function RangePickerBooking() {
               <Input
                 value={formData.contact}
                 onChange={(e) => setFormData({ ...formData, contact: e.target.value })}
-                className="bg-slate-50 border-slate-200 text-sm h-10 rounded-xl"
+                className="bg-slate-50 border-slate-200 text-sm h-11 rounded-xl focus-visible:ring-blue-500/30"
                 placeholder="@line_id, IG (ไม่บังคับ)"
               />
             </div>
@@ -677,7 +693,7 @@ export default function RangePickerBooking() {
             <div className="pt-4 mt-auto">
               <Button 
                 type="submit" 
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold h-14 text-lg rounded-xl shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold h-12 sm:h-14 text-base sm:text-lg rounded-xl shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-blue-500/40"
                 disabled={bookingSlots.length === 0 || loading || isUploading || hasErrors}
               >
                 {loading ? (
@@ -685,7 +701,7 @@ export default function RangePickerBooking() {
                 ) : isUploading ? (
                   <span className="flex items-center"><Loader2 className="w-5 h-5 mr-2 animate-spin" /> รออัปโหลดไฟล์...</span>
                 ) : (
-                  "ยืนยันการจองคิว"
+                  <span className="flex items-center justify-center gap-2"><span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-white/20 px-2 text-xs font-bold">4</span> ยืนยันการจองคิว</span>
                 )}
               </Button>
             </div>

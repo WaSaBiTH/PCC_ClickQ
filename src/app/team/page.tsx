@@ -8,7 +8,7 @@ async function fetchTeamMembers() {
   try {
     const rawData = await getSheetData("Team_Members");
     const dataRows = rawData.slice(1);
-    return dataRows.map((row: any[]) => ({
+    return dataRows.map((row: string[]) => ({
       teamType: row[0] || "",
       memberName: row[1] || "",
       role: row[2] || "",
@@ -35,7 +35,7 @@ export default async function TeamPage() {
       <MainNav fbLink={fbLink} igLink={igLink} />
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 pt-24 pb-8 md:pt-32 md:pb-24 flex-1 flex flex-col justify-center">
+      <main className="pcc-touch-top-reset pcc-touch-bottom-safe container mx-auto px-3 sm:px-4 pt-6 sm:pt-8 xl:pt-28 pb-28 xl:pb-12 flex-1 flex flex-col justify-center">
         <TeamSection teamMembers={teamMembers} />
       </main>
     </div>

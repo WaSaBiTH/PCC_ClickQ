@@ -6,9 +6,8 @@ import { getSheetData } from "./google-sheets-api";
  */
 export async function getBookings() {
   try {
-    const res = await fetch(`${GAS_URL}?action=getBookings`, { 
-      // Next.js cache settings (revalidate every 60s)
-      next: { revalidate: 3600 }
+    const res = await fetch(`${GAS_URL}?action=getBookings`, {
+      cache: "no-store",
     });
     const result = await res.json();
     if (result.status === "success") {
@@ -118,8 +117,8 @@ export async function getApprovedGooglePhotosData(): Promise<{link: string, date
     
     // Gallery structure: Name(0), ServiceType(1), Date(2), GooglePhotosLink(3), FBLink(4), IGLink(5)
     const validGallery = dataRows
-      .map((row: any[], index: number) => ({ row, index }))
-      .filter((item: { row: any[], index: number }) => {
+      .map((row: unknown[], index: number) => ({ row, index }))
+      .filter((item: { row: unknown[], index: number }) => {
         const row = item.row;
         return row[3] && typeof row[3] === 'string' && row[3].trim() !== "";
       });
@@ -131,9 +130,12 @@ export async function getApprovedGooglePhotosData(): Promise<{link: string, date
     const uniqueLinks = new Set<string>();
     
     for (const item of validGallery) {
-      if (!uniqueLinks.has(item.row[3])) {
-        uniqueLinks.add(item.row[3]);
-        results.push({ link: item.row[3], date: item.row[2] || "" });
+      const link = item.row[3];
+      if (typeof link !== "string") continue;
+      const date = typeof item.row[2] === "string" ? item.row[2] : String(item.row[2] ?? "");
+      if (!uniqueLinks.has(link)) {
+        uniqueLinks.add(link);
+        results.push({ link, date });
       }
     }
     

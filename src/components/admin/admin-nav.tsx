@@ -16,7 +16,7 @@ export default function AdminNav({ activePage }: AdminNavProps) {
 
   const getButtonClass = (page: string) => {
     const isActive = activePage === page;
-    return `lg:w-auto lg:px-4 transition-colors ${isActive ? 'text-orange-600 bg-orange-50 font-bold hover:bg-orange-100 hover:text-orange-700' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'}`;
+    return `h-10 w-10 sm:h-11 sm:w-11 lg:w-auto lg:px-4 transition-colors ${isActive ? 'text-orange-600 bg-orange-50 font-bold hover:bg-orange-100 hover:text-orange-700' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'}`;
   };
 
   return (
@@ -53,7 +53,7 @@ export default function AdminNav({ activePage }: AdminNavProps) {
             </Button>
           </Link>
           <div className="w-px h-6 bg-slate-200 mx-0.5 sm:mx-1 hidden sm:block"></div>
-          <Button variant="ghost" size="icon" className="lg:w-auto lg:px-4 text-red-600 hover:text-red-700 hover:bg-red-50" title="ออกจากระบบ" disabled={navigatingAction === 'logout'} onClick={async () => {
+          <Button variant="ghost" size="icon" className="h-10 w-10 sm:h-11 sm:w-11 lg:w-auto lg:px-4 text-red-600 hover:text-red-700 hover:bg-red-50" title="ออกจากระบบ" disabled={navigatingAction === 'logout'} onClick={async () => {
             setNavigatingAction('logout');
             await fetch('/api/admin/logout', { method: 'POST' });
             router.replace('/');

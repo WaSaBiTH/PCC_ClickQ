@@ -55,7 +55,7 @@ export default function HomeLayout({ heroSection, teamSection, fbLink, igLink }:
         <Link 
           prefetch={false}
           href="/admin/dashboard" 
-          className="fixed top-16 right-0 w-12 h-12 opacity-0 hover:opacity-100 focus-visible:opacity-100 transition-opacity flex items-center justify-center bg-black/10 z-40 text-[10px] font-bold text-slate-800 rounded-bl-xl"
+          className="pcc-admin-hotspot hidden xl:flex fixed top-16 right-0 w-12 h-12 opacity-0 hover:opacity-100 focus-visible:opacity-100 transition-opacity items-center justify-center bg-black/10 z-40 text-[10px] font-bold text-slate-800 rounded-bl-xl"
           title="Management Queue"
         >
           Admin
@@ -68,13 +68,13 @@ export default function HomeLayout({ heroSection, teamSection, fbLink, igLink }:
         style={{ transform: activeSection === "team" ? "translateY(-100svh)" : "translateY(0)" }}
       >
         {/* Section 1: Hero */}
-        <div className="h-[100svh] w-full pt-4 md:pt-16 relative">
+        <div className="pcc-touch-home-hero h-[100svh] w-full pt-4 xl:pt-16 relative">
           {heroSection}
         </div>
 
         {/* Section 2: Team */}
         <div 
-          className="h-[100svh] w-full bg-slate-100 text-slate-900 pt-20 md:pt-24 pb-0 flex flex-col justify-start relative overflow-y-auto overflow-x-hidden max-w-[100vw]"
+          className="pcc-touch-home-team h-[100svh] w-full bg-slate-100 text-slate-900 pt-8 xl:pt-24 pb-0 flex flex-col justify-start relative overflow-y-auto overflow-x-hidden max-w-[100vw]"
           style={{ WebkitOverflowScrolling: 'touch' }}
         >
           {teamSection}

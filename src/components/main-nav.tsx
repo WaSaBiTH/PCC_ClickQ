@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Instagram, Facebook } from '@thesvg/react';
@@ -26,6 +26,17 @@ export default function MainNav({ activeOverride, onHomeClick, onTeamClick, fbLi
   const [navigatingAction, setNavigatingAction] = useState<string | null>(null);
   const [isNavVisible, setIsNavVisible] = useState(true);
 
+  useEffect(() => {
+    // iPadOS can report a desktop-sized viewport in landscape (and may expose
+    // fine pointer capabilities when a trackpad is attached). Mark it
+    // explicitly so the public navigation still stays at the bottom.
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const isIPadOS = navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
+    if (isIOS || isIPadOS) {
+      document.documentElement.classList.add("pcc-touch-device");
+    }
+  }, []);
+
   const navItems = [
     { name: "หน้าแรก", href: "/", id: "/" },
     { name: "แกลลอรี่", href: "/gallery", id: "/gallery" },
@@ -35,8 +46,8 @@ export default function MainNav({ activeOverride, onHomeClick, onTeamClick, fbLi
 
   return (
     <>
-      {/* Desktop & Tablet Top Navigation */}
-      <nav className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-md border-b border-slate-200 shadow-sm">
+      {/* Desktop Top Navigation: hidden on phones/tablets, including landscape touch devices */}
+      <nav className="pcc-desktop-nav hidden xl:block fixed top-0 w-full z-50 bg-white/80 backdrop-blur-md border-b border-slate-200 shadow-sm">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between relative max-w-7xl">
           
           {/* Logo & Social Links */}
@@ -119,21 +130,22 @@ export default function MainNav({ activeOverride, onHomeClick, onTeamClick, fbLi
         </div>
       </nav>
 
-      {/* Mobile Bottom Navigation (Sticky) */}
-      <nav className={`lg:hidden fixed bottom-0 w-full z-50 transition-transform duration-300 ease-in-out ${isNavVisible ? 'translate-y-0' : 'translate-y-full'}`}>
+      {/* Phone & Tablet Bottom Navigation (including landscape touch devices) */}
+      <nav className={`pcc-bottom-nav xl:hidden fixed bottom-0 w-full z-50 transition-transform duration-300 ease-in-out ${isNavVisible ? 'translate-y-0' : 'translate-y-full'}`}>
         {/* Toggle Button */}
         <button 
           onClick={() => setIsNavVisible(!isNavVisible)}
-          className="absolute -top-7 left-1/2 -translate-x-1/2 bg-white border border-slate-200 border-b-0 rounded-t-xl px-6 py-1.5 text-slate-500 shadow-[0_-4px_6px_rgba(0,0,0,0.05)] flex items-center justify-center z-10"
-          aria-label="Toggle Navigation"
+          className="absolute -top-9 left-1/2 -translate-x-1/2 h-9 min-w-20 bg-white border border-slate-200 border-b-0 rounded-t-xl px-8 text-slate-500 hover:text-slate-800 shadow-[0_-4px_6px_rgba(0,0,0,0.05)] flex items-center justify-center z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/40"
+          aria-label={isNavVisible ? "ซ่อนเมนูนำทาง" : "แสดงเมนูนำทาง"}
+          aria-expanded={isNavVisible}
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform duration-300 ${!isNavVisible ? 'rotate-180 -translate-y-0.5' : 'translate-y-0.5'}`}>
             <polyline points="6 9 12 15 18 9"/>
           </svg>
         </button>
         
-        <div className="bg-white border-t pb-safe shadow-[0_-5px_15px_-5px_rgba(0,0,0,0.1)] relative z-20">
-          <div className="flex items-center justify-around h-16 px-2">
+        <div className="bg-white border-t pb-[env(safe-area-inset-bottom)] shadow-[0_-5px_15px_-5px_rgba(0,0,0,0.1)] relative z-20">
+          <div className="flex items-center justify-around h-16 px-1 sm:px-2">
             <Link 
               prefetch={false}
               href="/"

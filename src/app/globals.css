@@ -128,3 +128,115 @@
     @apply font-sans overflow-x-hidden;
   }
 }
+
+/* Public navigation capability rules.
+   Touch-first devices (phones/tablets, including landscape iPad) always keep
+   navigation at the bottom even when their CSS viewport is desktop-sized. */
+@supports (-webkit-touch-callout: none) {
+  .pcc-desktop-nav {
+    display: none !important;
+  }
+
+  .pcc-bottom-nav {
+    display: block !important;
+  }
+
+  .pcc-admin-hotspot {
+    display: none !important;
+  }
+
+  .pcc-touch-top-reset {
+    padding-top: 1rem !important;
+  }
+
+  .pcc-touch-bottom-safe {
+    padding-bottom: calc(7rem + env(safe-area-inset-bottom)) !important;
+  }
+
+  .pcc-touch-viewport-auto {
+    height: auto !important;
+    min-height: 100dvh !important;
+    overflow: visible !important;
+  }
+
+  .pcc-touch-home-hero {
+    padding-top: 1rem !important;
+    padding-bottom: calc(5rem + env(safe-area-inset-bottom)) !important;
+  }
+
+  .pcc-touch-home-team {
+    padding-top: 1.5rem !important;
+  }
+}
+
+html.pcc-touch-device .pcc-desktop-nav {
+  display: none !important;
+}
+
+html.pcc-touch-device .pcc-bottom-nav {
+  display: block !important;
+}
+
+html.pcc-touch-device .pcc-admin-hotspot {
+  display: none !important;
+}
+
+html.pcc-touch-device .pcc-touch-top-reset {
+  padding-top: 1rem !important;
+}
+
+html.pcc-touch-device .pcc-touch-bottom-safe {
+  padding-bottom: calc(7rem + env(safe-area-inset-bottom)) !important;
+}
+
+html.pcc-touch-device .pcc-touch-viewport-auto {
+  height: auto !important;
+  min-height: 100dvh !important;
+  overflow: visible !important;
+}
+
+html.pcc-touch-device .pcc-touch-home-hero {
+  padding-top: 1rem !important;
+  padding-bottom: calc(5rem + env(safe-area-inset-bottom)) !important;
+}
+
+html.pcc-touch-device .pcc-touch-home-team {
+  padding-top: 1.5rem !important;
+}
+
+@media (hover: none), (pointer: coarse) {
+  .pcc-desktop-nav {
+    display: none !important;
+  }
+
+  .pcc-bottom-nav {
+    display: block !important;
+  }
+
+  .pcc-admin-hotspot {
+    display: none !important;
+  }
+
+  .pcc-touch-top-reset {
+    padding-top: 1rem !important;
+  }
+
+  .pcc-touch-bottom-safe {
+    padding-bottom: calc(7rem + env(safe-area-inset-bottom)) !important;
+  }
+
+  .pcc-touch-viewport-auto {
+    height: auto !important;
+    min-height: 100dvh !important;
+    overflow: visible !important;
+  }
+
+  .pcc-touch-home-hero {
+    padding-top: 1rem !important;
+    padding-bottom: calc(5rem + env(safe-area-inset-bottom)) !important;
+  }
+
+  .pcc-touch-home-team {
+    padding-top: 1.5rem !important;
+  }
+}
