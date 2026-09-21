@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
-import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import MainNav from "@/components/main-nav";
 
@@ -15,16 +14,7 @@ interface HomeLayoutProps {
 
 export default function HomeLayout({ heroSection, teamSection, fbLink, igLink }: HomeLayoutProps) {
   const [activeSection, setActiveSection] = useState<"hero" | "team">("hero");
-  const [isNavVisible, setIsNavVisible] = useState(true);
-  const [navigatingAction, setNavigatingAction] = useState<string | null>(null);
   const pathname = usePathname();
-  
-  // Custom Loader Component
-  const NavLoader = ({ className = "w-4 h-4 mr-2 animate-spin" }) => (
-    <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-    </svg>
-  );
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -45,7 +35,7 @@ export default function HomeLayout({ heroSection, teamSection, fbLink, igLink }:
   return (
     <main className="h-[100svh] w-full bg-slate-100 text-slate-900 overflow-hidden relative">
       <MainNav 
-        activeOverride={activeSection === "hero" ? "/" : "team"} 
+        activeOverride={activeSection === "hero" ? "/" : "/team"}
         onHomeClick={() => {
           setActiveSection("hero");
           window.history.pushState(null, "", "/");
@@ -65,7 +55,7 @@ export default function HomeLayout({ heroSection, teamSection, fbLink, igLink }:
         <Link 
           prefetch={false}
           href="/admin/dashboard" 
-          className="fixed top-0 right-0 w-16 h-16 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center bg-black/10 z-[100] text-xs font-bold text-slate-800"
+          className="fixed top-16 right-0 w-12 h-12 opacity-0 hover:opacity-100 focus-visible:opacity-100 transition-opacity flex items-center justify-center bg-black/10 z-40 text-[10px] font-bold text-slate-800 rounded-bl-xl"
           title="Management Queue"
         >
           Admin

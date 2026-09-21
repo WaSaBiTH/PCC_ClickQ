@@ -72,7 +72,7 @@ export default function MainNav({ activeOverride, onHomeClick, onTeamClick, fbLi
           </div>
           
           {/* Desktop Nav Links */}
-          <div className="hidden md:flex gap-6 items-center h-full">
+          <div className="hidden lg:flex gap-6 items-center h-full">
             {navItems.map((item) => {
               const isActive = currentPath === item.id;
               
@@ -85,7 +85,7 @@ export default function MainNav({ activeOverride, onHomeClick, onTeamClick, fbLi
                     if (item.id === "/" && onHomeClick && pathname === "/") {
                       e.preventDefault();
                       onHomeClick();
-                    } else if (item.id === "team" && onTeamClick && pathname === "/") {
+                    } else if (item.id === "/team" && onTeamClick && pathname === "/") {
                       e.preventDefault();
                       onTeamClick();
                     } else if (item.id !== currentPath) {
@@ -120,7 +120,7 @@ export default function MainNav({ activeOverride, onHomeClick, onTeamClick, fbLi
       </nav>
 
       {/* Mobile Bottom Navigation (Sticky) */}
-      <nav className={`md:hidden fixed bottom-0 w-full z-50 transition-transform duration-300 ease-in-out ${isNavVisible ? 'translate-y-0' : 'translate-y-full'}`}>
+      <nav className={`lg:hidden fixed bottom-0 w-full z-50 transition-transform duration-300 ease-in-out ${isNavVisible ? 'translate-y-0' : 'translate-y-full'}`}>
         {/* Toggle Button */}
         <button 
           onClick={() => setIsNavVisible(!isNavVisible)}

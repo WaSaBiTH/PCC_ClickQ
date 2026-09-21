@@ -3,8 +3,7 @@ import AdminNav from "@/components/admin/admin-nav";
 
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Loader2, ArrowLeft, Save, Plus, Trash2, ArrowUp, ArrowDown } from "lucide-react";
-import Link from "next/link";
+import { Loader2, Save, Plus, Trash2, ArrowUp, ArrowDown } from "lucide-react";
 
 export default function SettingsClient() {
   const [customUrls, setCustomUrls] = useState<string[]>([""]);
@@ -15,7 +14,6 @@ export default function SettingsClient() {
   const [isSaving, setIsSaving] = useState(false);
   const [isSavingCalendar, setIsSavingCalendar] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [navigatingAction, setNavigatingAction] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   
   // Custom Toast Notification State
@@ -80,7 +78,7 @@ export default function SettingsClient() {
         setEnableCalendar(checked);
         showToast(checked ? "เปิดใช้งาน Calendar Invites แล้ว" : "ปิดใช้งาน Calendar Invites แล้ว");
       }
-    } catch (e) {
+    } catch {
       showToast("Error updating settings", "error");
     } finally {
       setIsSavingCalendar(false);
@@ -321,7 +319,7 @@ export default function SettingsClient() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-blue-50 border border-blue-200 rounded-lg gap-4">
             <div>
               <h3 className="font-semibold text-blue-900">เปิด/ปิด การส่ง Calendar Invite อัตโนมัติ</h3>
-              <p className="text-sm text-blue-700 mt-1">หากเปิดใช้งาน ระบบจะส่งปฏิทินเชิญให้ผู้จองและทีมงานอัตโนมัติทันทีที่กด "Accept (รับงาน)"</p>
+              <p className="text-sm text-blue-700 mt-1">หากเปิดใช้งาน ระบบจะส่งปฏิทินเชิญให้ผู้จองและทีมงานอัตโนมัติทันทีที่กด &quot;Accept (รับงาน)&quot;</p>
             </div>
             
             {isLoading || isSavingCalendar ? (
@@ -385,7 +383,7 @@ export default function SettingsClient() {
         {/* Prune Confirmation Dialog */}
         {showPruneDialog && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white p-6 rounded-lg shadow-lg w-[400px]">
+            <div className="bg-white p-6 rounded-lg shadow-lg w-[400px] max-w-[calc(100vw-2rem)]">
               <h3 className="text-xl font-bold text-red-600 mb-2">ยืนยันการล้างข้อมูล</h3>
               <p className="text-sm text-slate-600 mb-4">
                 การกระทำนี้จะลบข้อมูลคิวงานทั้งหมดและไม่สามารถกู้คืนได้ (ยกเว้น Team, Settings, Gallery)<br/><br/>
